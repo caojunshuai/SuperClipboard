@@ -151,25 +151,24 @@ mod win {
             return None;
         }
 
-        // Color table size: only present for indexed formats (≤8 bpp),
-        // or for BI_BITFIELDS (compression=3) with 16/32 bpp.
-        let color_table_size: usize = match bit_count {
-            1 => 2 * 4,
-            4 => 16 * 4,
-            8 => 256 * 4,
-            _ => {
-                if compression == 3 { // BI_BITFIELDS
-                    if bit_count == 16 { 3 * 4 }
-                    else if bit_count == 32 { 4 * 4 }
-                    else { 0 }
-                } else { 0 }
-            }
+        // Compute expected pixel data size (BMP rows are 4-byte aligned).
+        let row_size = ((abs_width * bit_count as u32 + 31) / 32) * 4;
+        let expected_pixels = row_size as usize * abs_height as usize;
+
+        // The DIB from clipboard = header + optional masks/color-table + pixel data.
+        // Instead of guessing the masks size (which differs between
+        // BITMAPINFOHEADER 3-mask and later 4-mask variants), compute it
+        // from what's left after subtracting header and expected pixels.
+        let color_table_size: usize = if dib.len() > header_size + expected_pixels {
+            dib.len() - header_size - expected_pixels
+        } else {
+            0
         };
 
         let pixel_offset: u32 = (14 + header_size + color_table_size) as u32;
         let file_size = 14 + dib.len();
-        debug_log!("dib_to_png: building BMP file_size={} pixel_offset={} color_table={}",
-            file_size, pixel_offset, color_table_size);
+        debug_log!("dib_to_png: building BMP file_size={} pixel_offset={} color_table_size={} expected_pixels={}",
+            file_size, pixel_offset, color_table_size, expected_pixels);
 
         let mut bmp = Vec::with_capacity(file_size);
         bmp.extend_from_slice(b"BM");
