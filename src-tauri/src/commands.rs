@@ -197,7 +197,7 @@ fn set_clipboard_image(png_path: &str) -> Result<(), String> {
         .map_err(|e| format!("Failed to decode image: {}", e))?;
     let (w, h) = img.dimensions();
 
-    // Build a bottom-up DIB with 32-bit BGRA pixel data.
+    // Build a top-down DIB with 32-bit BGRA pixel data.
     // BITMAPINFOHEADER (40 bytes) + pixel rows (4-byte aligned).
     let row_size = ((w * 32 + 31) / 32) * 4;
     let pixel_size = row_size as usize * h as usize;
@@ -225,13 +225,12 @@ fn set_clipboard_image(png_path: &str) -> Result<(), String> {
         buf[20..24].copy_from_slice(&(pixel_size as u32).to_le_bytes());   // biSizeImage
         // biXPelsPerMeter, biYPelsPerMeter, biClrUsed, biClrImportant all zero
 
-        // Write pixel rows bottom-up in BGRA order
+        // biHeight is negative (top-down DIB), so row 0 = top of image.
+        // No row flipping needed — write rows in natural order.
         for y in 0..h {
-            let src_row = y;
-            let dst_row = h - 1 - y; // bottom-up
-            let dst_offset = header_size + dst_row as usize * row_size as usize;
+            let dst_offset = header_size + y as usize * row_size as usize;
             for x in 0..w {
-                let pixel = img.get_pixel(x, src_row);
+                let pixel = img.get_pixel(x, y);
                 let px_offset = dst_offset + x as usize * 4;
                 buf[px_offset] = pixel[2];     // B
                 buf[px_offset + 1] = pixel[1]; // G

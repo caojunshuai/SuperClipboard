@@ -1,4 +1,4 @@
-use rusqlite::{params, Connection, Result as SqliteResult};
+use rusqlite::{params, Connection, Result as SqliteResult, OptionalExtension};
 use once_cell::sync::OnceCell;
 use std::sync::Mutex;
 use crate::models::*;
@@ -23,6 +23,7 @@ pub fn init_db(app_data_dir: &std::path::Path) -> SqliteResult<()> {
             source_app      TEXT,
             char_count      INTEGER,
             image_size      TEXT,
+            content_hash    INTEGER,
             is_pinned       INTEGER DEFAULT 0,
             is_favorite     INTEGER DEFAULT 0,
             metadata        TEXT,
@@ -34,6 +35,7 @@ pub fn init_db(app_data_dir: &std::path::Path) -> SqliteResult<()> {
         CREATE INDEX IF NOT EXISTS idx_created_at ON clipboard_items(created_at);
         CREATE INDEX IF NOT EXISTS idx_pinned ON clipboard_items(is_pinned);
         CREATE INDEX IF NOT EXISTS idx_favorite ON clipboard_items(is_favorite);
+        CREATE INDEX IF NOT EXISTS idx_dedup ON clipboard_items(type, content_hash);
 
         CREATE TABLE IF NOT EXISTS settings (
             key   TEXT PRIMARY KEY,
@@ -60,6 +62,10 @@ pub fn init_db(app_data_dir: &std::path::Path) -> SqliteResult<()> {
         END;
     ")?;
 
+    // Migration: add content_hash column and dedup index for existing databases
+    conn.execute("ALTER TABLE clipboard_items ADD COLUMN content_hash INTEGER", []).ok();
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_dedup ON clipboard_items(type, content_hash)", []).ok();
+
     DB.set(Mutex::new(conn)).map_err(|_| {
         rusqlite::Error::InvalidParameterName("DB already initialized".into())
     })?;
@@ -71,11 +77,32 @@ fn get_conn() -> &'static Mutex<Connection> {
     DB.get().expect("Database not initialized")
 }
 
-pub fn insert_item(item: &ClipboardItem, _images_dir: &std::path::Path) -> SqliteResult<i64> {
+/// Upsert a clipboard item. If an item with the same type and content_hash
+/// already exists, update its timestamps instead of inserting a duplicate.
+/// Returns (id, is_new_insert).
+pub fn upsert_item(item: &ClipboardItem) -> SqliteResult<(i64, bool)> {
     let conn = get_conn().lock().unwrap();
+
+    // Try dedup if we have a content hash
+    if let Some(hash) = item.content_hash {
+        if let Some(existing_id) = conn.query_row(
+            "SELECT id FROM clipboard_items WHERE type = ?1 AND content_hash = ?2 ORDER BY created_at DESC LIMIT 1",
+            params![item.item_type.as_str(), hash],
+            |row| row.get(0),
+        ).optional()? {
+            // Duplicate found — just bump timestamps to bring it to the top
+            conn.execute(
+                "UPDATE clipboard_items SET updated_at = datetime('now', 'localtime'), created_at = datetime('now', 'localtime') WHERE id = ?1",
+                params![existing_id],
+            )?;
+            return Ok((existing_id, false));
+        }
+    }
+
+    // No duplicate — insert new row
     conn.execute(
-        "INSERT INTO clipboard_items (type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, metadata)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+        "INSERT INTO clipboard_items (type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, metadata, content_hash)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
         params![
             item.item_type.as_str(),
             item.content,
@@ -86,9 +113,10 @@ pub fn insert_item(item: &ClipboardItem, _images_dir: &std::path::Path) -> Sqlit
             item.char_count,
             item.image_size,
             item.metadata,
+            item.content_hash,
         ],
     )?;
-    Ok(conn.last_insert_rowid())
+    Ok((conn.last_insert_rowid(), true))
 }
 
 pub fn query_history(query: &HistoryQuery) -> SqliteResult<HistoryResult> {
@@ -147,7 +175,7 @@ pub fn query_history(query: &HistoryQuery) -> SqliteResult<HistoryResult> {
     let limit_idx = bind_values.len() + 1;
     let offset_idx = bind_values.len() + 2;
     let query_sql = format!(
-        "SELECT id, type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, is_pinned, is_favorite, metadata, created_at, updated_at
+        "SELECT id, type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, is_pinned, is_favorite, metadata, content_hash, created_at, updated_at
          FROM clipboard_items {}
          ORDER BY is_pinned DESC, created_at DESC
          LIMIT ?{} OFFSET ?{}",
@@ -174,8 +202,9 @@ pub fn query_history(query: &HistoryQuery) -> SqliteResult<HistoryResult> {
             is_pinned: row.get::<_, i32>(9)? != 0,
             is_favorite: row.get::<_, i32>(10)? != 0,
             metadata: row.get(11)?,
-            created_at: row.get(12)?,
-            updated_at: row.get(13)?,
+            content_hash: row.get(12)?,
+            created_at: row.get(13)?,
+            updated_at: row.get(14)?,
         })
     })?.filter_map(|r| r.ok()).collect();
 
@@ -205,7 +234,7 @@ pub fn toggle_favorite(id: i64) -> SqliteResult<bool> {
 pub fn get_item(id: i64) -> SqliteResult<Option<ClipboardItem>> {
     let conn = get_conn().lock().unwrap();
     let mut stmt = conn.prepare(
-        "SELECT id, type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, is_pinned, is_favorite, metadata, created_at, updated_at
+        "SELECT id, type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, is_pinned, is_favorite, metadata, content_hash, created_at, updated_at
          FROM clipboard_items WHERE id = ?1"
     )?;
     let mut rows = stmt.query_map(params![id], |row| {
@@ -222,8 +251,9 @@ pub fn get_item(id: i64) -> SqliteResult<Option<ClipboardItem>> {
             is_pinned: row.get::<_, i32>(9)? != 0,
             is_favorite: row.get::<_, i32>(10)? != 0,
             metadata: row.get(11)?,
-            created_at: row.get(12)?,
-            updated_at: row.get(13)?,
+            content_hash: row.get(12)?,
+            created_at: row.get(13)?,
+            updated_at: row.get(14)?,
         })
     })?;
     Ok(rows.next().transpose()?)
@@ -284,7 +314,7 @@ pub fn cleanup_old_items(max_items: i64, max_images: i64) -> SqliteResult<(usize
 pub fn get_all_items_for_backup() -> SqliteResult<Vec<ClipboardItem>> {
     let conn = get_conn().lock().unwrap();
     let mut stmt = conn.prepare(
-        "SELECT id, type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, is_pinned, is_favorite, metadata, created_at, updated_at
+        "SELECT id, type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, is_pinned, is_favorite, metadata, content_hash, created_at, updated_at
          FROM clipboard_items ORDER BY id"
     )?;
     let items = stmt.query_map([], |row| {
@@ -301,8 +331,9 @@ pub fn get_all_items_for_backup() -> SqliteResult<Vec<ClipboardItem>> {
             is_pinned: row.get::<_, i32>(9)? != 0,
             is_favorite: row.get::<_, i32>(10)? != 0,
             metadata: row.get(11)?,
-            created_at: row.get(12)?,
-            updated_at: row.get(13)?,
+            content_hash: row.get(12)?,
+            created_at: row.get(13)?,
+            updated_at: row.get(14)?,
         })
     })?.filter_map(|r| r.ok()).collect();
     Ok(items)
@@ -314,8 +345,8 @@ pub fn restore_from_backup(items: &[ClipboardItem]) -> SqliteResult<usize> {
     let mut count = 0;
     for item in items {
         conn.execute(
-            "INSERT INTO clipboard_items (id, type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, is_pinned, is_favorite, metadata, created_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+            "INSERT INTO clipboard_items (id, type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, is_pinned, is_favorite, metadata, content_hash, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
             params![
                 item.id,
                 item.item_type.as_str(),
@@ -329,6 +360,7 @@ pub fn restore_from_backup(items: &[ClipboardItem]) -> SqliteResult<usize> {
                 item.is_pinned as i32,
                 item.is_favorite as i32,
                 item.metadata,
+                item.content_hash,
                 item.created_at,
                 item.updated_at,
             ],

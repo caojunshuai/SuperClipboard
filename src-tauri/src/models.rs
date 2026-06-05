@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum ItemType {
     Text,
@@ -41,6 +41,8 @@ pub struct ClipboardItem {
     pub is_pinned: bool,
     pub is_favorite: bool,
     pub metadata: Option<String>,
+    #[serde(default)]
+    pub content_hash: Option<i64>,
     pub created_at: String,
     pub updated_at: String,
 }

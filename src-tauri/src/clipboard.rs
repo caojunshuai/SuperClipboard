@@ -4,19 +4,39 @@ use tauri::Emitter;
 use crate::models::{ClipboardItem, ItemType};
 use crate::storage;
 
-/// Write a debug line to the log file in the current directory.
-/// Use to trace clipboard monitor behaviour without a console.
-macro_rules! debug_log {
-    ($($arg:tt)*) => {{
-        if let Ok(mut f) = std::fs::OpenOptions::new()
-            .create(true).append(true)
-            .open("superclipboard_debug.log")
-        {
-            use std::io::Write;
-            let ts = chrono::Local::now().format("%H:%M:%S%.3f");
-            let _ = writeln!(f, "[{}] {}", ts, format!($($arg)*));
+/// FNV-1a 64-bit hash — deterministic, no dependencies, fast.
+/// Used for content deduplication across sessions.
+fn fnv1a_64(data: &[u8]) -> i64 {
+    let mut hash: u64 = 0xcbf29ce484222325;
+    for &byte in data {
+        hash ^= byte as u64;
+        hash = hash.wrapping_mul(0x100000001b3);
+    }
+    hash as i64
+}
+
+/// Compute a deterministic content hash for dedup, based on the item type.
+fn compute_content_hash(item: &ClipboardItem) -> Option<i64> {
+    match item.item_type {
+        ItemType::Text => {
+            item.content.as_ref().map(|text| fnv1a_64(text.as_bytes()))
         }
-    }};
+        ItemType::Image => {
+            // Hash the saved PNG file bytes so two copies of the same image
+            // produce the same hash regardless of filename.
+            item.image_path.as_ref().and_then(|path| {
+                std::fs::read(path).ok().map(|data| fnv1a_64(&data))
+            })
+        }
+        ItemType::File => {
+            item.file_paths.as_ref().map(|paths| fnv1a_64(paths.as_bytes()))
+        }
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn get_clipboard_sequence_number() -> u32 {
+    unsafe { windows_sys::Win32::System::DataExchange::GetClipboardSequenceNumber() }
 }
 
 #[cfg(target_os = "windows")]
@@ -56,41 +76,24 @@ mod win {
             use windows_sys::Win32::System::DataExchange::*;
             use windows_sys::Win32::System::Memory::*;
 
-            if OpenClipboard(0) == 0 {
-                debug_log!("get_clipboard_image: OpenClipboard failed");
-                return None;
-            }
+            if OpenClipboard(0) == 0 { return None; }
 
-            // Check which formats are actually available
-            let has_dib = IsClipboardFormatAvailable(8) != 0;
-            let has_dibv5 = IsClipboardFormatAvailable(17) != 0;
-            let has_bitmap = IsClipboardFormatAvailable(2) != 0;
-            debug_log!("get_clipboard_image: CF_DIB={} CF_DIBV5={} CF_BITMAP={}", has_dib, has_dibv5, has_bitmap);
-
-            let format = if has_dib { 8 }
-                        else if has_dibv5 { 17 }
-                        else if has_bitmap { 2 }
+            let format = if IsClipboardFormatAvailable(8) != 0 { 8 }       // CF_DIB
+                        else if IsClipboardFormatAvailable(17) != 0 { 17 }  // CF_DIBV5
+                        else if IsClipboardFormatAvailable(2) != 0 { 2 }    // CF_BITMAP
                         else { CloseClipboard(); return None; };
 
             let handle = GetClipboardData(format);
-            if handle == 0 {
-                debug_log!("get_clipboard_image: GetClipboardData({}) returned NULL", format);
-                CloseClipboard(); return None;
-            }
+            if handle == 0 { CloseClipboard(); return None; }
 
             let ptr = GlobalLock(handle as _) as *const u8;
-            if ptr.is_null() {
-                debug_log!("get_clipboard_image: GlobalLock returned NULL for format {}", format);
-                CloseClipboard(); return None;
-            }
+            if ptr.is_null() { CloseClipboard(); return None; }
             let size = GlobalSize(handle as _) as usize;
-            debug_log!("get_clipboard_image: format={} size={} bytes", format, size);
             let dib_data = std::slice::from_raw_parts(ptr, size).to_vec();
             GlobalUnlock(handle as _);
             CloseClipboard();
 
             if let Some((png_data, width, height)) = dib_to_png(&dib_data) {
-                debug_log!("get_clipboard_image: dib_to_png OK {}x{} png={}B", width, height, png_data.len());
                 let ts = chrono::Local::now().format("%Y%m%d%H%M%S%3f");
                 let filename = format!("img_{}.png", ts);
                 let img_path = images_dir.join(&filename);
@@ -109,12 +112,6 @@ mod win {
                     format!("{}x{}", width, height),
                 ))
             } else {
-                debug_log!("get_clipboard_image: dib_to_png returned None (len={} header_size={})",
-                    dib_data.len(),
-                    if dib_data.len() >= 4 {
-                        u32::from_le_bytes([dib_data[0], dib_data[1], dib_data[2], dib_data[3]]) as usize
-                    } else { 0 }
-                );
                 None
             }
         }
@@ -122,43 +119,25 @@ mod win {
 
     fn dib_to_png(dib: &[u8]) -> Option<(Vec<u8>, u32, u32)> {
         use std::io::Cursor;
-        if dib.len() < 40 {
-            debug_log!("dib_to_png: dib too short ({})", dib.len());
-            return None;
-        }
+        if dib.len() < 40 { return None; }
 
         let header_size = u32::from_le_bytes([dib[0], dib[1], dib[2], dib[3]]) as usize;
-        if dib.len() < header_size {
-            debug_log!("dib_to_png: dib smaller than header ({} < {})", dib.len(), header_size);
-            return None;
-        }
+        if dib.len() < header_size { return None; }
 
         let width = i32::from_le_bytes([dib[4], dib[5], dib[6], dib[7]]);
         let height = i32::from_le_bytes([dib[8], dib[9], dib[10], dib[11]]);
         let bit_count = u16::from_le_bytes([dib[14], dib[15]]);
-        let compression = if header_size >= 20 {
-            u32::from_le_bytes([dib[16], dib[17], dib[18], dib[19]])
-        } else {
-            0 // BI_RGB
-        };
         let abs_height = height.unsigned_abs();
         let abs_width = width.unsigned_abs();
-        debug_log!("dib_to_png: {}x{} bpp={} compression={} topdown={}",
-            abs_width, abs_height, bit_count, compression, height < 0);
 
-        if abs_width == 0 || abs_height == 0 {
-            debug_log!("dib_to_png: zero dimensions");
-            return None;
-        }
+        if abs_width == 0 || abs_height == 0 { return None; }
 
         // Compute expected pixel data size (BMP rows are 4-byte aligned).
         let row_size = ((abs_width * bit_count as u32 + 31) / 32) * 4;
         let expected_pixels = row_size as usize * abs_height as usize;
 
         // The DIB from clipboard = header + optional masks/color-table + pixel data.
-        // Instead of guessing the masks size (which differs between
-        // BITMAPINFOHEADER 3-mask and later 4-mask variants), compute it
-        // from what's left after subtracting header and expected pixels.
+        // Compute color table size from what's left after subtracting header and expected pixels.
         let color_table_size: usize = if dib.len() > header_size + expected_pixels {
             dib.len() - header_size - expected_pixels
         } else {
@@ -167,8 +146,6 @@ mod win {
 
         let pixel_offset: u32 = (14 + header_size + color_table_size) as u32;
         let file_size = 14 + dib.len();
-        debug_log!("dib_to_png: building BMP file_size={} pixel_offset={} color_table_size={} expected_pixels={}",
-            file_size, pixel_offset, color_table_size, expected_pixels);
 
         let mut bmp = Vec::with_capacity(file_size);
         bmp.extend_from_slice(b"BM");
@@ -183,10 +160,7 @@ mod win {
                 img.write_to(&mut Cursor::new(&mut png_bytes), image::ImageFormat::Png).ok()?;
                 Some((png_bytes, img.width(), img.height()))
             }
-            Err(e) => {
-                debug_log!("dib_to_png: image::load_from_memory failed: {}", e);
-                None
-            }
+            Err(_) => None,
         }
     }
 
@@ -204,16 +178,11 @@ mod win {
 
             // DROPFILES structure layout (all fields are DWORD-aligned):
             //   offset 0:  pFiles (DWORD) — byte offset from struct start to file list
-            //   offset 4:  pt.x   (LONG)
-            //   offset 8:  pt.y   (LONG)
-            //   offset 12: fNC    (BOOL)
             //   offset 16: fWide  (BOOL)  — TRUE = Unicode, FALSE = ANSI
             let drop_files = ptr as *const u32;
-            let file_offset = *drop_files as usize;       // pFiles — was .add(4) which read fWide
-            let f_wide = *drop_files.add(4) != 0;         // offset 16 = fWide
+            let file_offset = *drop_files as usize;
+            let f_wide = *drop_files.add(4) != 0;
 
-            // File list: NUL-terminated strings, list ends with double NUL.
-            // Use read_unaligned to safely handle any alignment.
             let file_ptr = (ptr as *const u8).add(file_offset);
             let char_size: usize = if f_wide { 2 } else { 1 };
             let mut paths = Vec::new();
@@ -243,8 +212,7 @@ mod win {
                             paths.push(String::from_utf8_lossy(ansi_slice).to_string());
                         }
                     } else {
-                        // Double NUL — end of file list
-                        break;
+                        break; // Double NUL — end of file list
                     }
                     pos += char_size;
                     path_start = pos;
@@ -267,27 +235,23 @@ pub fn run_monitor(
     images_dir: PathBuf,
     thumbs_dir: PathBuf,
 ) {
-    debug_log!("monitor started — images_dir={}", images_dir.display());
-    let mut last_hash: u64 = 0;
+    let mut last_seq: u32 = 0;
 
     loop {
         std::thread::sleep(Duration::from_millis(300));
 
-        let current_hash = compute_clipboard_hash();
-        if current_hash == 0 {
-            // OpenClipboard failed — another process likely owns it
-            continue;
+        #[cfg(target_os = "windows")]
+        {
+            let seq = get_clipboard_sequence_number();
+            if seq == 0 || seq == last_seq {
+                continue;
+            }
+            last_seq = seq;
         }
-        if current_hash == last_hash {
-            continue;
-        }
-        debug_log!("hash changed: {} → {}", last_hash, current_hash);
-        last_hash = current_hash;
 
         let item = if let Some((img_path, thumb_path, size)) =
             win::get_clipboard_image(&images_dir, &thumbs_dir)
         {
-            debug_log!("  → image: {} {}", img_path, size);
             Some(ClipboardItem {
                 id: 0,
                 item_type: ItemType::Image,
@@ -301,11 +265,11 @@ pub fn run_monitor(
                 is_pinned: false,
                 is_favorite: false,
                 metadata: None,
+                content_hash: None,
                 created_at: String::new(),
                 updated_at: String::new(),
             })
         } else if let Some(paths) = win::get_clipboard_file_list() {
-            debug_log!("  → file: {}", &paths[..paths.len().min(120)]);
             Some(ClipboardItem {
                 id: 0,
                 item_type: ItemType::File,
@@ -319,15 +283,14 @@ pub fn run_monitor(
                 is_pinned: false,
                 is_favorite: false,
                 metadata: None,
+                content_hash: None,
                 created_at: String::new(),
                 updated_at: String::new(),
             })
         } else if let Some(text) = win::get_clipboard_text() {
             if text.trim().is_empty() {
-                debug_log!("  → text was whitespace-only, skipping");
                 None
             } else {
-                debug_log!("  → text: {}", &text[..text.len().min(80)]);
                 let char_count = text.chars().count() as i64;
                 Some(ClipboardItem {
                     id: 0,
@@ -342,19 +305,30 @@ pub fn run_monitor(
                     is_pinned: false,
                     is_favorite: false,
                     metadata: None,
+                    content_hash: None,
                     created_at: String::new(),
                     updated_at: String::new(),
                 })
             }
         } else {
-            debug_log!("  → no readable content (image/file/text all returned None)");
             None
         };
 
-        if let Some(item) = item {
-            match storage::insert_item(&item, &images_dir) {
-                Ok(id) => {
-                    debug_log!("  → inserted id={}", id);
+        if let Some(mut item) = item {
+            // Compute deterministic content hash for dedup
+            item.content_hash = compute_content_hash(&item);
+
+            match storage::upsert_item(&item) {
+                Ok((id, is_new)) => {
+                    if !is_new {
+                        // Duplicate — clean up the just-saved image files since
+                        // we're keeping the existing ones from the first copy.
+                        if item.item_type == ItemType::Image {
+                            if let Some(ref p) = item.image_path { std::fs::remove_file(p).ok(); }
+                            if let Some(ref p) = item.thumbnail_path { std::fs::remove_file(p).ok(); }
+                        }
+                    }
+
                     if let Ok(settings) = storage::get_all_settings() {
                         storage::cleanup_old_items(settings.max_items, settings.max_images).ok();
                     }
@@ -362,63 +336,8 @@ pub fn run_monitor(
                         app_handle.emit("clipboard-changed", &full_item).ok();
                     }
                 }
-                Err(e) => debug_log!("  → insert error: {}", e),
+                Err(e) => eprintln!("upsert error: {}", e),
             }
         }
     }
-}
-
-fn compute_clipboard_hash() -> u64 {
-    use std::hash::{Hash, Hasher};
-    use std::collections::hash_map::DefaultHasher;
-    let mut hasher = DefaultHasher::new();
-
-    #[cfg(target_os = "windows")]
-    unsafe {
-        use windows_sys::Win32::System::DataExchange::*;
-        use windows_sys::Win32::System::Memory::*;
-
-        if OpenClipboard(0) == 0 { return 0; }
-        // CF_UNICODETEXT=13, CF_DIB=8, CF_BITMAP=2, CF_HDROP=15, CF_DIBV5=17
-        let formats = [13u32, 8, 2, 15, 17];
-        for fmt in &formats {
-            if IsClipboardFormatAvailable(*fmt) != 0 { fmt.hash(&mut hasher); }
-        }
-
-        // Hash text content (first 256 bytes)
-        let text_handle = GetClipboardData(13);
-        if text_handle != 0 {
-            let ptr = GlobalLock(text_handle as _);
-            if !ptr.is_null() {
-                let size = GlobalSize(text_handle as _) as usize;
-                if size > 0 && size < 65536 {
-                    let slice = std::slice::from_raw_parts(ptr as *const u8, size.min(256));
-                    slice.hash(&mut hasher);
-                }
-                GlobalUnlock(text_handle as _);
-            }
-        }
-
-        // Hash image content (first 512 bytes of DIB/DIBV5) so that copying
-        // two different images produces different hashes. Without this the
-        // hash only reflects format-availability and two images in a row
-        // would be treated as unchanged.
-        for img_fmt in [8u32, 17] { // CF_DIB, CF_DIBV5
-            let handle = GetClipboardData(img_fmt);
-            if handle != 0 {
-                let ptr = GlobalLock(handle as _);
-                if !ptr.is_null() {
-                    let size = GlobalSize(handle as _) as usize;
-                    if size > 40 && size < 104_857_600 {
-                        let slice = std::slice::from_raw_parts(ptr as *const u8, size.min(512));
-                        slice.hash(&mut hasher);
-                    }
-                    GlobalUnlock(handle as _);
-                }
-            }
-        }
-
-        CloseClipboard();
-    }
-    hasher.finish()
 }
