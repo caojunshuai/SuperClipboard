@@ -43,8 +43,9 @@ mod win {
 
             if OpenClipboard(0) == 0 { return None; }
 
-            let format = if IsClipboardFormatAvailable(8) != 0 { 8 }
-                        else if IsClipboardFormatAvailable(2) != 0 { 2 }
+            let format = if IsClipboardFormatAvailable(8) != 0 { 8 }          // CF_DIB
+                        else if IsClipboardFormatAvailable(17) != 0 { 17 }   // CF_DIBV5
+                        else if IsClipboardFormatAvailable(2) != 0 { 2 }     // CF_BITMAP (fallback)
                         else { CloseClipboard(); return None; };
 
             let handle = GetClipboardData(format);
@@ -85,21 +86,46 @@ mod win {
         use std::io::Cursor;
         if dib.len() < 40 { return None; }
 
-        let _header_size = u32::from_le_bytes([dib[0], dib[1], dib[2], dib[3]]) as usize;
+        let header_size = u32::from_le_bytes([dib[0], dib[1], dib[2], dib[3]]) as usize;
+        if dib.len() < header_size { return None; }
+
         let width = i32::from_le_bytes([dib[4], dib[5], dib[6], dib[7]]);
         let height = i32::from_le_bytes([dib[8], dib[9], dib[10], dib[11]]);
         let bit_count = u16::from_le_bytes([dib[14], dib[15]]);
+        let compression = if header_size >= 20 {
+            u32::from_le_bytes([dib[16], dib[17], dib[18], dib[19]])
+        } else {
+            0 // BI_RGB
+        };
         let abs_height = height.unsigned_abs();
         let abs_width = width.unsigned_abs();
         if abs_width == 0 || abs_height == 0 { return None; }
 
-        let _row_size = ((abs_width * bit_count as u32 + 31) / 32) * 4;
+        // Color table size: only present for indexed formats (≤8 bpp),
+        // or for BI_BITFIELDS (compression=3) with 16/32 bpp.
+        let color_table_size: usize = match bit_count {
+            1 => 2 * 4,
+            4 => 16 * 4,
+            8 => 256 * 4,
+            _ => {
+                if compression == 3 { // BI_BITFIELDS
+                    if bit_count == 16 { 3 * 4 }
+                    else if bit_count == 32 { 4 * 4 }
+                    else { 0 }
+                } else { 0 }
+            }
+        };
+
+        // Pixel offset = BMP header (14) + DIB header + color table.
+        // Previous code used 14 + dib.len() which pointed to EOF → decoder
+        // found zero bytes of pixel data → image never decoded.
+        let pixel_offset: u32 = (14 + header_size + color_table_size) as u32;
         let file_size = 14 + dib.len();
         let mut bmp = Vec::with_capacity(file_size);
         bmp.extend_from_slice(b"BM");
         bmp.extend_from_slice(&(file_size as u32).to_le_bytes());
         bmp.extend_from_slice(&[0u8; 4]);
-        bmp.extend_from_slice(&((14 + dib.len()) as u32).to_le_bytes());
+        bmp.extend_from_slice(&pixel_offset.to_le_bytes());
         bmp.extend_from_slice(dib);
 
         let img = image::load_from_memory(&bmp).ok()?;
@@ -281,10 +307,13 @@ fn compute_clipboard_hash() -> u64 {
         use windows_sys::Win32::System::Memory::*;
 
         if OpenClipboard(0) == 0 { return 0; }
-        let formats = [13u32, 8, 2, 15];
+        // CF_UNICODETEXT=13, CF_DIB=8, CF_BITMAP=2, CF_HDROP=15, CF_DIBV5=17
+        let formats = [13u32, 8, 2, 15, 17];
         for fmt in &formats {
             if IsClipboardFormatAvailable(*fmt) != 0 { fmt.hash(&mut hasher); }
         }
+
+        // Hash text content (first 256 bytes)
         let text_handle = GetClipboardData(13);
         if text_handle != 0 {
             let ptr = GlobalLock(text_handle as _);
@@ -297,6 +326,26 @@ fn compute_clipboard_hash() -> u64 {
                 GlobalUnlock(text_handle as _);
             }
         }
+
+        // Hash image content (first 512 bytes of DIB/DIBV5) so that copying
+        // two different images produces different hashes. Without this the
+        // hash only reflects format-availability and two images in a row
+        // would be treated as unchanged.
+        for img_fmt in [8u32, 17] { // CF_DIB, CF_DIBV5
+            let handle = GetClipboardData(img_fmt);
+            if handle != 0 {
+                let ptr = GlobalLock(handle as _);
+                if !ptr.is_null() {
+                    let size = GlobalSize(handle as _) as usize;
+                    if size > 40 && size < 104_857_600 {
+                        let slice = std::slice::from_raw_parts(ptr as *const u8, size.min(512));
+                        slice.hash(&mut hasher);
+                    }
+                    GlobalUnlock(handle as _);
+                }
+            }
+        }
+
         CloseClipboard();
     }
     hasher.finish()
