@@ -49,28 +49,51 @@ export function parseFilePaths(filePathsJson: string): string[] {
   }
 }
 
+/**
+ * Format a Date as local-time string matching SQLite datetime('now', 'localtime').
+ * Output: "YYYY-MM-DD HH:MM:SS" (no 'T', no timezone suffix).
+ * Using ISO UTC (toISOString) would mismatch DB-stored local time, causing
+ * incorrect string comparisons across timezone boundaries.
+ */
+function toLocalTimeStr(date: Date): string {
+  const y = date.getFullYear();
+  const mo = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  const h = String(date.getHours()).padStart(2, '0');
+  const mi = String(date.getMinutes()).padStart(2, '0');
+  const s = String(date.getSeconds()).padStart(2, '0');
+  return `${y}-${mo}-${d} ${h}:${mi}:${s}`;
+}
+
 export function getDateRange(filter: string): { from: string | null; to: string | null } {
+  // 'all' means no date filtering — both bounds must be null.
+  // Previously we leaked a UTC 'to' bound even for 'all', which mismatched
+  // the DB's local-time created_at and excluded everything in UTC+X timezones.
+  if (filter === 'all') {
+    return { from: null, to: null };
+  }
+
   const now = new Date();
-  const to = now.toISOString().slice(0, 19);
+  const to = toLocalTimeStr(now);
   let from: string | null = null;
 
   switch (filter) {
     case 'today': {
       const d = new Date(now);
       d.setHours(0, 0, 0, 0);
-      from = d.toISOString().slice(0, 19);
+      from = toLocalTimeStr(d);
       break;
     }
     case '3days': {
       const d = new Date(now);
       d.setDate(d.getDate() - 3);
-      from = d.toISOString().slice(0, 19);
+      from = toLocalTimeStr(d);
       break;
     }
     case '7days': {
       const d = new Date(now);
       d.setDate(d.getDate() - 7);
-      from = d.toISOString().slice(0, 19);
+      from = toLocalTimeStr(d);
       break;
     }
   }
