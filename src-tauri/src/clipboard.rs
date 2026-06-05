@@ -4,6 +4,21 @@ use tauri::Emitter;
 use crate::models::{ClipboardItem, ItemType};
 use crate::storage;
 
+/// Write a debug line to the log file in the current directory.
+/// Use to trace clipboard monitor behaviour without a console.
+macro_rules! debug_log {
+    ($($arg:tt)*) => {{
+        if let Ok(mut f) = std::fs::OpenOptions::new()
+            .create(true).append(true)
+            .open("superclipboard_debug.log")
+        {
+            use std::io::Write;
+            let ts = chrono::Local::now().format("%H:%M:%S%.3f");
+            let _ = writeln!(f, "[{}] {}", ts, format!($($arg)*));
+        }
+    }};
+}
+
 #[cfg(target_os = "windows")]
 mod win {
     use std::path::PathBuf;
@@ -41,24 +56,41 @@ mod win {
             use windows_sys::Win32::System::DataExchange::*;
             use windows_sys::Win32::System::Memory::*;
 
-            if OpenClipboard(0) == 0 { return None; }
+            if OpenClipboard(0) == 0 {
+                debug_log!("get_clipboard_image: OpenClipboard failed");
+                return None;
+            }
 
-            let format = if IsClipboardFormatAvailable(8) != 0 { 8 }          // CF_DIB
-                        else if IsClipboardFormatAvailable(17) != 0 { 17 }   // CF_DIBV5
-                        else if IsClipboardFormatAvailable(2) != 0 { 2 }     // CF_BITMAP (fallback)
+            // Check which formats are actually available
+            let has_dib = IsClipboardFormatAvailable(8) != 0;
+            let has_dibv5 = IsClipboardFormatAvailable(17) != 0;
+            let has_bitmap = IsClipboardFormatAvailable(2) != 0;
+            debug_log!("get_clipboard_image: CF_DIB={} CF_DIBV5={} CF_BITMAP={}", has_dib, has_dibv5, has_bitmap);
+
+            let format = if has_dib { 8 }
+                        else if has_dibv5 { 17 }
+                        else if has_bitmap { 2 }
                         else { CloseClipboard(); return None; };
 
             let handle = GetClipboardData(format);
-            if handle == 0 { CloseClipboard(); return None; }
+            if handle == 0 {
+                debug_log!("get_clipboard_image: GetClipboardData({}) returned NULL", format);
+                CloseClipboard(); return None;
+            }
 
             let ptr = GlobalLock(handle as _) as *const u8;
-            if ptr.is_null() { GlobalUnlock(handle as _); CloseClipboard(); return None; }
+            if ptr.is_null() {
+                debug_log!("get_clipboard_image: GlobalLock returned NULL for format {}", format);
+                CloseClipboard(); return None;
+            }
             let size = GlobalSize(handle as _) as usize;
+            debug_log!("get_clipboard_image: format={} size={} bytes", format, size);
             let dib_data = std::slice::from_raw_parts(ptr, size).to_vec();
             GlobalUnlock(handle as _);
             CloseClipboard();
 
             if let Some((png_data, width, height)) = dib_to_png(&dib_data) {
+                debug_log!("get_clipboard_image: dib_to_png OK {}x{} png={}B", width, height, png_data.len());
                 let ts = chrono::Local::now().format("%Y%m%d%H%M%S%3f");
                 let filename = format!("img_{}.png", ts);
                 let img_path = images_dir.join(&filename);
@@ -77,6 +109,12 @@ mod win {
                     format!("{}x{}", width, height),
                 ))
             } else {
+                debug_log!("get_clipboard_image: dib_to_png returned None (len={} header_size={})",
+                    dib_data.len(),
+                    if dib_data.len() >= 4 {
+                        u32::from_le_bytes([dib_data[0], dib_data[1], dib_data[2], dib_data[3]]) as usize
+                    } else { 0 }
+                );
                 None
             }
         }
@@ -211,20 +249,27 @@ pub fn run_monitor(
     images_dir: PathBuf,
     thumbs_dir: PathBuf,
 ) {
+    debug_log!("monitor started — images_dir={}", images_dir.display());
     let mut last_hash: u64 = 0;
 
     loop {
         std::thread::sleep(Duration::from_millis(300));
 
         let current_hash = compute_clipboard_hash();
-        if current_hash == 0 || current_hash == last_hash {
+        if current_hash == 0 {
+            // OpenClipboard failed — another process likely owns it
             continue;
         }
+        if current_hash == last_hash {
+            continue;
+        }
+        debug_log!("hash changed: {} → {}", last_hash, current_hash);
         last_hash = current_hash;
 
         let item = if let Some((img_path, thumb_path, size)) =
             win::get_clipboard_image(&images_dir, &thumbs_dir)
         {
+            debug_log!("  → image: {} {}", img_path, size);
             Some(ClipboardItem {
                 id: 0,
                 item_type: ItemType::Image,
@@ -242,6 +287,7 @@ pub fn run_monitor(
                 updated_at: String::new(),
             })
         } else if let Some(paths) = win::get_clipboard_file_list() {
+            debug_log!("  → file: {}", &paths[..paths.len().min(120)]);
             Some(ClipboardItem {
                 id: 0,
                 item_type: ItemType::File,
@@ -259,8 +305,11 @@ pub fn run_monitor(
                 updated_at: String::new(),
             })
         } else if let Some(text) = win::get_clipboard_text() {
-            if text.trim().is_empty() { None }
-            else {
+            if text.trim().is_empty() {
+                debug_log!("  → text was whitespace-only, skipping");
+                None
+            } else {
+                debug_log!("  → text: {}", &text[..text.len().min(80)]);
                 let char_count = text.chars().count() as i64;
                 Some(ClipboardItem {
                     id: 0,
@@ -280,17 +329,22 @@ pub fn run_monitor(
                 })
             }
         } else {
+            debug_log!("  → no readable content (image/file/text all returned None)");
             None
         };
 
         if let Some(item) = item {
-            if let Ok(id) = storage::insert_item(&item, &images_dir) {
-                if let Ok(settings) = storage::get_all_settings() {
-                    storage::cleanup_old_items(settings.max_items, settings.max_images).ok();
+            match storage::insert_item(&item, &images_dir) {
+                Ok(id) => {
+                    debug_log!("  → inserted id={}", id);
+                    if let Ok(settings) = storage::get_all_settings() {
+                        storage::cleanup_old_items(settings.max_items, settings.max_images).ok();
+                    }
+                    if let Ok(Some(full_item)) = storage::get_item(id) {
+                        app_handle.emit("clipboard-changed", &full_item).ok();
+                    }
                 }
-                if let Ok(Some(full_item)) = storage::get_item(id) {
-                    app_handle.emit("clipboard-changed", &full_item).ok();
-                }
+                Err(e) => debug_log!("  → insert error: {}", e),
             }
         }
     }
