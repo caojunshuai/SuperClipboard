@@ -72,6 +72,10 @@ export async function startDrag(): Promise<void> {
   return invoke('start_drag');
 }
 
+export async function readImageBase64(path: string): Promise<string> {
+  return invoke('read_image_base64', { path });
+}
+
 export function onPanelShown(callback: () => void): Promise<UnlistenFn> {
   return listen<void>('panel-shown', () => {
     callback();

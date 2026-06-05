@@ -21,7 +21,7 @@ pub fn copy_to_clipboard(id: i64) -> Result<(), String> {
         }
         ItemType::Image => {
             if let Some(ref img_path) = item.image_path {
-                set_clipboard_text(img_path)?;
+                set_clipboard_image(img_path)?;
             }
         }
         ItemType::File => {
@@ -31,6 +31,43 @@ pub fn copy_to_clipboard(id: i64) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+/// Read an image file and return it as a base64-encoded data URL
+/// so the frontend can display it without asset protocol configuration.
+#[tauri::command]
+pub fn read_image_base64(path: String) -> Result<String, String> {
+    let data = std::fs::read(&path).map_err(|e| format!("Failed to read {}: {}", path, e))?;
+    let encoded = base64_encode(&data);
+    // Determine MIME type from extension (simple but effective for PNG/JPEG)
+    let mime = if path.to_lowercase().ends_with(".png") { "image/png" }
+               else if path.to_lowercase().ends_with(".jpg") || path.to_lowercase().ends_with(".jpeg") { "image/jpeg" }
+               else { "image/png" };
+    Ok(format!("data:{};base64,{}", mime, encoded))
+}
+
+fn base64_encode(data: &[u8]) -> String {
+    const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut result = String::with_capacity((data.len() + 2) / 3 * 4);
+    for chunk in data.chunks(3) {
+        let b0 = chunk[0] as u32;
+        let b1 = if chunk.len() > 1 { chunk[1] as u32 } else { 0 };
+        let b2 = if chunk.len() > 2 { chunk[2] as u32 } else { 0 };
+        let n = (b0 << 16) | (b1 << 8) | b2;
+        result.push(CHARS[((n >> 18) & 0x3f) as usize] as char);
+        result.push(CHARS[((n >> 12) & 0x3f) as usize] as char);
+        if chunk.len() > 1 {
+            result.push(CHARS[((n >> 6) & 0x3f) as usize] as char);
+        } else {
+            result.push('=');
+        }
+        if chunk.len() > 2 {
+            result.push(CHARS[(n & 0x3f) as usize] as char);
+        } else {
+            result.push('=');
+        }
+    }
+    result
 }
 
 #[tauri::command]
@@ -135,7 +172,6 @@ fn set_clipboard_text(text: &str) -> Result<(), String> {
 
         let ptr = GlobalLock(handle);
         if ptr.is_null() {
-            // Don't free — GlobalAlloc memory without GlobalLock may not be freeable
             return Err("GlobalLock failed".into());
         }
         std::ptr::copy_nonoverlapping(wide.as_ptr(), ptr as *mut u16, wide.len());
@@ -144,6 +180,71 @@ fn set_clipboard_text(text: &str) -> Result<(), String> {
         if OpenClipboard(0) == 0 { return Err("OpenClipboard failed".into()); }
         EmptyClipboard();
         SetClipboardData(13, handle as _);
+        CloseClipboard();
+    }
+    Ok(())
+}
+
+/// Put a PNG image file onto the Windows clipboard as CF_DIB so it can be
+/// pasted into any application as an actual image (not a file path string).
+#[cfg(target_os = "windows")]
+fn set_clipboard_image(png_path: &str) -> Result<(), String> {
+    use image::GenericImageView;
+
+    let png_data = std::fs::read(png_path)
+        .map_err(|e| format!("Failed to read {}: {}", png_path, e))?;
+    let img = image::load_from_memory(&png_data)
+        .map_err(|e| format!("Failed to decode image: {}", e))?;
+    let (w, h) = img.dimensions();
+
+    // Build a bottom-up DIB with 32-bit BGRA pixel data.
+    // BITMAPINFOHEADER (40 bytes) + pixel rows (4-byte aligned).
+    let row_size = ((w * 32 + 31) / 32) * 4;
+    let pixel_size = row_size as usize * h as usize;
+    let header_size = 40usize;
+    let total_size = header_size + pixel_size;
+
+    unsafe {
+        use windows_sys::Win32::System::DataExchange::*;
+        use windows_sys::Win32::System::Memory::*;
+
+        let handle = GlobalAlloc(0x0002, total_size);
+        if handle.is_null() { return Err("GlobalAlloc failed".into()); }
+
+        let ptr = GlobalLock(handle) as *mut u8;
+        if ptr.is_null() { return Err("GlobalLock failed".into()); }
+
+        // Write BITMAPINFOHEADER
+        let buf = std::slice::from_raw_parts_mut(ptr, total_size);
+        buf[0..4].copy_from_slice(&40u32.to_le_bytes());                   // biSize
+        buf[4..8].copy_from_slice(&(w as i32).to_le_bytes());              // biWidth
+        buf[8..12].copy_from_slice(&(-(h as i32)).to_le_bytes());          // biHeight (negative = top-down)
+        buf[12..14].copy_from_slice(&1u16.to_le_bytes());                  // biPlanes
+        buf[14..16].copy_from_slice(&32u16.to_le_bytes());                 // biBitCount
+        buf[16..20].copy_from_slice(&0u32.to_le_bytes());                  // biCompression = BI_RGB
+        buf[20..24].copy_from_slice(&(pixel_size as u32).to_le_bytes());   // biSizeImage
+        // biXPelsPerMeter, biYPelsPerMeter, biClrUsed, biClrImportant all zero
+
+        // Write pixel rows bottom-up in BGRA order
+        for y in 0..h {
+            let src_row = y;
+            let dst_row = h - 1 - y; // bottom-up
+            let dst_offset = header_size + dst_row as usize * row_size as usize;
+            for x in 0..w {
+                let pixel = img.get_pixel(x, src_row);
+                let px_offset = dst_offset + x as usize * 4;
+                buf[px_offset] = pixel[2];     // B
+                buf[px_offset + 1] = pixel[1]; // G
+                buf[px_offset + 2] = pixel[0]; // R
+                buf[px_offset + 3] = pixel[3]; // A
+            }
+        }
+
+        GlobalUnlock(handle);
+
+        if OpenClipboard(0) == 0 { return Err("OpenClipboard failed".into()); }
+        EmptyClipboard();
+        SetClipboardData(8, handle as _); // CF_DIB
         CloseClipboard();
     }
     Ok(())
