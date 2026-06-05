@@ -196,8 +196,21 @@ CREATE VIRTUAL TABLE clipboard_fts USING fts5(
 | `get_settings()` | 前端→后端 | 获取设置 |
 | `update_settings(settings)` | 前端→后端 | 更新设置 |
 | `hide_window()` | 前端→后端 | 隐藏主窗口 |
+| `start_drag()` | 前端→后端 | 启动窗口拖动（Win32 API 直调）|
 | `clipboard_changed` (Event) | 后端→前端 | 剪切板新增内容通知 |
 | `panel_shown` (Event) | 后端→前端 | 窗口显示通知，触发前端刷新 |
+
+### 窗口拖动实现
+
+Tauri 2 官方 `getCurrentWindow().startDragging()` 存在 IPC 延迟问题：
+调用链为 `JS → invoke('plugin:window|start_dragging') → window plugin → event loop → tao drag_window()`，
+经多层异步跳转后 `ReleaseCapture()` + `PostMessageW(WM_NCLBUTTONDOWN, HTCAPTION)` 执行时
+鼠标手势上下文已丢失，WebView2 的鼠标捕获未释放，拖动无法启动。
+
+**解决方案**：自定义 `start_drag` Rust 命令，通过 `extern "system"` FFI 直接调 `ReleaseCapture()`
+（`windows-sys` 0.52 未导出该函数），然后 `PostMessageW(WM_NCLBUTTONDOWN, HTCAPTION, cursor_pos)`。
+前端必须使用原生 `addEventListener('mousedown', ...)` 而非 React 合成事件 `onMouseDown`
+（React 事件委托导致原生事件已完成冒泡，鼠标坐标不可用）。
 
 ---
 

@@ -156,3 +156,58 @@ pub fn hide_window(app: tauri::AppHandle) -> Result<(), String> {
     }
     Ok(())
 }
+
+/// Initiate window drag via Windows API.
+/// Mirrors tao's handle_os_dragging: ReleaseCapture + PostMessageW(WM_NCLBUTTONDOWN, HTCAPTION).
+/// Using our own FFI for ReleaseCapture since it's missing from windows-sys 0.52.
+#[tauri::command]
+pub fn start_drag(app: tauri::AppHandle) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        use windows_sys::Win32::UI::WindowsAndMessaging::*;
+        use windows_sys::Win32::Foundation::*;
+
+        // ReleaseCapture is not exported by windows-sys 0.52 — declare it ourselves
+        extern "system" {
+            fn ReleaseCapture() -> BOOL;
+        }
+
+        if let Some(window) = app.get_webview_window("main") {
+            let raw = window.hwnd().map_err(|e| e.to_string())?;
+            // HWND is a type alias for isize in windows-sys 0.52
+            let hwnd: HWND = raw.0 as isize;
+
+            // Get current cursor position
+            let mut cursor_pos = POINT { x: 0, y: 0 };
+            if unsafe { GetCursorPos(&mut cursor_pos) } == 0 {
+                return Err("GetCursorPos failed".into());
+            }
+
+            let points = POINTS {
+                x: cursor_pos.x as i16,
+                y: cursor_pos.y as i16,
+            };
+
+            // Must release webview capture before posting, otherwise
+            // WM_NCLBUTTONDOWN won't initiate drag
+            unsafe { ReleaseCapture(); }
+
+            // PostMessageW (async) so the message loop handles drag properly
+            // WPARAM = usize, LPARAM = isize (type aliases)
+            unsafe {
+                PostMessageW(
+                    hwnd,
+                    WM_NCLBUTTONDOWN,
+                    HTCAPTION as usize,
+                    &points as *const _ as isize,
+                );
+            }
+
+            Ok(())
+        } else {
+            Err("Window not found".to_string())
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    Err("Not supported".to_string())
+}

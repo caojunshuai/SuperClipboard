@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { getCurrentWindow } from '@tauri-apps/api/window';
-import { onPanelShown, onClipboardChanged, hideWindow } from './api';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { onPanelShown, onClipboardChanged, hideWindow, startDrag } from './api';
 import ClipboardPanel from './components/ClipboardPanel';
 import ExportDialog from './components/ExportDialog';
 import BackupDialog from './components/BackupDialog';
@@ -11,8 +10,8 @@ type DialogType = 'none' | 'export' | 'backup' | 'settings';
 function App() {
   const [dialog, setDialog] = useState<DialogType>('none');
   const [refreshKey, setRefreshKey] = useState(0);
+  const titleBarRef = useRef<HTMLDivElement>(null);
 
-  // Refresh data when window is shown or clipboard changes
   useEffect(() => {
     const p1 = onPanelShown(() => setRefreshKey(k => k + 1));
     const p2 = onClipboardChanged(() => setRefreshKey(k => k + 1));
@@ -22,25 +21,36 @@ function App() {
     };
   }, []);
 
+  // Drag via native mousedown listener.
+  // Tauri's official startDragging() doesn't work reliably because its async IPC
+  // path (invoke → plugin → event loop → drag_window) loses the mouse gesture
+  // context. Our custom start_drag Rust command calls PostMessageW directly.
+  // Must use native addEventListener — React synthetic events lose mouse context.
+  useEffect(() => {
+    const el = titleBarRef.current;
+    if (!el) return;
+
+    const onMouseDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('button')) return;
+      startDrag();
+    };
+
+    el.addEventListener('mousedown', onMouseDown);
+    return () => el.removeEventListener('mousedown', onMouseDown);
+  }, []);
+
   const handleClose = useCallback(() => {
     setDialog('none');
     hideWindow();
   }, []);
 
-  // Drag: start dragging on mousedown in the title bar (not on buttons)
-  const handleDragMouseDown = useCallback((e: React.MouseEvent) => {
-    const target = e.target as HTMLElement;
-    if (target.closest('button')) return; // don't drag from buttons
-    e.preventDefault();
-    getCurrentWindow().startDragging();
-  }, []);
-
   return (
     <div className="h-full flex flex-col rounded-xl overflow-hidden bg-panel-bg">
-      {/* Title bar with drag support */}
+      {/* Title bar */}
       <div
-        className="flex items-center justify-between px-3 py-2 border-b border-panel-border bg-panel-card/50 cursor-grab select-none"
-        onMouseDown={handleDragMouseDown}
+        ref={titleBarRef}
+        className="flex items-center justify-between px-3 py-2 border-b border-panel-border bg-panel-card/50 select-none cursor-grab"
       >
         <span className="text-xs font-medium text-panel-text">SuperClipboard</span>
         <div className="flex gap-1">

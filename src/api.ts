@@ -68,6 +68,10 @@ export async function hideWindow(): Promise<void> {
   return invoke('hide_window');
 }
 
+export async function startDrag(): Promise<void> {
+  return invoke('start_drag');
+}
+
 export function onPanelShown(callback: () => void): Promise<UnlistenFn> {
   return listen<void>('panel-shown', () => {
     callback();

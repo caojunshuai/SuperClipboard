@@ -60,6 +60,7 @@ pub fn run() {
             commands::update_settings,
             commands::get_item_count,
             commands::hide_window,
+            commands::start_drag,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
