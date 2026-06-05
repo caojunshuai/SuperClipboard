@@ -122,10 +122,16 @@ mod win {
 
     fn dib_to_png(dib: &[u8]) -> Option<(Vec<u8>, u32, u32)> {
         use std::io::Cursor;
-        if dib.len() < 40 { return None; }
+        if dib.len() < 40 {
+            debug_log!("dib_to_png: dib too short ({})", dib.len());
+            return None;
+        }
 
         let header_size = u32::from_le_bytes([dib[0], dib[1], dib[2], dib[3]]) as usize;
-        if dib.len() < header_size { return None; }
+        if dib.len() < header_size {
+            debug_log!("dib_to_png: dib smaller than header ({} < {})", dib.len(), header_size);
+            return None;
+        }
 
         let width = i32::from_le_bytes([dib[4], dib[5], dib[6], dib[7]]);
         let height = i32::from_le_bytes([dib[8], dib[9], dib[10], dib[11]]);
@@ -137,7 +143,13 @@ mod win {
         };
         let abs_height = height.unsigned_abs();
         let abs_width = width.unsigned_abs();
-        if abs_width == 0 || abs_height == 0 { return None; }
+        debug_log!("dib_to_png: {}x{} bpp={} compression={} topdown={}",
+            abs_width, abs_height, bit_count, compression, height < 0);
+
+        if abs_width == 0 || abs_height == 0 {
+            debug_log!("dib_to_png: zero dimensions");
+            return None;
+        }
 
         // Color table size: only present for indexed formats (≤8 bpp),
         // or for BI_BITFIELDS (compression=3) with 16/32 bpp.
@@ -154,11 +166,11 @@ mod win {
             }
         };
 
-        // Pixel offset = BMP header (14) + DIB header + color table.
-        // Previous code used 14 + dib.len() which pointed to EOF → decoder
-        // found zero bytes of pixel data → image never decoded.
         let pixel_offset: u32 = (14 + header_size + color_table_size) as u32;
         let file_size = 14 + dib.len();
+        debug_log!("dib_to_png: building BMP file_size={} pixel_offset={} color_table={}",
+            file_size, pixel_offset, color_table_size);
+
         let mut bmp = Vec::with_capacity(file_size);
         bmp.extend_from_slice(b"BM");
         bmp.extend_from_slice(&(file_size as u32).to_le_bytes());
@@ -166,10 +178,17 @@ mod win {
         bmp.extend_from_slice(&pixel_offset.to_le_bytes());
         bmp.extend_from_slice(dib);
 
-        let img = image::load_from_memory(&bmp).ok()?;
-        let mut png_bytes = Vec::new();
-        img.write_to(&mut Cursor::new(&mut png_bytes), image::ImageFormat::Png).ok()?;
-        Some((png_bytes, img.width(), img.height()))
+        match image::load_from_memory(&bmp) {
+            Ok(img) => {
+                let mut png_bytes = Vec::new();
+                img.write_to(&mut Cursor::new(&mut png_bytes), image::ImageFormat::Png).ok()?;
+                Some((png_bytes, img.width(), img.height()))
+            }
+            Err(e) => {
+                debug_log!("dib_to_png: image::load_from_memory failed: {}", e);
+                None
+            }
+        }
     }
 
     pub fn get_clipboard_file_list() -> Option<String> {
