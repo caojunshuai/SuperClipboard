@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicegui-org/tauri2-docs/refs/heads/master/capability.schema.json",
+  "identifier": "default",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "global-shortcut:default",
+    "dialog:default",
+    "shell:default",
+    "process:default"
+  ]
+}

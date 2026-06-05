@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git init *)",
+      "Bash(git config *)",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(cargo check *)",
+      "Bash(where cargo *)",
+      "Bash('C:\\\\Users\\\\jscao/.cargo/bin/cargo.exe' --version)",
+      "Bash(\"/c/Users/jscao/.cargo/bin/cargo.exe\" --version)",
+      "Read(//c/Users/jscao/.cargo/bin/**)",
+      "Bash(/c/Users/jscao/.cargo/bin/cargo.exe --version)",
+      "Bash(/c/Users/jscao/.cargo/bin/rustup.exe default *)",
+      "Bash(/c/Users/jscao/.cargo/bin/rustup.exe toolchain *)",
+      "Bash(RUSTUP_DIST_SERVER=https://mirrors.tuna.tsinghua.edu.cn/rustup RUSTUP_UPDATE_ROOT=https://mirrors.tuna.tsinghua.edu.cn/rustup/rustup /c/Users/jscao/.cargo/bin/rustup.exe toolchain *)",
+      "Bash(RUSTUP_DIST_SERVER=https://mirrors.ustc.edu.cn/rust-static RUSTUP_UPDATE_ROOT=https://mirrors.ustc.edu.cn/rust-static/rustup /c/Users/jscao/.cargo/bin/rustup.exe toolchain *)",
+      "Bash(RUSTUP_DIST_SERVER=https://mirror.sjtu.edu.cn/rust-static RUSTUP_UPDATE_ROOT=https://mirror.sjtu.edu.cn/rust-static/rustup /c/Users/jscao/.cargo/bin/rustup.exe toolchain *)",
+      "Bash(/c/Users/jscao/.cargo/bin/rustc.exe --version)",
+      "Bash(cmd.exe *)",
+      "Read(//c/Program Files/**)",
+      "Read(//c/Program Files \\(x86\\)/**)",
+      "Bash(gcc --version)",
+      "Bash(echo 'int main\\(\\){return 0;}')",
+      "Bash(gcc /tmp/test.c -o /tmp/test.exe)",
+      "Bash(gcc -v /tmp/test.c -o /tmp/test.exe)",
+      "Bash(mkdir -p /tmp/gcctest)",
+      "Read(//tmp/**)",
+      "Bash(gcc test.c -o test.exe)",
+      "Bash(gcc -E test.c)",
+      "Bash(/d/msys64/mingw64/lib/gcc/x86_64-w64-mingw32/15.1.0/cc1.exe --version)",
+      "Read(//d/msys64/mingw64/bin/**)",
+      "Bash(npm run *)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'feat: SuperClipboard initial implementation *)"
+    ]
+  }
+}
