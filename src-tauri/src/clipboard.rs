@@ -117,26 +117,57 @@ mod win {
             let handle = GetClipboardData(15); // CF_HDROP
             if handle == 0 { CloseClipboard(); return None; }
 
-            let ptr = GlobalLock(handle as _) as *const u8;
-            if ptr.is_null() { GlobalUnlock(handle as _); CloseClipboard(); return None; }
+            let ptr = GlobalLock(handle as _);
+            if ptr.is_null() { CloseClipboard(); return None; }
 
+            // DROPFILES structure layout (all fields are DWORD-aligned):
+            //   offset 0:  pFiles (DWORD) — byte offset from struct start to file list
+            //   offset 4:  pt.x   (LONG)
+            //   offset 8:  pt.y   (LONG)
+            //   offset 12: fNC    (BOOL)
+            //   offset 16: fWide  (BOOL)  — TRUE = Unicode, FALSE = ANSI
             let drop_files = ptr as *const u32;
-            let offset = *drop_files.add(4) as usize;
-            let file_ptr = ptr.add(offset);
+            let file_offset = *drop_files as usize;       // pFiles — was .add(4) which read fWide
+            let f_wide = *drop_files.add(4) != 0;         // offset 16 = fWide
+
+            // File list: NUL-terminated strings, list ends with double NUL.
+            // Use read_unaligned to safely handle any alignment.
+            let file_ptr = (ptr as *const u8).add(file_offset);
+            let char_size: usize = if f_wide { 2 } else { 1 };
             let mut paths = Vec::new();
             let mut pos: usize = 0;
+            let mut path_start: usize = 0;
             loop {
                 if pos > 65536 { break; }
-                let ch = *(file_ptr.add(pos) as *const u16);
-                if ch == 0 {
-                    if pos > 0 && *(file_ptr.add(pos - 2) as *const u16) == 0 { break; }
-                    if pos > 0 {
-                        let wide_slice = std::slice::from_raw_parts(file_ptr as *const u16, pos / 2);
-                        paths.push(OsString::from_wide(wide_slice).to_string_lossy().to_string());
-                    }
-                    pos += 2;
+
+                let raw = file_ptr.add(pos);
+                let ch: u16 = if f_wide {
+                    std::ptr::read_unaligned(raw as *const u16)
                 } else {
-                    pos += 2;
+                    std::ptr::read_unaligned(raw as *const u8) as u16
+                };
+
+                if ch == 0 {
+                    let len_bytes = pos - path_start;
+                    if len_bytes > 0 {
+                        if f_wide {
+                            let wide_slice = std::slice::from_raw_parts(
+                                file_ptr.add(path_start) as *const u16,
+                                len_bytes / 2,
+                            );
+                            paths.push(OsString::from_wide(wide_slice).to_string_lossy().to_string());
+                        } else {
+                            let ansi_slice = std::slice::from_raw_parts(file_ptr.add(path_start), len_bytes);
+                            paths.push(String::from_utf8_lossy(ansi_slice).to_string());
+                        }
+                    } else {
+                        // Double NUL — end of file list
+                        break;
+                    }
+                    pos += char_size;
+                    path_start = pos;
+                } else {
+                    pos += char_size;
                 }
             }
 
