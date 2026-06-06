@@ -6,21 +6,21 @@ use crate::storage;
 pub fn export_text(ids: &[i64], output_path: &str) -> Result<String, String> {
     let items = get_items_by_ids(ids)?;
     let mut file = fs::File::create(output_path).map_err(|e| e.to_string())?;
+    let mut count = 0;
 
-    for (i, item) in items.iter().enumerate() {
+    for item in &items {
         if let Some(ref content) = item.content {
-            if i > 0 {
-                writeln!(file, "\n--- {} | {} | {} ---\n",
-                    item.created_at,
-                    item.source_app.as_deref().unwrap_or("unknown"),
-                    format!("{} chars", item.char_count.unwrap_or(0))
-                ).map_err(|e| e.to_string())?;
+            if count > 0 {
+                writeln!(file).map_err(|e| e.to_string())?;
             }
-            write!(file, "{}", content).map_err(|e| e.to_string())?;
+            writeln!(file, "--- {} ---", item.created_at)
+                .map_err(|e| e.to_string())?;
+            writeln!(file, "{}", content).map_err(|e| e.to_string())?;
+            count += 1;
         }
     }
 
-    Ok(format!("Exported {} text items", items.len()))
+    Ok(format!("Exported {} text items", count))
 }
 
 pub fn export_images(ids: &[i64], output_dir: &str) -> Result<String, String> {
@@ -102,7 +102,11 @@ pub fn restore(backup_path: &str) -> Result<String, String> {
     Ok(format!("Restored {} items", count))
 }
 
+/// Get items by IDs. If ids is empty, returns ALL items.
 fn get_items_by_ids(ids: &[i64]) -> Result<Vec<crate::models::ClipboardItem>, String> {
+    if ids.is_empty() {
+        return storage::get_all_items_for_backup().map_err(|e| e.to_string());
+    }
     let mut result = Vec::new();
     for id in ids {
         if let Some(item) = storage::get_item(*id).map_err(|e| e.to_string())? {

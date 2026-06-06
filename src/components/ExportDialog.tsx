@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { exportText, exportImages } from '../api';
-import { open } from '@tauri-apps/plugin-dialog';
+import { open, save } from '@tauri-apps/plugin-dialog';
 
 interface Props {
   itemIds: number[];
@@ -14,9 +14,7 @@ export default function ExportDialog({ itemIds, onClose }: Props) {
   const handleExport = async () => {
     try {
       if (exportMode === 'text') {
-        const path = await open({
-          directory: false,
-          multiple: false,
+        const path = await save({
           filters: [{ name: 'Text', extensions: ['txt'] }],
           defaultPath: `superclipboard_export_${Date.now()}.txt`,
         });

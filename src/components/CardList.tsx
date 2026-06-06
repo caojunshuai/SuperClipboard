@@ -19,6 +19,7 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
   const [hasMore, setHasMore] = useState(true);
   const [autoPasteEnabled, setAutoPasteEnabled] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
+  const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -97,10 +98,26 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
 
   const handleDelete = useCallback(async (id: number) => {
     try {
+      // Start exit animation
+      setDeletingIds(prev => new Set(prev).add(id));
       await deleteClipboardItem(id);
+      // Wait for fade-out animation
+      await new Promise(r => setTimeout(r, 200));
       setItems(prev => prev.filter(i => i.id !== id));
       setTotal(t => t - 1);
-    } catch (err) { console.error(err); }
+      setDeletingIds(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    } catch (err) {
+      setDeletingIds(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      console.error(err);
+    }
   }, []);
 
   return (
@@ -128,6 +145,7 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
         <ClipboardCard
           key={item.id}
           item={item}
+          deleting={deletingIds.has(item.id)}
           onCopy={handleCopy}
           onTogglePin={handleTogglePin}
           onToggleFavorite={handleToggleFavorite}
