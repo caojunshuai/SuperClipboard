@@ -6,9 +6,11 @@ use tauri::{
 };
 
 pub fn setup(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
-    // Embed icon directly to ensure it's always compiled in
+    // Embed and decode icon PNG at compile time
     let icon_bytes = include_bytes!("../icons/icon.png");
-    let icon = Image::from_bytes(icon_bytes)?;
+    let img = image::load_from_memory(icon_bytes)?.into_rgba8();
+    let (w, h) = img.dimensions();
+    let icon = Image::new_owned(img.into_raw(), w, h);
     let show_item = MenuItemBuilder::with_id("show", "打开剪切板面板").build(app)?;
     let separator = tauri::menu::PredefinedMenuItem::separator(app)?;
     let quit_item = MenuItemBuilder::with_id("quit", "退出").build(app)?;
