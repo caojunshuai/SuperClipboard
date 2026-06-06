@@ -16,7 +16,7 @@ export default function FileCard({ item }: Props) {
       </div>
       <div className="space-y-0.5">
         {paths.slice(0, 3).map((p, i) => (
-          <p key={i} className="text-sm text-panel-text truncate">
+          <p key={i} className="text-sm text-panel-text truncate" title={p}>
             📄 {p.split('\\').pop() || p}
           </p>
         ))}
