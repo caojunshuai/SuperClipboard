@@ -26,7 +26,7 @@ pub fn copy_to_clipboard(id: i64) -> Result<(), String> {
         }
         ItemType::File => {
             if let Some(ref paths) = item.file_paths {
-                set_clipboard_text(paths)?;
+                set_clipboard_file_list(paths)?;
             }
         }
     }
@@ -246,6 +246,74 @@ fn set_clipboard_image(png_path: &str) -> Result<(), String> {
         SetClipboardData(8, handle as _); // CF_DIB
         CloseClipboard();
     }
+    Ok(())
+}
+
+/// Put a list of file paths onto the Windows clipboard as CF_HDROP so they
+/// can be pasted into Explorer as actual files (not a JSON string).
+/// Checks that every file exists before setting the clipboard.
+#[cfg(target_os = "windows")]
+fn set_clipboard_file_list(paths_json: &str) -> Result<(), String> {
+    use std::ffi::OsStr;
+    use std::os::windows::ffi::OsStrExt;
+
+    let paths: Vec<String> = serde_json::from_str(paths_json)
+        .map_err(|e| format!("解析文件路径失败: {}", e))?;
+
+    if paths.is_empty() {
+        return Err("文件路径为空".into());
+    }
+
+    // Check all files exist before setting clipboard
+    let missing: Vec<&str> = paths.iter()
+        .filter(|p| !std::path::Path::new(p).exists())
+        .map(|p| p.as_str())
+        .collect();
+    if !missing.is_empty() {
+        return Err(format!("文件不存在: {}", missing.join("\n")));
+    }
+
+    // Build DROPFILES header (20 bytes) + wide-char file list
+    let mut wide_data: Vec<u16> = Vec::new();
+    for p in &paths {
+        wide_data.extend(OsStr::new(p).encode_wide().chain(std::iter::once(0)));
+    }
+    wide_data.push(0); // double NUL terminates the list
+
+    let dropfiles_size: usize = 20;
+    let total_size = dropfiles_size + wide_data.len() * std::mem::size_of::<u16>();
+
+    unsafe {
+        use windows_sys::Win32::System::DataExchange::*;
+        use windows_sys::Win32::System::Memory::*;
+
+        let handle = GlobalAlloc(0x0002, total_size);
+        if handle.is_null() { return Err("GlobalAlloc failed".into()); }
+
+        let ptr = GlobalLock(handle) as *mut u8;
+        if ptr.is_null() { return Err("GlobalLock failed".into()); }
+
+        let buf = std::slice::from_raw_parts_mut(ptr, total_size);
+
+        // DROPFILES header
+        buf[0..4].copy_from_slice(&(dropfiles_size as u32).to_le_bytes()); // pFiles = offset to file list
+        buf[4..8].copy_from_slice(&0u32.to_le_bytes());                    // pt.x
+        buf[8..12].copy_from_slice(&0u32.to_le_bytes());                   // pt.y
+        buf[12..16].copy_from_slice(&0u32.to_le_bytes());                  // fNC = FALSE
+        buf[16..20].copy_from_slice(&1u32.to_le_bytes());                  // fWide = TRUE
+
+        // File list immediately after header
+        let file_list_ptr = ptr.add(dropfiles_size) as *mut u16;
+        std::ptr::copy_nonoverlapping(wide_data.as_ptr(), file_list_ptr, wide_data.len());
+
+        GlobalUnlock(handle);
+
+        if OpenClipboard(0) == 0 { return Err("OpenClipboard failed".into()); }
+        EmptyClipboard();
+        SetClipboardData(15, handle as _); // CF_HDROP
+        CloseClipboard();
+    }
+
     Ok(())
 }
 

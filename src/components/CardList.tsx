@@ -18,6 +18,7 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [autoPasteEnabled, setAutoPasteEnabled] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -71,7 +72,9 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
       }
       onClose();
     } catch (err) {
-      console.error('Failed to copy:', err);
+      const msg = typeof err === 'string' ? err : '操作失败';
+      setToast({ message: msg, type: 'error' });
+      setTimeout(() => setToast(null), 4000);
     }
   }, [autoPasteEnabled, onClose]);
 
@@ -102,6 +105,15 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
 
   return (
     <div ref={listRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-3 space-y-2">
+      {/* Toast notification */}
+      {toast && (
+        <div className={`fixed top-14 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg text-sm shadow-lg transition-all ${
+          toast.type === 'error' ? 'bg-red-500/90 text-white' : 'bg-green-500/90 text-white'
+        }`}>
+          {toast.message}
+        </div>
+      )}
+
       {items.length === 0 && !loading && (
         <div className="flex flex-col items-center justify-center py-16 text-panel-muted">
           <svg className="w-12 h-12 mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
