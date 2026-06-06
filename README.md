@@ -1,5 +1,7 @@
 # SuperClipboard
 
+[中文文档](README_zh.md)
+
 A fast, lightweight clipboard manager for Windows. Press **Alt+V** to summon a floating panel that shows your clipboard history — text, images, and files. Pin frequently used clips, star favorites, and export your history.
 
 Built with **Tauri 2 + React + TypeScript + Tailwind CSS**.

@@ -1,5 +1,7 @@
 # SuperClipboard
 
+[English](README.md)
+
 Windows 平台轻量级剪切板管理器。按 **Alt+V** 呼出悬浮面板，浏览剪切板历史记录——文字、图片、文件路径。支持置顶、收藏、导出等操作。
 
 基于 **Tauri 2 + React + TypeScript + Tailwind CSS** 构建。
