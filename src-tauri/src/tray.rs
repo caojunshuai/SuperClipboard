@@ -2,9 +2,13 @@ use tauri::{
     Emitter, Manager,
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     menu::{MenuBuilder, MenuItemBuilder},
+    image::Image,
 };
 
 pub fn setup(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+    // Embed icon directly to ensure it's always compiled in
+    let icon_bytes = include_bytes!("../icons/icon.png");
+    let icon = Image::from_bytes(icon_bytes)?;
     let show_item = MenuItemBuilder::with_id("show", "打开剪切板面板").build(app)?;
     let separator = tauri::menu::PredefinedMenuItem::separator(app)?;
     let quit_item = MenuItemBuilder::with_id("quit", "退出").build(app)?;
@@ -16,7 +20,7 @@ pub fn setup(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
         .build()?;
 
     let _tray = TrayIconBuilder::new()
-        .icon(app.default_window_icon().cloned().unwrap())
+        .icon(icon)
         .menu(&menu)
         .tooltip("SuperClipboard")
         .on_menu_event(|app, event| {
