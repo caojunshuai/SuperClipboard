@@ -17,7 +17,7 @@ export default function TextCard({ item }: Props) {
           <span className="text-xs text-panel-muted">{formatCharCount(item.char_count)}</span>
         )}
       </div>
-      <p className="text-sm text-panel-text whitespace-pre-wrap leading-relaxed">{preview}</p>
+      <p className="text-sm text-panel-text whitespace-pre-wrap break-words leading-relaxed">{preview}</p>
     </div>
   );
 }

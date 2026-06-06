@@ -104,7 +104,7 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
   }, []);
 
   return (
-    <div ref={listRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-3 space-y-2">
+    <div ref={listRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin">
       {/* Toast notification */}
       {toast && (
         <div className={`fixed top-14 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg text-sm shadow-lg transition-all ${
