@@ -4,10 +4,6 @@ A fast, lightweight clipboard manager for Windows. Press **Alt+V** to summon a f
 
 Built with **Tauri 2 + React + TypeScript + Tailwind CSS**.
 
-<p align="center">
-  <img src="screenshots/main.png" width="400" alt="SuperClipboard screenshot">
-</p>
-
 ## Features
 
 ### Clipboard History
