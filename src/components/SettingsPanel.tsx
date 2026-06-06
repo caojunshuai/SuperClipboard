@@ -118,9 +118,9 @@ export default function SettingsPanel({ onClose }: Props) {
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={handleClose}>
-      <div className="bg-panel-bg border border-panel-border rounded-xl p-6 w-96 shadow-2xl" onClick={e => e.stopPropagation()}>
-        <h2 className="text-lg font-semibold text-panel-text mb-4">设置</h2>
-        <div className="space-y-4">
+      <div className="bg-panel-bg border border-panel-border rounded-xl p-6 w-96 shadow-2xl max-h-[95vh] flex flex-col relative" onClick={e => e.stopPropagation()}>
+        <h2 className="text-lg font-semibold text-panel-text mb-4 shrink-0">设置</h2>
+        <div className="space-y-4 overflow-y-auto flex-1 pr-1 scrollbar-thin">
           <div>
             <label className="text-sm text-panel-text block mb-1">全局快捷键</label>
             <input
@@ -182,7 +182,7 @@ export default function SettingsPanel({ onClose }: Props) {
             />
           </label>
         </div>
-        <div className="flex justify-end gap-3 mt-6">
+        <div className="flex justify-end gap-3 mt-4 shrink-0">
           <button onClick={handleClose} className="px-4 py-2 text-sm text-panel-muted hover:text-panel-text">
             {dirty ? '取消' : '关闭'}
           </button>
@@ -196,7 +196,7 @@ export default function SettingsPanel({ onClose }: Props) {
         </div>
 
         {version && (
-          <p className="text-center text-xs text-panel-muted/50 mt-4">v{version}</p>
+          <p className="text-center text-xs text-panel-muted/50 mt-3 shrink-0">v{version}</p>
         )}
 
         {/* Unsaved changes confirmation */}
