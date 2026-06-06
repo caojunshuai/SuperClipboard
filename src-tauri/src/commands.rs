@@ -379,3 +379,8 @@ pub fn start_drag(app: tauri::AppHandle) -> Result<(), String> {
     #[cfg(not(target_os = "windows"))]
     Err("Not supported".to_string())
 }
+
+#[tauri::command]
+pub fn get_app_version() -> String {
+    env!("CARGO_PKG_VERSION").to_string()
+}

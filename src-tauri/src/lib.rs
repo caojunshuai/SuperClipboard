@@ -62,6 +62,7 @@ pub fn run() {
             commands::hide_window,
             commands::start_drag,
             commands::read_image_base64,
+            commands::get_app_version,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -76,6 +76,10 @@ export async function readImageBase64(path: string): Promise<string> {
   return invoke('read_image_base64', { path });
 }
 
+export async function getAppVersion(): Promise<string> {
+  return invoke('get_app_version');
+}
+
 export function onPanelShown(callback: () => void): Promise<UnlistenFn> {
   return listen<void>('panel-shown', () => {
     callback();

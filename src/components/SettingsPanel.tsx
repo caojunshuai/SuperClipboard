@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getSettings, updateSettings as saveSettings } from '../api';
+import { getSettings, updateSettings as saveSettings, getAppVersion } from '../api';
 import type { AppSettings } from '../types';
 
 interface Props {
@@ -7,6 +7,7 @@ interface Props {
 }
 
 export default function SettingsPanel({ onClose }: Props) {
+  const [version, setVersion] = useState('');
   const [settings, setSettings] = useState<AppSettings>({
     hotkey: 'Alt+V',
     max_items: 3000,
@@ -30,6 +31,7 @@ export default function SettingsPanel({ onClose }: Props) {
       setMaxItemsStr(s.max_items.toString());
       setMaxImagesStr(s.max_images.toString());
     }).catch(() => {});
+    getAppVersion().then(v => setVersion(v)).catch(() => {});
   }, []);
 
   const dirty = original !== null && (
@@ -192,6 +194,10 @@ export default function SettingsPanel({ onClose }: Props) {
             {saving ? '保存中...' : '保存设置'}
           </button>
         </div>
+
+        {version && (
+          <p className="text-center text-xs text-panel-muted/50 mt-4">v{version}</p>
+        )}
 
         {/* Unsaved changes confirmation */}
         {showConfirm && (
