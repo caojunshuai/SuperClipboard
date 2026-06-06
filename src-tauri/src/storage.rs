@@ -127,28 +127,14 @@ pub fn query_history(query: &HistoryQuery) -> SqliteResult<HistoryResult> {
 
     if let Some(ref keyword) = query.keyword {
         if !keyword.is_empty() {
-            // FTS5 default tokenizer can't handle CJK (no spaces between words).
-            // Fall back to LIKE for Chinese/Japanese/Korean queries.
-            let is_cjk = keyword.chars().any(|c| {
-                (c >= '\u{4E00}' && c <= '\u{9FFF}')     // CJK Unified Ideographs
-                || (c >= '\u{3400}' && c <= '\u{4DBF}')   // CJK Extension A
-                || (c >= '\u{F900}' && c <= '\u{FAFF}')   // CJK Compatibility
-                || (c >= '\u{3040}' && c <= '\u{309F}')   // Hiragana
-                || (c >= '\u{30A0}' && c <= '\u{30FF}')   // Katakana
-                || (c >= '\u{AC00}' && c <= '\u{D7AF}')   // Hangul
-            });
+            // Use LIKE for all searches. FTS5 with the default unicode61 tokenizer
+            // can't handle CJK (no word boundaries), and its MATCH syntax is fragile
+            // (special characters, AND/OR semantics, etc.). For a clipboard manager
+            // with at most a few thousand rows, LIKE with substring matching is
+            // fast enough and more predictable.
             let idx = bind_values.len() + 1;
-            if is_cjk {
-                // LIKE is slower but works for CJK
-                where_clauses.push(format!("(content LIKE ?{} OR file_paths LIKE ?{})", idx, idx));
-                bind_values.push(Box::new(format!("%{}%", keyword)));
-            } else {
-                where_clauses.push(format!(
-                    "id IN (SELECT rowid FROM clipboard_fts WHERE clipboard_fts MATCH ?{})",
-                    idx
-                ));
-                bind_values.push(Box::new(keyword.clone()));
-            }
+            where_clauses.push(format!("(content LIKE ?{} OR file_paths LIKE ?{})", idx, idx));
+            bind_values.push(Box::new(format!("%{}%", keyword)));
         }
     }
 
