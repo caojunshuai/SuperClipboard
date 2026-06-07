@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { backup, restore } from '../api';
-import { open } from '@tauri-apps/plugin-dialog';
+import { open, save } from '@tauri-apps/plugin-dialog';
 
 interface Props {
   onClose: () => void;
@@ -14,9 +14,7 @@ export default function BackupDialog({ onClose }: Props) {
 
   const handleBackup = async () => {
     try {
-      const path = await open({
-        directory: false,
-        multiple: false,
+      const path = await save({
         filters: [{ name: 'Zip', extensions: ['zip'] }],
         defaultPath: `superclipboard_backup_${new Date().toISOString().slice(0, 10)}.zip`,
       });

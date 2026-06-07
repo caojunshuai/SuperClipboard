@@ -361,8 +361,8 @@ pub fn restore_from_backup(items: &[ClipboardItem]) -> SqliteResult<usize> {
     let mut count = 0;
     for item in items {
         conn.execute(
-            "INSERT INTO clipboard_items (id, type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, is_pinned, is_favorite, metadata, content_hash, created_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
+            "INSERT INTO clipboard_items (id, type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, is_pinned, is_favorite, metadata, content_hash, note, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
             params![
                 item.id,
                 item.item_type.as_str(),
@@ -377,6 +377,7 @@ pub fn restore_from_backup(items: &[ClipboardItem]) -> SqliteResult<usize> {
                 item.is_favorite as i32,
                 item.metadata,
                 item.content_hash,
+                item.note,
                 item.created_at,
                 item.updated_at,
             ],
