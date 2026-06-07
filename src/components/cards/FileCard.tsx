@@ -3,10 +3,13 @@ import { parseFilePaths } from '../../utils/format';
 
 interface Props {
   item: ClipboardItem;
+  expanded?: boolean;
 }
 
-export default function FileCard({ item }: Props) {
+export default function FileCard({ item, expanded }: Props) {
   const paths = item.file_paths ? parseFilePaths(item.file_paths) : [];
+
+  const displayPaths = expanded ? paths : paths.slice(0, 3);
 
   return (
     <div>
@@ -15,12 +18,12 @@ export default function FileCard({ item }: Props) {
         <span className="text-xs text-panel-muted">{paths.length} 个文件</span>
       </div>
       <div className="space-y-0.5">
-        {paths.slice(0, 3).map((p, i) => (
+        {displayPaths.map((p, i) => (
           <p key={i} className="text-sm text-panel-text truncate" title={p}>
             📄 {p.split('\\').pop() || p}
           </p>
         ))}
-        {paths.length > 3 && (
+        {!expanded && paths.length > 3 && (
           <p className="text-xs text-panel-muted">...还有 {paths.length - 3} 个文件</p>
         )}
       </div>

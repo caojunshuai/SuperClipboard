@@ -384,3 +384,66 @@ pub fn start_drag(app: tauri::AppHandle) -> Result<(), String> {
 pub fn get_app_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
 }
+
+use std::collections::HashMap;
+
+/// Monotonic counter for unique preview window labels.
+static PREVIEW_ID: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// Per-window pending image paths, keyed by window label.
+/// Each preview window consumes only its own entry — no shared-state race.
+static PENDING_PATHS: std::sync::LazyLock<std::sync::Mutex<HashMap<String, String>>> =
+    std::sync::LazyLock::new(|| std::sync::Mutex::new(HashMap::new()));
+
+/// Open a standalone image preview window.
+///
+/// Must spawn an OS thread for `build()` — calling it from the tokio
+/// command thread pool causes a deadlock with the main event loop.
+#[tauri::command]
+pub fn open_image_preview(app: tauri::AppHandle, path: String) -> Result<(), String> {
+    let id = PREVIEW_ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    let label = format!("image-preview-{}", id);
+
+    // Store path keyed by this window's label
+    PENDING_PATHS.lock().map_err(|e| e.to_string())?.insert(label.clone(), path);
+
+    // Close the previous preview window if it still exists
+    if id > 0 {
+        let prev_label = format!("image-preview-{}", id - 1);
+        if let Some(old) = app.get_webview_window(&prev_label) {
+            old.close().ok();
+        }
+    }
+
+    let result = std::thread::spawn(move || {
+        tauri::WebviewWindow::builder(&app, &label, tauri::WebviewUrl::App("preview.html".into()))
+            .title("图片预览")
+            .inner_size(900.0, 700.0)
+            .center()
+            .resizable(true)
+            .always_on_top(true)
+            .build()
+    })
+    .join()
+    .map_err(|e| format!("Thread panicked: {:?}", e))?;
+
+    result.map(|_| ()).map_err(|e| format!("Failed to create preview window: {}", e))
+}
+
+/// Retrieve the image path for the calling preview window.
+/// Uses `tauri::Window` injection to look up this window's own path
+/// in the HashMap — no cross-window contamination.
+#[tauri::command]
+pub fn get_preview_image_path(window: tauri::Window) -> Result<String, String> {
+    let label = window.label().to_string();
+    PENDING_PATHS.lock()
+        .map_err(|e| e.to_string())?
+        .remove(&label)
+        .ok_or_else(|| format!("No image path for {}", label))
+}
+
+/// Close the window that made this call (used by the preview window).
+#[tauri::command]
+pub fn close_preview_window(window: tauri::Window) -> Result<(), String> {
+    window.close().map_err(|e| e.to_string())
+}

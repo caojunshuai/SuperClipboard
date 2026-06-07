@@ -3,11 +3,12 @@ import { truncateText, formatCharCount } from '../../utils/format';
 
 interface Props {
   item: ClipboardItem;
+  expanded?: boolean;
 }
 
-export default function TextCard({ item }: Props) {
+export default function TextCard({ item, expanded }: Props) {
   const text = item.content || '';
-  const preview = truncateText(text, 3, 200);
+  const displayText = expanded ? text : truncateText(text, 3, 200);
 
   return (
     <div>
@@ -17,7 +18,7 @@ export default function TextCard({ item }: Props) {
           <span className="text-xs text-panel-muted">{formatCharCount(item.char_count)}</span>
         )}
       </div>
-      <p className="text-sm text-panel-text whitespace-pre-wrap break-words leading-relaxed">{preview}</p>
+      <p className={`text-sm text-panel-text whitespace-pre-wrap break-words leading-relaxed ${expanded ? '' : 'line-clamp-3'}`}>{displayText}</p>
     </div>
   );
 }

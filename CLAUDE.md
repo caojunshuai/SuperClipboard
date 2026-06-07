@@ -125,6 +125,15 @@ src-tauri/src/              # Rust backend
 - Use `.ok()` to ignore errors for idempotent migrations
 - SQLite FTS5 triggers must be re-created if the content changes
 
+## Debugging Rules
+
+**Same problem, two failed fixes → stop guessing, add logging.** If a bug persists after two code-change attempts (or after one attempt when the fix clearly cannot be confirmed effective), do not make a third attempt without instrumenting both sides of the boundary with diagnostic output:
+
+- Rust side: `eprintln!()` — visible in `npm run tauri dev` terminal
+- Frontend side: visible on-screen text (not `console.log` — browser devtools are inaccessible in a Tauri window)
+
+Log input values, intermediate state, and decisions at each step. The logs must pinpoint exactly where the flow diverges from expectation. Only then propose a fix.
+
 ## Git Commits
 
 This project uses conventional commits: `feat:`, `fix:`, `chore:`, `refactor:`.

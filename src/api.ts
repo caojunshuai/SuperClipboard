@@ -76,6 +76,10 @@ export async function readImageBase64(path: string): Promise<string> {
   return invoke('read_image_base64', { path });
 }
 
+export async function openImagePreview(path: string): Promise<void> {
+  return invoke('open_image_preview', { path });
+}
+
 export async function getAppVersion(): Promise<string> {
   return invoke('get_app_version');
 }
