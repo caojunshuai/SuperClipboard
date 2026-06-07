@@ -58,9 +58,17 @@ src-tauri/src/                # Rust backend
 - Reads CF_UNICODETEXT / CF_DIB / CF_HDROP; converts DIB → PNG via `image` crate
 - Deduplicates via FNV-1a 64-bit hash → `upsert_item()` bumps timestamp on duplicate
 
+### Portable Data Directory (lib.rs)
+- **Data stored alongside exe** (`current_exe().parent()`), not in `%APPDATA%`
+- Subdirectories: `images/`, `thumbnails/`, `exports/`, `backups/`, plus `superclipboard.db`
+- Delete app folder → clean uninstall, no residual data
+- Global `APP_DATA_DIR: OnceCell<PathBuf>` for use by `export.rs` restore
+- ⚠️ Don't place exe in `C:\Program Files\` — write permission will fail
+
 ### Database (storage.rs)
 - SQLite via `rusqlite` (bundled), WAL mode. Global `OnceCell<Mutex<Connection>>` singleton
 - Search uses `LIKE '%keyword%'` for all queries — FTS5's `unicode61` tokenizer can't handle CJK, and `LIKE` is fast enough at clipboard scale
+- **Restore** uses `try_restore_item()`: append mode with content_hash dedup, respects max_items/max_images limits, truncates with warning message when over capacity
 
 ### IPC (commands.rs)
 - All commands async via `#[tauri::command]`

@@ -31,7 +31,7 @@ Built with **Tauri 2 + React + TypeScript + Tailwind CSS**.
 - **Export text** — merge all text clips into a `.txt` file with timestamps
 - **Export images** — save all image clips as PNG/JPG files to a folder
 - **Backup** — zip all data (including images) into a `.zip` file
-- **Restore** — restore from a previous backup
+- **Restore** — append from a previous backup with dedup & limits, truncated with warning when over capacity
 
 ### Preview & Expand
 - **Image preview** — click `<预览>` to open images in a separate, resizable window
@@ -39,6 +39,12 @@ Built with **Tauri 2 + React + TypeScript + Tailwind CSS**.
 - **File expand** — when >3 files, click `<展开>` to show all paths
 - **Floating collapse** — when an expanded card overflows the viewport, a fixed `收起 ▲` button appears at the bottom-right
 - **Auto-collapse** — scrolling past an expanded card collapses it automatically
+
+### Data & Portability
+- **Portable by default** — all data (database, images, thumbnails) stored alongside the exe, not in `%APPDATA%`
+- **Clean uninstall** — delete the app folder to remove everything
+- **Easy migration** — copy the entire folder to another machine to move all data
+- ⚠️ **Avoid `C:\Program Files\`** — the app needs write permission for its data directory; extracting to a protected system folder will cause startup errors. Use a user directory (e.g. `D:\Tools\SuperClipboard`) instead.
 
 ### UI / UX
 - **Multi-language** — Chinese (中文) and English, switch in Settings, auto-detect on first launch
