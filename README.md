@@ -21,10 +21,11 @@ Built with **Tauri 2 + React + TypeScript + Tailwind CSS**.
 - **Favorites tab** — quick access to starred items
 
 ### Organize
+- **Notes** — add personal notes to any clip (✏️), inline editing, auto-save, truncated with hover tooltip
 - **Pin** items to keep them at the top (📌↔📍)
 - **Favorite** items for quick recall (☆↔⭐)
 - **Delete** with a smooth fade-out animation
-- **Settings** — configure history limit (100–5000), image limit (10–500), auto-paste, and more
+- **Settings** — configure history limit, image limit, language, auto-paste, and more
 
 ### Export & Backup
 - **Export text** — merge all text clips into a `.txt` file with timestamps

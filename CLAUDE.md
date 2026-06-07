@@ -82,6 +82,13 @@ src-tauri/src/                # Rust backend
 - **scrollIntoView before collapse:** prevents viewport jumping to unrelated cards
 - Detection: `requestAnimationFrame` + passive scroll listener on `.overflow-y-auto` ancestor
 
+### Note Feature (ClipboardCard.tsx)
+- **DB:** `clipboard_items.note TEXT` column (NULL = no note). Search includes `OR note LIKE`
+- **Top bar:** unified row with type badge, metadata, note text, and icon group (✏️📌⭐🗑) right-aligned
+- **Edit:** click ✏️ → inline `<input>`, Enter/blur saves via `update_note` command, Esc cancels
+- **Display:** note text truncated with `title` tooltip for full content. `·` separator hidden when note is empty
+- **Child cards:** TextCard/ImageCard/FileCard simplified to content-only rendering (type badge + metadata moved up to ClipboardCard)
+
 ### Time Format
 - Today → `今天 HH:MM:SS`, Yesterday → `昨天 HH:MM:SS`, Older → `YYYY-MM-DD HH:MM:SS`
 - Bottom bar: time (left) · action link (right)
