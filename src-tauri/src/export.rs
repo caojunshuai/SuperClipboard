@@ -133,12 +133,18 @@ pub fn restore(backup_path: &str) -> Result<String, String> {
                     item.image_path = Some(images_dir.join(&filename).to_string_lossy().to_string());
                     item.thumbnail_path = Some(thumbs_dir.join(&filename).to_string_lossy().to_string());
 
-                    // Extract image from zip
+                    // Extract image from zip and generate thumbnail
                     let zip_path = format!("images/{}", filename);
                     if let Ok(mut entry) = archive.by_name(&zip_path) {
-                        let dest = images_dir.join(&filename);
-                        if let Ok(mut f) = fs::File::create(&dest) {
-                            std::io::copy(&mut entry, &mut f).ok();
+                        let mut png_data = Vec::new();
+                        if std::io::Read::read_to_end(&mut entry, &mut png_data).is_ok() {
+                            // Save full image
+                            fs::write(images_dir.join(&filename), &png_data).ok();
+                            // Generate thumbnail
+                            if let Ok(img) = image::load_from_memory(&png_data) {
+                                let thumb = img.thumbnail(120, 120);
+                                thumb.save(thumbs_dir.join(&filename)).ok();
+                            }
                         }
                     }
                 }
