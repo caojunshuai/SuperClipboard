@@ -1,141 +1,127 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code when working with this repository.
+Codebase guidance for Claude Code when working with this repository.
 
 ## Project Overview
 
-SuperClipboard is a Windows-only clipboard manager built with **Tauri 2 + React 18 + TypeScript + Tailwind CSS 3** (frontend) and **Rust** (backend). It monitors the Windows clipboard, maintains a searchable history of text/images/files in SQLite, and provides a floating panel UI summoned by Alt+V.
+SuperClipboard is a Windows-only clipboard manager — **Tauri 2 + React 18 + TypeScript + Tailwind CSS 3** (frontend) and **Rust** (backend). Monitors Windows clipboard, maintains searchable history of text/images/files in SQLite, floating panel UI summoned by Alt+V.
 
 ## Build & Run
 
 ```bash
-# Install deps (first time only)
-npm install
-
-# Development
-npm run tauri dev
-
-# Production build
-npm run tauri build
+npm install          # first time only
+npm run tauri dev    # development
+npm run tauri build  # production
 ```
 
-> **Toolchain note:** The default toolchain is `stable-x86_64-pc-windows-gnu`. `windres.exe` must be in PATH (from MSYS2/MinGW-w64) for the Windows resource (.rc) compilation that embeds the app icon. Without it, the build succeeds but the .exe has no icon. If using MSVC, `link.exe` must be available.
+> Default toolchain: `stable-x86_64-pc-windows-gnu`. `windres.exe` must be in PATH (MSYS2/MinGW-w64) for the exe icon. Build succeeds without it but the .exe has no icon.
 
 ## Project Structure
 
 ```
-src/                        # React frontend
-  App.tsx                   # Root: dialog state, title bar, drag
-  api.ts                    # Tauri invoke() wrappers + event listeners
-  types.ts                  # TS type definitions (ClipboardItem, etc.)
-  components/
-    ClipboardPanel.tsx      # Main panel: search + tabs + card list
-    ClipboardCard.tsx       # Single clip card (pin/fav/delete actions)
-    CardList.tsx            # Virtual scroll list, toast notifications
-    SearchBar.tsx           # Search input, type/date filters
-    TabBar.tsx              # All / Favorites tabs
-    SettingsPanel.tsx       # Settings form with validation & dirty detection
-    ExportDialog.tsx        # Export text or images
-    BackupDialog.tsx        # Backup to zip / Restore from zip
-    cards/
-      TextCard.tsx          # Renders text content
-      ImageCard.tsx         # Renders image thumbnail
-      FileCard.tsx          # Renders file paths with tooltip
+public/preview.html           # Standalone image preview window (polls for IPC init)
 
-src-tauri/src/              # Rust backend
-  main.rs                   # Entry point
-  lib.rs                    # Plugin setup, DB init, spawn clipboard monitor
-  clipboard.rs              # Windows clipboard poll loop (CF_UNICODETEXT/DIB/HDROP)
-  storage.rs                # SQLite: upsert, query, FTS, settings CRUD
-  models.rs                 # ClipboardItem, ItemType, HistoryQuery, AppSettings
-  commands.rs               # Tauri #[command] handlers (IPC from frontend)
-  export.rs                 # Text export, image export, zip backup/restore
-  hotkey.rs                 # Global hotkey Alt+V via tauri-plugin-global-shortcut
-  tray.rs                   # System tray icon & context menu
+src/                          # React frontend
+  App.tsx                     # Root: dialog state, title bar, drag
+  api.ts                      # Tauri invoke() wrappers + event listeners
+  types.ts                    # TS types (ClipboardItem, etc.)
+  components/
+    ClipboardPanel.tsx        # Main panel: search + tabs + card list
+    ClipboardCard.tsx         # Card: expand/collapse, preview, floating collapse button
+    CardList.tsx              # Virtual scroll list, toast notifications
+    SearchBar.tsx             # Search input, type/date filters
+    TabBar.tsx                # All / Favorites tabs
+    SettingsPanel.tsx         # Settings form with validation & dirty detection
+    ExportDialog.tsx          # Export text or images
+    BackupDialog.tsx          # Backup to zip / Restore from zip
+    cards/
+      TextCard.tsx            # Text content (expandable: line-clamp-3 → full)
+      ImageCard.tsx           # Image thumbnail + preview button
+      FileCard.tsx            # File paths (expandable: capped at 3 → show all)
+
+src-tauri/src/                # Rust backend
+  main.rs                     # Entry point
+  lib.rs                      # Plugin setup, DB init, spawn clipboard monitor
+  clipboard.rs                # Windows clipboard poll loop (CF_UNICODETEXT/DIB/HDROP)
+  storage.rs                  # SQLite: upsert, query, FTS, settings CRUD
+  models.rs                   # ClipboardItem, ItemType, HistoryQuery, AppSettings
+  commands.rs                 # Tauri #[command] handlers (IPC from frontend)
+  export.rs                   # Text export, image export, zip backup/restore
+  hotkey.rs                   # Global hotkey Alt+V via tauri-plugin-global-shortcut
+  tray.rs                     # System tray icon & context menu
 ```
 
 ## Architecture Notes
 
-### Clipboard Monitoring
-- `clipboard.rs` runs in a spawned `std::thread` (not tokio)
-- Polls `GetClipboardSequenceNumber()` every 500ms to detect changes
-- Reads CF_UNICODETEXT (text), CF_DIB (images), CF_HDROP (files)
-- Images are converted from DIB to PNG via the `image` crate
-- Content is deduplicated via FNV-1a 64-bit hash → `upsert_item()`
+### Clipboard Monitor (clipboard.rs)
+- Runs in `std::thread` (not tokio). Polls `GetClipboardSequenceNumber()` every 500ms
+- Reads CF_UNICODETEXT / CF_DIB / CF_HDROP; converts DIB → PNG via `image` crate
+- Deduplicates via FNV-1a 64-bit hash → `upsert_item()` bumps timestamp on duplicate
 
 ### Database (storage.rs)
-- SQLite with `rusqlite` (bundled, not system lib)
-- WAL mode enabled
-- `clipboard_items` table with FTS5 external content table for search
-- `upsert_item()`: checks `content_hash` → updates timestamp if duplicate, inserts if new
-- Search uses `LIKE` for all queries (not FTS5). FTS5's `unicode61` tokenizer can't tokenize CJK characters, and substring `LIKE` is fast enough for clipboard-scale data (thousands of rows)
-- A global `OnceCell<Mutex<Connection>>` holds the DB connection
+- SQLite via `rusqlite` (bundled), WAL mode. Global `OnceCell<Mutex<Connection>>` singleton
+- Search uses `LIKE '%keyword%'` for all queries — FTS5's `unicode61` tokenizer can't handle CJK, and `LIKE` is fast enough at clipboard scale
 
 ### IPC (commands.rs)
-- All commands are async via `#[tauri::command]`
-- `copy_to_clipboard`: writes to Windows clipboard (text → CF_UNICODETEXT, image → CF_DIB, file → CF_HDROP with DROPFILES structure)
-- `auto_paste`: simulates Ctrl+V via `keybd_event` (no Tauri plugin needed for this)
-- `hide_window`: hides the panel window
-- `start_drag`: uses `PostMessageW(WM_NCLBUTTONDOWN, HTCAPTION)` directly — Tauri's `startDragging()` doesn't work because the async IPC loses the mouse gesture context
+- All commands async via `#[tauri::command]`
+- `copy_to_clipboard`: CF_UNICODETEXT / CF_DIB (top-down, negative biHeight) / CF_HDROP (DROPFILES struct)
+- `auto_paste`: `keybd_event` Ctrl+V. `start_drag`: `PostMessageW(WM_NCLBUTTONDOWN, HTCAPTION)` — Tauri's `startDragging()` loses mouse gesture in async IPC
 
-### Frontend (React)
-- Single window app, no routing
-- `ClipboardPanel` manages all state: search query, selected tab, filter type, pagination
-- `refreshKey` in App.tsx triggers re-fetch on clipboard change or panel show
-- Dialogs (export, backup, settings) are conditionally rendered overlays
-- Tailwind CSS with custom theme colors in `tailwind.config.js`
-- Delete animation: `deletingIds` Set in CardList → CSS transition 200ms → remove from list
+### Image Preview (commands.rs + preview.html)
+- Opens independent Tauri window (`image-preview-{N}`) via `WebviewUrl::App("preview.html")`
+- **Tokio deadlock fix:** `WebviewWindowBuilder::build()` blocks on main event loop → must call from `std::thread::spawn`, not tokio command thread pool
+- **IPC init race:** `__TAURI_INTERNALS__.invoke` not attached synchronously by WebView2 → `preview.html` polls every 50ms for `typeof ipc.invoke === 'function'` (10s timeout)
+- **Per-window state:** `HashMap<String, String>` keyed by window label in `LazyLock<Mutex<>>`. `open_image_preview` inserts path, `get_preview_image_path(window)` looks up by `window.label()` and removes entry. `PREVIEW_ID: AtomicU64` for unique labels
+- Image data via `read_image_base64(path)` → `data:image/png;base64,...` (custom base64, no crate)
+
+### Expand/Collapse & Floating Button (ClipboardCard.tsx)
+- Text: exceeds 3 lines / 200 chars → `<展开>` link. `TextCard` accepts `expanded` prop (removes `line-clamp-3`)
+- Files: >3 entries → `<展开>` link. `FileCard` shows capped vs all
+- **Floating collapse:** fixed `收起 ▲` pill at viewport bottom-right when expanded card overflows container. Hidden when footer is in view (inline `收起` takes over)
+- **Auto-collapse:** when card scrolls entirely above viewport → `setExpanded(false)`
+- **scrollIntoView before collapse:** prevents viewport jumping to unrelated cards
+- Detection: `requestAnimationFrame` + passive scroll listener on `.overflow-y-auto` ancestor
+
+### Time Format
+- Today → `今天 HH:MM:SS`, Yesterday → `昨天 HH:MM:SS`, Older → `YYYY-MM-DD HH:MM:SS`
+- Bottom bar: time (left) · action link (right)
 
 ### CJK Search
-- Detects CJK characters (CJK Unified, Hiragana, Katakana, Hangul ranges)
-- Falls back to `content LIKE '%keyword%'` for all queries
-- This is simpler and works for both English and CJK
-
-### Icon
-- `icons/icon.png` is the source (1024×1024)
-- `npx tauri icon` generates all platform formats
-- Tray icon embedded via `include_bytes!("../icons/icon.png")` → `image::load_from_memory()` → `Image::new_owned()`
-- Windows exe icon embedded via `tauri-build` → `.rc` file → `windres`/`rc.exe`
+- Detects CJK ranges (Unified, Hiragana, Katakana, Hangul) → `LIKE '%keyword%'` substring match
 
 ## Common Tasks
 
-### Adding a new Tauri command
-1. Add `#[tauri::command]` fn in `commands.rs`
-2. Register in `lib.rs` `generate_handler![]` list
-3. Add `invoke()` wrapper in `api.ts`
+### Adding a Tauri command
+1. `#[tauri::command]` fn in `commands.rs`
+2. Register in `lib.rs` → `generate_handler![]`
+3. `invoke()` wrapper in `api.ts`
 4. Call from component
 
-### Adding a new setting
-1. Add field to `AppSettings` struct in `models.rs` (with `#[serde(default)]`)
-2. Add default in `Default` impl
-3. Add to `get_all_settings()` and `save_all_settings()` in `storage.rs`
-4. Expose via command in `commands.rs`
-5. Add TS type in `types.ts`
-6. Add fetch in `api.ts`
-7. Add UI in `SettingsPanel.tsx`
+### Adding a setting
+1. Field in `models.rs` `AppSettings` with `#[serde(default)]` + `Default` impl
+2. CRUD in `storage.rs` (`get_all_settings` / `save_all_settings`)
+3. Expose via `commands.rs`, wrap in `api.ts`, UI in `SettingsPanel.tsx`
 
 ### Debugging clipboard issues
-- The clipboard monitor runs in a separate thread — use `eprintln!` or `dbg!` for debugging
-- Check `clipboard.rs` → `run_monitor()` for the main loop
-- DIB format: top-down DIBs have negative `biHeight`, row 0 = top
-- CF_HDROP: `DROPFILES` struct is 20 bytes (pFiles, pt, fNC, fWide), followed by NUL-terminated wide-char paths, terminated by an extra NUL
+- Clipboard monitor is a separate `std::thread` — use `eprintln!` / `dbg!` for logging
+- DIB: top-down has negative `biHeight`, row 0 = top
+- CF_HDROP: 20-byte `DROPFILES` header + wide-char NUL-terminated paths, double-NUL end
 
 ### Database schema changes
-- Add column with `ALTER TABLE` in `init_db()` migration section
-- Use `.ok()` to ignore errors for idempotent migrations
-- SQLite FTS5 triggers must be re-created if the content changes
+- `ALTER TABLE` in `init_db()` migration section, `.ok()` to ignore idempotency errors
+- FTS5 triggers must be re-created if content schema changes
 
 ## Debugging Rules
 
-**Same problem, two failed fixes → stop guessing, add logging.** If a bug persists after two code-change attempts (or after one attempt when the fix clearly cannot be confirmed effective), do not make a third attempt without instrumenting both sides of the boundary with diagnostic output:
+**Same problem, two failed fixes → stop guessing, add logging.** On the third attempt, instrument both sides with diagnostic output:
 
-- Rust side: `eprintln!()` — visible in `npm run tauri dev` terminal
-- Frontend side: visible on-screen text (not `console.log` — browser devtools are inaccessible in a Tauri window)
+- Rust: `eprintln!()` — visible in `npm run tauri dev` terminal
+- Frontend: **visible on-screen text** (not `console.log` — browser devtools inaccessible in Tauri window)
 
-Log input values, intermediate state, and decisions at each step. The logs must pinpoint exactly where the flow diverges from expectation. Only then propose a fix.
+Log inputs, intermediate state, and decisions. Pinpoint the divergence before proposing another fix.
 
 ## Git Commits
 
-This project uses conventional commits: `feat:`, `fix:`, `chore:`, `refactor:`.
+Conventional commits: `feat:`, `fix:`, `chore:`, `refactor:`.
 
 Co-Authored-By: Claude Code <noreply@anthropic.com>

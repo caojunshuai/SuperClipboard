@@ -32,10 +32,18 @@ Built with **Tauri 2 + React + TypeScript + Tailwind CSS**.
 - **Backup** — zip all data (including images) into a `.zip` file
 - **Restore** — restore from a previous backup
 
+### Preview & Expand
+- **Image preview** — click `<预览>` to open images in a separate, resizable window
+- **Text expand** — long text (>3 lines / 200 chars) shows `<展开>`; inline expand to full content
+- **File expand** — when >3 files, click `<展开>` to show all paths
+- **Floating collapse** — when an expanded card overflows the viewport, a fixed `收起 ▲` button appears at the bottom-right
+- **Auto-collapse** — scrolling past an expanded card collapses it automatically
+
 ### UI / UX
 - **Floating panel** — press Alt+V to toggle, ESC to dismiss
 - **System tray** — runs quietly in the notification area
 - **Drag to move** — drag the title bar to reposition the window
+- **Smart timestamps** — today (`今天 HH:MM:SS`), yesterday (`昨天 HH:MM:SS`), older (`YYYY-MM-DD`)
 - **Tooltips** — hover on file paths to see the full path
 - **Delete animation** — graceful fade-out when removing items
 - **Dark theme** — easy on the eyes
@@ -87,6 +95,8 @@ The first build compiles the Rust backend (takes a few minutes). Subsequent buil
 
 ```
 SuperClipboard/
+├── public/                       # Static assets
+│   └── preview.html               # Standalone image preview window
 ├── src/                          # React frontend
 │   ├── App.tsx                   # Root component, dialogs, drag logic
 │   ├── api.ts                    # Tauri invoke wrappers & event listeners
@@ -94,7 +104,7 @@ SuperClipboard/
 │   ├── App.css                   # Global styles & scrollbar themes
 │   └── components/
 │       ├── ClipboardPanel.tsx    # Main panel: search, tabs, card list
-│       ├── ClipboardCard.tsx     # Single clip card with actions
+│       ├── ClipboardCard.tsx     # Card with expand, preview, floating collapse
 │       ├── CardList.tsx          # Scrollable card list with animations
 │       ├── SearchBar.tsx         # Search input & filters
 │       ├── TabBar.tsx            # All / Favorites tabs
@@ -160,6 +170,7 @@ User copies → Windows clipboard
 - **Image clipboard** uses top-down DIBs (negative biHeight) — converted to PNG for storage
 - **File clipboard** uses CF_HDROP with the `DROPFILES` structure — pastes as real files, not paths
 - **Window drag** uses direct `PostMessageW` instead of Tauri's `startDragging()` — avoids async IPC losing the mouse gesture
+- **Image preview** opens independent Tauri windows per image — spawns an OS thread for `build()` to avoid tokio deadlock, uses `HashMap` keyed by window label for per-window state, polls for WebView2 IPC readiness
 - **CJK search** uses SQL `LIKE` instead of FTS5 — FTS5's `unicode61` tokenizer can't handle CJK without word boundaries; `LIKE` is fast enough at clipboard scale (thousands of items)
 
 ### Building for Release
