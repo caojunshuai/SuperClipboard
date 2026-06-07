@@ -8,6 +8,10 @@ mod export;
 
 use tauri::Manager;
 use std::path::PathBuf;
+use once_cell::sync::OnceCell;
+
+/// Global app data directory — set once at startup, read by export/restore.
+pub static APP_DATA_DIR: OnceCell<PathBuf> = OnceCell::new();
 
 fn app_data_dir(app: &tauri::AppHandle) -> PathBuf {
     let dir = app.path().app_data_dir().expect("failed to get app data dir");
@@ -27,6 +31,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .setup(|app| {
             let dir = app_data_dir(&app.handle());
+            APP_DATA_DIR.set(dir.clone()).ok();
             storage::init_db(&dir).expect("Failed to initialize database");
 
             let handle = app.handle().clone();

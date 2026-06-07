@@ -355,36 +355,62 @@ pub fn get_all_items_for_backup() -> SqliteResult<Vec<ClipboardItem>> {
     Ok(items)
 }
 
-pub fn restore_from_backup(items: &[ClipboardItem]) -> SqliteResult<usize> {
+/// Try to insert a restored item with dedup check.
+/// Returns true if inserted, false if a duplicate (same type + content_hash) already exists.
+/// Does NOT preserve the original id — lets SQLite auto-increment to avoid conflicts.
+pub fn try_restore_item(item: &ClipboardItem) -> SqliteResult<bool> {
     let conn = get_conn().lock().unwrap();
-    conn.execute("DELETE FROM clipboard_items", [])?;
-    let mut count = 0;
-    for item in items {
-        conn.execute(
-            "INSERT INTO clipboard_items (id, type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, is_pinned, is_favorite, metadata, content_hash, note, created_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
-            params![
-                item.id,
-                item.item_type.as_str(),
-                item.content,
-                item.image_path,
-                item.thumbnail_path,
-                item.file_paths,
-                item.source_app,
-                item.char_count,
-                item.image_size,
-                item.is_pinned as i32,
-                item.is_favorite as i32,
-                item.metadata,
-                item.content_hash,
-                item.note,
-                item.created_at,
-                item.updated_at,
-            ],
+
+    // Dedup check — same logic as upsert_item
+    if let Some(hash) = item.content_hash {
+        let exists: bool = conn.query_row(
+            "SELECT COUNT(*) > 0 FROM clipboard_items WHERE type = ?1 AND content_hash = ?2",
+            params![item.item_type.as_str(), hash],
+            |row| row.get(0),
         )?;
-        count += 1;
+        if exists {
+            return Ok(false);
+        }
     }
-    Ok(count)
+
+    // Insert without id — let auto-increment assign a new one
+    conn.execute(
+        "INSERT INTO clipboard_items (type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, is_pinned, is_favorite, metadata, content_hash, note, created_at, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
+        params![
+            item.item_type.as_str(),
+            item.content,
+            item.image_path,
+            item.thumbnail_path,
+            item.file_paths,
+            item.source_app,
+            item.char_count,
+            item.image_size,
+            item.is_pinned as i32,
+            item.is_favorite as i32,
+            item.metadata,
+            item.content_hash,
+            item.note,
+            item.created_at,
+            item.updated_at,
+        ],
+    )?;
+    Ok(true)
+}
+
+/// Count unprotected (non-pinned, non-favorite) items by type.
+/// Returns (text_and_file_count, image_count).
+pub fn get_unprotected_counts() -> SqliteResult<(i64, i64)> {
+    let conn = get_conn().lock().unwrap();
+    let text_count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM clipboard_items WHERE is_pinned = 0 AND is_favorite = 0 AND type != 'image'",
+        [], |row| row.get(0),
+    )?;
+    let img_count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM clipboard_items WHERE is_pinned = 0 AND is_favorite = 0 AND type = 'image'",
+        [], |row| row.get(0),
+    )?;
+    Ok((text_count, img_count))
 }
 
 pub fn get_setting(key: &str) -> SqliteResult<Option<String>> {

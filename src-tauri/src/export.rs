@@ -81,25 +81,97 @@ pub fn restore(backup_path: &str) -> Result<String, String> {
     let items: Vec<crate::models::ClipboardItem> =
         serde_json::from_reader(json_entry).map_err(|e| e.to_string())?;
 
-    let p = PathBuf::from(backup_path);
-    let app_data = p.parent().and_then(|pp| pp.parent())
-        .map(|pp| pp.to_string_lossy().to_string())
-        .unwrap_or_default();
-    let images_dir = PathBuf::from(&app_data).join("images");
-    fs::create_dir_all(&images_dir).map_err(|e| e.to_string())?;
+    let total = items.len();
 
-    for i in 0..archive.len() {
-        let mut entry = archive.by_index(i).map_err(|e| e.to_string())?;
-        let name = entry.name().to_string();
-        if name.starts_with("images/") {
-            let dest = images_dir.join(&name["images/".len()..]);
-            let mut f = fs::File::create(&dest).map_err(|e| e.to_string())?;
-            std::io::copy(&mut entry, &mut f).map_err(|e| e.to_string())?;
+    // Get limits from settings
+    let settings = storage::get_all_settings().map_err(|e| e.to_string())?;
+
+    // Count current unprotected items (pinned/favorite items don't count toward limit)
+    let (text_count, img_count) = storage::get_unprotected_counts().map_err(|e| e.to_string())?;
+
+    let mut text_remaining = (settings.max_items - text_count).max(0);
+    let mut img_remaining = (settings.max_images - img_count).max(0);
+
+    // Use the real app data directory (not derived from backup path)
+    let app_data = crate::APP_DATA_DIR.get()
+        .cloned()
+        .unwrap_or_default();
+    let images_dir = app_data.join("images");
+    let thumbs_dir = app_data.join("thumbnails");
+    fs::create_dir_all(&images_dir).map_err(|e| e.to_string())?;
+    fs::create_dir_all(&thumbs_dir).map_err(|e| e.to_string())?;
+
+    let mut imported: usize = 0;
+    let mut duplicates: usize = 0;
+    let mut truncated = false;
+
+    for item in &items {
+        // Check type-specific capacity
+        let is_image = item.item_type == crate::models::ItemType::Image;
+        if is_image {
+            if img_remaining <= 0 {
+                truncated = true;
+                break;
+            }
+        } else {
+            if text_remaining <= 0 {
+                truncated = true;
+                break;
+            }
+        }
+
+        // Try insert with dedup check.
+        // Clone and update paths to point to the current app data dir.
+        let mut item = item.clone();
+        if is_image {
+            if let Some(ref old_path) = item.image_path {
+                let filename = PathBuf::from(old_path)
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_default();
+                if !filename.is_empty() {
+                    item.image_path = Some(images_dir.join(&filename).to_string_lossy().to_string());
+                    item.thumbnail_path = Some(thumbs_dir.join(&filename).to_string_lossy().to_string());
+
+                    // Extract image from zip
+                    let zip_path = format!("images/{}", filename);
+                    if let Ok(mut entry) = archive.by_name(&zip_path) {
+                        let dest = images_dir.join(&filename);
+                        if let Ok(mut f) = fs::File::create(&dest) {
+                            std::io::copy(&mut entry, &mut f).ok();
+                        }
+                    }
+                }
+            }
+        }
+
+        match storage::try_restore_item(&item) {
+            Ok(true) => {
+                if is_image {
+                    img_remaining -= 1;
+                } else {
+                    text_remaining -= 1;
+                }
+                imported += 1;
+            }
+            Ok(false) => {
+                duplicates += 1;
+            }
+            Err(e) => return Err(e.to_string()),
         }
     }
 
-    let count = storage::restore_from_backup(&items).map_err(|e| e.to_string())?;
-    Ok(format!("Restored {} items", count))
+    let mut msg = format!("Imported {} items", imported);
+    if duplicates > 0 {
+        msg.push_str(&format!(" ({} duplicates skipped)", duplicates));
+    }
+    if truncated {
+        msg.push_str(&format!(
+            " — backup has {} items, could not import all due to limits (max {} text, {} images)",
+            total, settings.max_items, settings.max_images
+        ));
+    }
+    Ok(msg)
 }
 
 /// Get items by IDs. If ids is empty, returns ALL items.
