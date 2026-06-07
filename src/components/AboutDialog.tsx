@@ -18,6 +18,15 @@ export default function AboutDialog({ onClose }: Props) {
     getBuildInfo().then(setInfo).catch(() => {});
   }, []);
 
+  // ESC key
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+
   const handleFeedback = (e: React.MouseEvent) => {
     e.stopPropagation();
     open(FEEDBACK_URL);

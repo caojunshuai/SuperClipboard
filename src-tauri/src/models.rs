@@ -84,7 +84,8 @@ pub struct BuildInfo {
 }
 
 fn default_language() -> String {
-    "en-US".to_string()
+    // Empty = not set yet; frontend will detect system locale on first launch
+    String::new()
 }
 
 impl Default for AppSettings {

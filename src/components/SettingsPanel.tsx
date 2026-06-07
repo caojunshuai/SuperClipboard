@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getSettings, updateSettings as saveSettings } from '../api';
-import { SUPPORTED_LOCALES, type Locale } from '../locales';
+import { SUPPORTED_LOCALES, type Locale, detectSystemLocale } from '../locales';
 import i18n from '../locales';
 import type { AppSettings } from '../types';
 
@@ -30,6 +30,15 @@ export default function SettingsPanel({ onClose }: Props) {
 
   useEffect(() => {
     getSettings().then(s => {
+      // First launch: language not set yet → use system detection + save
+      if (!s.language) {
+        s.language = detectSystemLocale();
+        i18n.changeLanguage(s.language);
+        saveSettings(s).catch(() => {});
+      } else if (s.language !== i18n.language) {
+        // DB has a saved language that differs from i18n → sync
+        i18n.changeLanguage(s.language);
+      }
       setSettings(s);
       setOriginal(s);
       setMaxItemsStr(s.max_items.toString());
