@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { ClipboardItem } from '../types';
 import TextCard from './cards/TextCard';
 import ImageCard from './cards/ImageCard';
@@ -17,17 +17,69 @@ interface Props {
 
 export default function ClipboardCard({ item, deleting, onCopy, onTogglePin, onToggleFavorite, onDelete }: Props) {
   const [expanded, setExpanded] = useState(false);
+  const [floatingCollapse, setFloatingCollapse] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // While expanded, listen to scroll events on the container.
+  // - Floating button: shown when the card footer is below the visible area;
+  //   hidden (inline take over) when the user scrolls down to the footer.
+  // - Auto-collapse: when the entire card scrolls out of view (user has
+  //   scrolled past it), collapse it automatically.
+  useEffect(() => {
+    if (!expanded) {
+      setFloatingCollapse(false);
+      return;
+    }
+
+    const card = cardRef.current;
+    if (!card) return;
+
+    const scrollParent = card.closest('.overflow-y-auto') as HTMLElement | null;
+    if (!scrollParent) return;
+
+    const onScroll = () => {
+      const cr = card.getBoundingClientRect();
+      const sr = scrollParent.getBoundingClientRect();
+
+      // Entire card scrolled above viewport → auto-collapse
+      if (cr.bottom < sr.top) {
+        setExpanded(false);
+        return;
+      }
+
+      // Floating button when footer is below visible area
+      setFloatingCollapse(cr.bottom > sr.bottom + 4);
+    };
+
+    // Initial check after DOM updates for the expanded state
+    const raf = requestAnimationFrame(onScroll);
+    scrollParent.addEventListener('scroll', onScroll, { passive: true });
+
+    return () => {
+      cancelAnimationFrame(raf);
+      scrollParent.removeEventListener('scroll', onScroll);
+    };
+  }, [expanded]);
+
+  const handleCollapse = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // Scroll card back to top of viewport before collapsing,
+    // otherwise the viewport ends up showing unrelated cards below.
+    cardRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' });
+    setExpanded(false);
+  };
 
   // Determine whether to show an action link and what it does
   const getActionLink = () => {
     switch (item.item_type) {
       case 'text': {
         const text = item.content || '';
-        const preview = truncateText(text, 3, 200);
-        if (preview === text) return null; // no truncation needed
+        if (truncateText(text, 3, 200) === text) return null;
+        // When expanded with floating button, hide the inline link
+        if (expanded && floatingCollapse) return null;
         return {
           label: expanded ? '收起' : '展开',
-          onClick: (e: React.MouseEvent) => { e.stopPropagation(); setExpanded(!expanded); },
+          onClick: expanded ? handleCollapse : (e: React.MouseEvent) => { e.stopPropagation(); setExpanded(true); },
         };
       }
       case 'image':
@@ -42,6 +94,7 @@ export default function ClipboardCard({ item, deleting, onCopy, onTogglePin, onT
       case 'file': {
         const paths = item.file_paths ? parseFilePaths(item.file_paths) : [];
         if (paths.length <= 3) return null;
+        if (expanded && floatingCollapse) return null;
         return {
           label: expanded ? '收起' : '展开',
           onClick: (e: React.MouseEvent) => { e.stopPropagation(); setExpanded(!expanded); },
@@ -64,50 +117,67 @@ export default function ClipboardCard({ item, deleting, onCopy, onTogglePin, onT
   };
 
   return (
-    <div
-      className={`group relative bg-panel-card border border-panel-border rounded-lg p-3 cursor-pointer hover:bg-panel-hover transition-all duration-200 ${
-        deleting ? 'opacity-0 scale-95 pointer-events-none' : ''
-      } ${
-        item.is_pinned ? 'ring-1 ring-panel-accent/50' : ''
-      }`}
-      onClick={() => onCopy(item)}
-    >
-      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button
-          onClick={e => { e.stopPropagation(); onTogglePin(item.id); }}
-          className={`p-1 rounded text-xs transition-all duration-200 active:scale-125 ${item.is_pinned ? 'text-panel-accent' : 'text-panel-muted hover:text-panel-text'}`}
-          title={item.is_pinned ? '取消置顶' : '置顶'}
-        >{item.is_pinned ? '📍' : '📌'}</button>
-        <button
-          onClick={e => { e.stopPropagation(); onToggleFavorite(item.id); }}
-          className={`p-1 rounded text-xs transition-all duration-200 active:scale-125 ${item.is_favorite ? 'text-yellow-400' : 'text-panel-muted hover:text-panel-text'}`}
-          title={item.is_favorite ? '取消收藏' : '收藏'}
-        >{item.is_favorite ? '⭐' : '☆'}</button>
-        <button
-          onClick={e => { e.stopPropagation(); onDelete(item.id); }}
-          className="p-1 rounded text-xs text-panel-muted hover:text-red-400 transition-all duration-200 active:scale-125"
-          title="删除"
-        >🗑</button>
+    <>
+      <div
+        ref={cardRef}
+        className={`group relative bg-panel-card border border-panel-border rounded-lg p-3 cursor-pointer hover:bg-panel-hover transition-all duration-200 ${
+          deleting ? 'opacity-0 scale-95 pointer-events-none' : ''
+        } ${
+          item.is_pinned ? 'ring-1 ring-panel-accent/50' : ''
+        }`}
+        onClick={() => onCopy(item)}
+      >
+        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={e => { e.stopPropagation(); onTogglePin(item.id); }}
+            className={`p-1 rounded text-xs transition-all duration-200 active:scale-125 ${item.is_pinned ? 'text-panel-accent' : 'text-panel-muted hover:text-panel-text'}`}
+            title={item.is_pinned ? '取消置顶' : '置顶'}
+          >{item.is_pinned ? '📍' : '📌'}</button>
+          <button
+            onClick={e => { e.stopPropagation(); onToggleFavorite(item.id); }}
+            className={`p-1 rounded text-xs transition-all duration-200 active:scale-125 ${item.is_favorite ? 'text-yellow-400' : 'text-panel-muted hover:text-panel-text'}`}
+            title={item.is_favorite ? '取消收藏' : '收藏'}
+          >{item.is_favorite ? '⭐' : '☆'}</button>
+          <button
+            onClick={e => { e.stopPropagation(); onDelete(item.id); }}
+            className="p-1 rounded text-xs text-panel-muted hover:text-red-400 transition-all duration-200 active:scale-125"
+            title="删除"
+          >🗑</button>
+        </div>
+
+        {renderContent()}
+
+        {/* Bottom bar: time (left) + action link (right) */}
+        <div className="flex items-center mt-2 text-xs">
+          <span className="text-panel-muted">{formatTime(item.created_at)}</span>
+          {actionLink && (
+            <>
+              <span className="text-panel-muted mx-1.5">·</span>
+              <button
+                onClick={actionLink.onClick}
+                className="text-blue-400 hover:text-blue-300 hover:underline transition-colors"
+              >
+                {actionLink.label}
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
-      {renderContent()}
-
-      {/* Bottom bar: time (left) + action link (right) */}
-      <div className="flex items-center mt-2 text-xs">
-        <span className="text-panel-muted">{formatTime(item.created_at)}</span>
-        {actionLink && (
-          <>
-            <span className="text-panel-muted mx-1.5">·</span>
-            <button
-              onClick={actionLink.onClick}
-              className="text-blue-400 hover:text-blue-300 hover:underline transition-colors"
-            >
-              {actionLink.label}
-            </button>
-          </>
-        )}
-      </div>
-    </div>
+      {/* Floating collapse button — shown when card overflows viewport */}
+      {floatingCollapse && (
+        <button
+          onClick={handleCollapse}
+          className="fixed right-4 bottom-4 z-40 px-3 py-1.5 text-xs
+                     bg-panel-card/95 backdrop-blur-sm border border-panel-border
+                     text-blue-400 hover:text-blue-300 hover:bg-panel-hover
+                     rounded-full shadow-lg transition-all duration-200
+                     flex items-center gap-1"
+        >
+          收起 <span className="text-[10px]">▲</span>
+        </button>
+      )}
+    </>
   );
 }
 
