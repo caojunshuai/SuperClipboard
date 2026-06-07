@@ -10,20 +10,14 @@
     "beforeBuildCommand": "npm run build"
   },
   "bundle": {
-    "active": true,
-    "targets": ["nsis"],
+    "active": false,
     "icon": [
       "icons/32x32.png",
       "icons/64x64.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.ico"
-    ],
-    "windows": {
-      "nsis": {
-        "installerIcon": "icons/icon.ico"
-      }
-    }
+    ]
   },
   "app": {
     "windows": [
