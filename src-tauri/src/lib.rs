@@ -13,8 +13,13 @@ use once_cell::sync::OnceCell;
 /// Global app data directory — set once at startup, read by export/restore.
 pub static APP_DATA_DIR: OnceCell<PathBuf> = OnceCell::new();
 
-fn app_data_dir(app: &tauri::AppHandle) -> PathBuf {
-    let dir = app.path().app_data_dir().expect("failed to get app data dir");
+/// Data directory is the exe's parent directory (portable layout).
+/// User can delete the app folder to fully uninstall — no residual data.
+fn app_data_dir() -> PathBuf {
+    let dir = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+        .unwrap_or_else(|| PathBuf::from("."));
     std::fs::create_dir_all(dir.join("images")).ok();
     std::fs::create_dir_all(dir.join("thumbnails")).ok();
     std::fs::create_dir_all(dir.join("exports")).ok();
@@ -30,7 +35,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_process::init())
         .setup(|app| {
-            let dir = app_data_dir(&app.handle());
+            let dir = app_data_dir();
             APP_DATA_DIR.set(dir.clone()).ok();
             storage::init_db(&dir).expect("Failed to initialize database");
 
