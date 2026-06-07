@@ -55,7 +55,8 @@
     "errorItems": "请输入不小于 100 的数值",
     "errorItemsMax": "上限为 5000",
     "errorImages": "请输入不小于 10 的数值",
-    "errorImagesMax": "上限为 500"
+    "errorImagesMax": "上限为 500",
+    "language": "界面语言"
   },
   "export": {
     "title": "导出",

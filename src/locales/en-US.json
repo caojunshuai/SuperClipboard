@@ -57,7 +57,8 @@
     "errorItems": "Please enter a value no less than 100",
     "errorItemsMax": "Maximum is 5000",
     "errorImages": "Please enter a value no less than 10",
-    "errorImagesMax": "Maximum is 500"
+    "errorImagesMax": "Maximum is 500",
+    "language": "Language"
   },
   "export": {
     "title": "Export",

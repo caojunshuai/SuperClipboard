@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getSettings, updateSettings as saveSettings, getAppVersion } from '../api';
+import { SUPPORTED_LOCALES, type Locale } from '../locales';
+import i18n from '../locales';
 import type { AppSettings } from '../types';
 
 interface Props {
@@ -185,6 +187,22 @@ export default function SettingsPanel({ onClose }: Props) {
               className="w-4 h-4 text-panel-accent"
             />
           </label>
+          <div>
+            <label className="text-sm text-panel-text block mb-1">{t('settings.language')}</label>
+            <select
+              value={settings.language}
+              onChange={e => {
+                const lng = e.target.value as Locale;
+                setSettings(s => ({ ...s, language: lng }));
+                i18n.changeLanguage(lng);
+              }}
+              className="w-full px-3 py-2 bg-panel-card border border-panel-border rounded-lg text-sm text-panel-text focus:outline-none focus:border-panel-accent"
+            >
+              {SUPPORTED_LOCALES.map(loc => (
+                <option key={loc} value={loc}>{t('lang.' + loc)}</option>
+              ))}
+            </select>
+          </div>
         </div>
         <div className="flex justify-end gap-3 mt-4 shrink-0">
           <button onClick={handleClose} className="px-4 py-2 text-sm text-panel-muted hover:text-panel-text">
