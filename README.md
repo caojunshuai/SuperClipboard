@@ -193,9 +193,11 @@ User copies → Windows clipboard
 # Build the production binary
 npm run tauri build
 
-# The installer / executable will be in:
-# src-tauri/target/release/
+# Package into portable zip (generated in project root)
+npm run package
 ```
+
+The exe is at `src-tauri/target/release/SuperClipboard.exe`. The portable zip is self-contained — data directories and the database are auto-created alongside the exe on first run. Extract anywhere except `C:\Program Files\` (requires admin write permission).
 
 ### Icon Generation
 

@@ -193,9 +193,11 @@ lib.rs  ── 应用启动，数据库初始化，剪切板监听线程
 # 构建生产版本
 npm run tauri build
 
-# 生成文件位置：
-# src-tauri/target/release/
+# 打包为便携 zip（生成在项目根目录）
+npm run package
 ```
+
+exe 生成在 `src-tauri/target/release/SuperClipboard.exe`。zip 为自包含便携包——数据目录和数据库首次运行时自动在 exe 旁边创建。解压到除 `C:\Program Files\` 以外的任意位置（系统目录需要管理员写入权限）。
 
 ### 图标生成
 

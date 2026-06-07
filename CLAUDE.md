@@ -16,6 +16,15 @@ npm run tauri build  # production
 
 > Default toolchain: `stable-x86_64-pc-windows-gnu`. `windres.exe` must be in PATH (MSYS2/MinGW-w64) for the exe icon. Build succeeds without it but the .exe has no icon.
 
+### Package for release
+
+```bash
+npm run tauri build    # build the binary
+npm run package        # create portable zip in project root
+```
+
+The zip contains `SuperClipboard.exe` + `WebView2Loader.dll`. Data directories and DB are auto-created alongside the exe on first run.
+
 ## Project Structure
 
 ```
