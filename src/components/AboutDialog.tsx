@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { open } from '@tauri-apps/plugin-shell';
 import { getBuildInfo } from '../api';
 import type { BuildInfo } from '../types';
 
 interface Props {
   onClose: () => void;
 }
+
+const FEEDBACK_URL = 'https://github.com/caojunshuai/SuperClipboard/issues';
 
 export default function AboutDialog({ onClose }: Props) {
   const { t } = useTranslation();
@@ -14,6 +17,11 @@ export default function AboutDialog({ onClose }: Props) {
   useEffect(() => {
     getBuildInfo().then(setInfo).catch(() => {});
   }, []);
+
+  const handleFeedback = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    open(FEEDBACK_URL);
+  };
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
@@ -33,15 +41,12 @@ export default function AboutDialog({ onClose }: Props) {
             <span className="text-panel-text">SuperClipboard Dev</span>
           </div>
           <div className="pt-2">
-            <a
-              href="https://github.com/caojunshuai/SuperClipboard/issues"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={handleFeedback}
               className="text-blue-400 hover:text-blue-300 text-sm"
-              onClick={e => e.stopPropagation()}
             >
               {t('about.feedback')}
-            </a>
+            </button>
           </div>
         </div>
         <div className="flex justify-end mt-4">
