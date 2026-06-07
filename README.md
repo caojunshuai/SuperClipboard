@@ -51,6 +51,7 @@ Built with **Tauri 2 + React + TypeScript + Tailwind CSS**.
 - **Floating panel** — press Alt+V to toggle, ESC to dismiss
 - **System tray** — runs quietly in the notification area
 - **Drag to move** — drag the title bar to reposition the window
+- **About dialog** — ℹ️ shows version, build time, and feedback link (opens in browser)
 - **Smart timestamps** — today (Today), yesterday (Yesterday), older (YYYY-MM-DD)
 - **Tooltips** — hover on file paths to see the full path
 - **Delete animation** — graceful fade-out when removing items
