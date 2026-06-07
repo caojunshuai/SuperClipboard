@@ -266,6 +266,7 @@ pub fn run_monitor(
                 is_favorite: false,
                 metadata: None,
                 content_hash: None,
+                note: None,
                 created_at: String::new(),
                 updated_at: String::new(),
             })
@@ -284,6 +285,7 @@ pub fn run_monitor(
                 is_favorite: false,
                 metadata: None,
                 content_hash: None,
+                note: None,
                 created_at: String::new(),
                 updated_at: String::new(),
             })
@@ -306,6 +308,7 @@ pub fn run_monitor(
                     is_favorite: false,
                     metadata: None,
                     content_hash: None,
+                    note: None,
                     created_at: String::new(),
                     updated_at: String::new(),
                 })

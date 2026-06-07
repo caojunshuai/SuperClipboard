@@ -329,7 +329,7 @@ pub fn cleanup_old_items(max_items: i64, max_images: i64) -> SqliteResult<(usize
 pub fn get_all_items_for_backup() -> SqliteResult<Vec<ClipboardItem>> {
     let conn = get_conn().lock().unwrap();
     let mut stmt = conn.prepare(
-        "SELECT id, type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, is_pinned, is_favorite, metadata, content_hash, created_at, updated_at
+        "SELECT id, type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, is_pinned, is_favorite, metadata, content_hash, note, created_at, updated_at
          FROM clipboard_items ORDER BY id"
     )?;
     let items = stmt.query_map([], |row| {
