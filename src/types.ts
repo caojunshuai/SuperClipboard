@@ -13,6 +13,7 @@ export interface ClipboardItem {
   is_pinned: boolean;
   is_favorite: boolean;
   metadata: string | null;
+  note: string | null;
   created_at: string;
   updated_at: string;
 }

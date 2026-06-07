@@ -25,26 +25,20 @@ export default function ImageCard({ item }: Props) {
   }, [item.thumbnail_path, item.image_path]);
 
   return (
-    <div>
-      <div className="flex items-center gap-2 mb-1">
-        <span className="text-xs px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded">{t('card.imageType')}</span>
-        {item.image_size && <span className="text-xs text-panel-muted">{item.image_size}</span>}
-      </div>
-      <div className="rounded-md overflow-hidden bg-black/30">
-        {!dataUrl && !error && (
-          <div className="h-20 flex items-center justify-center text-panel-muted text-xs">{t('card.loading')}</div>
-        )}
-        {error && (
-          <div className="h-20 flex items-center justify-center text-panel-muted text-xs">{t('card.imageFallback')}</div>
-        )}
-        {dataUrl && (
-          <img
-            src={dataUrl}
-            alt="screenshot"
-            className="w-full max-h-48 object-cover"
-          />
-        )}
-      </div>
+    <div className="rounded-md overflow-hidden bg-black/30">
+      {!dataUrl && !error && (
+        <div className="h-20 flex items-center justify-center text-panel-muted text-xs">{t('card.loading')}</div>
+      )}
+      {error && (
+        <div className="h-20 flex items-center justify-center text-panel-muted text-xs">{t('card.imageFallback')}</div>
+      )}
+      {dataUrl && (
+        <img
+          src={dataUrl}
+          alt="screenshot"
+          className="w-full max-h-48 object-cover"
+        />
+      )}
     </div>
   );
 }

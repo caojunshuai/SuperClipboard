@@ -19,7 +19,9 @@
     "moreFiles": "...{{count}} more files",
     "moreFiles_one": "...{{count}} more file",
     "loading": "Loading...",
-    "imageFallback": "🖼 Image"
+    "imageFallback": "🖼 Image",
+    "notePlaceholder": "Add note...",
+    "noteTitle": "Edit note"
   },
   "tab": {
     "all": "All",

@@ -5,7 +5,7 @@ import TextCard from './cards/TextCard';
 import ImageCard from './cards/ImageCard';
 import FileCard from './cards/FileCard';
 import { truncateText, parseFilePaths } from '../utils/format';
-import { openImagePreview } from '../api';
+import { openImagePreview, updateNote } from '../api';
 
 interface Props {
   item: ClipboardItem;
@@ -16,17 +16,87 @@ interface Props {
   onDelete: (id: number) => void;
 }
 
+const TYPE_STYLES: Record<string, string> = {
+  text: 'bg-panel-accent/20 text-panel-accent',
+  image: 'bg-green-500/20 text-green-400',
+  file: 'bg-orange-500/20 text-orange-400',
+};
+
 export default function ClipboardCard({ item, deleting, onCopy, onTogglePin, onToggleFavorite, onDelete }: Props) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [floatingCollapse, setFloatingCollapse] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // While expanded, listen to scroll events on the container.
-  // - Floating button: shown when the card footer is below the visible area;
-  //   hidden (inline take over) when the user scrolls down to the footer.
-  // - Auto-collapse: when the entire card scrolls out of view (user has
-  //   scrolled past it), collapse it automatically.
+  // Note editing
+  const [note, setNote] = useState(item.note || '');
+  const [editingNote, setEditingNote] = useState(false);
+  const [noteDraft, setNoteDraft] = useState('');
+  const noteInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync note when item changes
+  useEffect(() => {
+    setNote(item.note || '');
+  }, [item.note]);
+
+  useEffect(() => {
+    if (editingNote) {
+      setNoteDraft(note);
+      noteInputRef.current?.focus();
+    }
+  }, [editingNote]);
+
+  const handleSaveNote = async () => {
+    const trimmed = noteDraft.trim();
+    const newNote = trimmed || null;
+    setNote(trimmed);
+    setEditingNote(false);
+    try {
+      await updateNote(item.id, trimmed || null);
+    } catch {
+      // revert on failure
+      setNote(note);
+    }
+  };
+
+  const handleNoteKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSaveNote();
+    } else if (e.key === 'Escape') {
+      setEditingNote(false);
+    }
+  };
+
+  // ---- Metadata string ----
+  const getMetadata = () => {
+    switch (item.item_type) {
+      case 'text':
+        return item.char_count
+          ? (item.char_count < 1000
+              ? t('time.charCount', { count: item.char_count })
+              : t('time.charCountK', { count: (item.char_count / 1000).toFixed(1) }))
+          : null;
+      case 'image':
+        return item.image_size || null;
+      case 'file': {
+        const paths = item.file_paths ? parseFilePaths(item.file_paths) : [];
+        return t('card.filesCount', { count: paths.length });
+      }
+      default:
+        return null;
+    }
+  };
+
+  const metadata = getMetadata();
+  const typeKey = {
+    text: 'card.textType',
+    image: 'card.imageType',
+    file: 'card.fileType',
+  }[item.item_type];
+  const typeStyle = TYPE_STYLES[item.item_type] || TYPE_STYLES.text;
+
+  // ---- Scroll-aware expand/collapse ----
   useEffect(() => {
     if (!expanded) {
       setFloatingCollapse(false);
@@ -43,17 +113,14 @@ export default function ClipboardCard({ item, deleting, onCopy, onTogglePin, onT
       const cr = card.getBoundingClientRect();
       const sr = scrollParent.getBoundingClientRect();
 
-      // Entire card scrolled above viewport → auto-collapse
       if (cr.bottom < sr.top) {
         setExpanded(false);
         return;
       }
 
-      // Floating button when footer is below visible area
       setFloatingCollapse(cr.bottom > sr.bottom + 4);
     };
 
-    // Initial check after DOM updates for the expanded state
     const raf = requestAnimationFrame(onScroll);
     scrollParent.addEventListener('scroll', onScroll, { passive: true });
 
@@ -65,19 +132,16 @@ export default function ClipboardCard({ item, deleting, onCopy, onTogglePin, onT
 
   const handleCollapse = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // Scroll card back to top of viewport before collapsing,
-    // otherwise the viewport ends up showing unrelated cards below.
     cardRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' });
     setExpanded(false);
   };
 
-  // Determine whether to show an action link and what it does
+  // ---- Action link (bottom bar) ----
   const getActionLink = () => {
     switch (item.item_type) {
       case 'text': {
         const text = item.content || '';
         if (truncateText(text, 3, 200) === text) return null;
-        // When expanded with floating button, hide the inline link
         if (expanded && floatingCollapse) return null;
         return {
           label: expanded ? t('card.collapse') : t('card.expand'),
@@ -109,6 +173,7 @@ export default function ClipboardCard({ item, deleting, onCopy, onTogglePin, onT
 
   const actionLink = getActionLink();
 
+  // ---- Content rendering ----
   const renderContent = () => {
     switch (item.item_type) {
       case 'text': return <TextCard item={item} expanded={expanded} />;
@@ -129,7 +194,52 @@ export default function ClipboardCard({ item, deleting, onCopy, onTogglePin, onT
         }`}
         onClick={() => onCopy(item)}
       >
-        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* ---- Top bar: type badge + metadata + note + edit icon ... actions ---- */}
+        <div className="flex items-center gap-1.5 mb-2 min-w-0">
+          <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${typeStyle}`}>{t(typeKey)}</span>
+
+          {metadata && (
+            <span className="text-xs text-panel-muted shrink-0">{metadata}</span>
+          )}
+
+          {/* Note display / edit */}
+          <span className="text-xs text-panel-muted/60 mx-0.5 shrink-0">·</span>
+
+          {editingNote ? (
+            <input
+              ref={noteInputRef}
+              type="text"
+              value={noteDraft}
+              onChange={e => setNoteDraft(e.target.value)}
+              onBlur={handleSaveNote}
+              onKeyDown={handleNoteKeyDown}
+              placeholder={t('card.notePlaceholder')}
+              className="flex-1 min-w-0 px-1.5 py-0.5 text-xs bg-panel-card border border-panel-border rounded text-panel-text placeholder-panel-muted/50 focus:outline-none focus:border-panel-accent"
+              onClick={e => e.stopPropagation()}
+            />
+          ) : note ? (
+            <span
+              className="flex-1 text-xs text-panel-muted truncate min-w-0"
+              title={note}
+            >
+              {note}
+            </span>
+          ) : (
+            <span className="flex-1" />
+          )}
+
+          <button
+            onClick={e => { e.stopPropagation(); setEditingNote(!editingNote); }}
+            className={`p-0.5 rounded text-xs shrink-0 transition-colors ${editingNote ? 'text-panel-accent' : 'text-panel-muted/50 hover:text-panel-muted'}`}
+            title={t('card.noteTitle')}
+          >
+            ✏️
+          </button>
+
+          {/* Spacer pushes actions to the right */}
+          <span className="flex-1 min-w-0" />
+
+          {/* Action icons — always visible */}
           <button
             onClick={e => { e.stopPropagation(); onTogglePin(item.id); }}
             className={`p-1 rounded text-xs transition-all duration-200 active:scale-125 ${item.is_pinned ? 'text-panel-accent' : 'text-panel-muted hover:text-panel-text'}`}
@@ -147,9 +257,10 @@ export default function ClipboardCard({ item, deleting, onCopy, onTogglePin, onT
           >🗑</button>
         </div>
 
+        {/* ---- Content area ---- */}
         {renderContent()}
 
-        {/* Bottom bar: time (left) + action link (right) */}
+        {/* ---- Bottom bar: time (left) + action link (right) ---- */}
         <div className="flex items-center mt-2 text-xs">
           <span className="text-panel-muted">{formatTime(item.created_at, t)}</span>
           {actionLink && (

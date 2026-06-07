@@ -43,6 +43,8 @@ pub struct ClipboardItem {
     pub metadata: Option<String>,
     #[serde(default)]
     pub content_hash: Option<i64>,
+    #[serde(default)]
+    pub note: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }

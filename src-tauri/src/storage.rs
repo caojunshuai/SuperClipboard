@@ -65,6 +65,8 @@ pub fn init_db(app_data_dir: &std::path::Path) -> SqliteResult<()> {
     // Migration: add content_hash column and dedup index for existing databases
     conn.execute("ALTER TABLE clipboard_items ADD COLUMN content_hash INTEGER", []).ok();
     conn.execute("CREATE INDEX IF NOT EXISTS idx_dedup ON clipboard_items(type, content_hash)", []).ok();
+    // Migration: add note column
+    conn.execute("ALTER TABLE clipboard_items ADD COLUMN note TEXT", []).ok();
 
     DB.set(Mutex::new(conn)).map_err(|_| {
         rusqlite::Error::InvalidParameterName("DB already initialized".into())
@@ -133,7 +135,7 @@ pub fn query_history(query: &HistoryQuery) -> SqliteResult<HistoryResult> {
             // with at most a few thousand rows, LIKE with substring matching is
             // fast enough and more predictable.
             let idx = bind_values.len() + 1;
-            where_clauses.push(format!("(content LIKE ?{} OR file_paths LIKE ?{})", idx, idx));
+            where_clauses.push(format!("(content LIKE ?{} OR file_paths LIKE ?{} OR note LIKE ?{})", idx, idx, idx));
             bind_values.push(Box::new(format!("%{}%", keyword)));
         }
     }
@@ -177,7 +179,7 @@ pub fn query_history(query: &HistoryQuery) -> SqliteResult<HistoryResult> {
     let limit_idx = bind_values.len() + 1;
     let offset_idx = bind_values.len() + 2;
     let query_sql = format!(
-        "SELECT id, type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, is_pinned, is_favorite, metadata, content_hash, created_at, updated_at
+        "SELECT id, type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, is_pinned, is_favorite, metadata, content_hash, note, created_at, updated_at
          FROM clipboard_items {}
          ORDER BY is_pinned DESC, created_at DESC
          LIMIT ?{} OFFSET ?{}",
@@ -205,8 +207,9 @@ pub fn query_history(query: &HistoryQuery) -> SqliteResult<HistoryResult> {
             is_favorite: row.get::<_, i32>(10)? != 0,
             metadata: row.get(11)?,
             content_hash: row.get(12)?,
-            created_at: row.get(13)?,
-            updated_at: row.get(14)?,
+            note: row.get(13)?,
+            created_at: row.get(14)?,
+            updated_at: row.get(15)?,
         })
     })?.filter_map(|r| r.ok()).collect();
 
@@ -233,10 +236,19 @@ pub fn toggle_favorite(id: i64) -> SqliteResult<bool> {
     Ok(val != 0)
 }
 
+pub fn update_note(id: i64, note: Option<String>) -> SqliteResult<()> {
+    let conn = get_conn().lock().unwrap();
+    conn.execute(
+        "UPDATE clipboard_items SET note = ?1, updated_at = datetime('now', 'localtime') WHERE id = ?2",
+        params![note, id],
+    )?;
+    Ok(())
+}
+
 pub fn get_item(id: i64) -> SqliteResult<Option<ClipboardItem>> {
     let conn = get_conn().lock().unwrap();
     let mut stmt = conn.prepare(
-        "SELECT id, type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, is_pinned, is_favorite, metadata, content_hash, created_at, updated_at
+        "SELECT id, type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, is_pinned, is_favorite, metadata, content_hash, note, created_at, updated_at
          FROM clipboard_items WHERE id = ?1"
     )?;
     let mut rows = stmt.query_map(params![id], |row| {
@@ -254,8 +266,9 @@ pub fn get_item(id: i64) -> SqliteResult<Option<ClipboardItem>> {
             is_favorite: row.get::<_, i32>(10)? != 0,
             metadata: row.get(11)?,
             content_hash: row.get(12)?,
-            created_at: row.get(13)?,
-            updated_at: row.get(14)?,
+            note: row.get(13)?,
+            created_at: row.get(14)?,
+            updated_at: row.get(15)?,
         })
     })?;
     Ok(rows.next().transpose()?)
@@ -334,8 +347,9 @@ pub fn get_all_items_for_backup() -> SqliteResult<Vec<ClipboardItem>> {
             is_favorite: row.get::<_, i32>(10)? != 0,
             metadata: row.get(11)?,
             content_hash: row.get(12)?,
-            created_at: row.get(13)?,
-            updated_at: row.get(14)?,
+            note: row.get(13)?,
+            created_at: row.get(14)?,
+            updated_at: row.get(15)?,
         })
     })?.filter_map(|r| r.ok()).collect();
     Ok(items)

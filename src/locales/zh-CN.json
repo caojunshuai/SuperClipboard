@@ -17,7 +17,9 @@
     "filesCount": "{{count}} 个文件",
     "moreFiles": "...还有 {{count}} 个文件",
     "loading": "加载中...",
-    "imageFallback": "🖼 图片"
+    "imageFallback": "🖼 图片",
+    "notePlaceholder": "添加备注...",
+    "noteTitle": "编辑备注"
   },
   "tab": {
     "all": "全部",
