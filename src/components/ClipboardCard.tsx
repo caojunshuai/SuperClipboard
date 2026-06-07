@@ -92,19 +92,20 @@ export default function ClipboardCard({ item, deleting, onCopy, onTogglePin, onT
 
       {renderContent()}
 
-      {/* Bottom bar: action link (left) + time (right) */}
-      <div className="flex items-center justify-between mt-2 text-xs">
-        <span>
-          {actionLink && (
+      {/* Bottom bar: time (left) + action link (right) */}
+      <div className="flex items-center mt-2 text-xs">
+        <span className="text-panel-muted">{formatTime(item.created_at)}</span>
+        {actionLink && (
+          <>
+            <span className="text-panel-muted mx-1.5">·</span>
             <button
               onClick={actionLink.onClick}
               className="text-blue-400 hover:text-blue-300 hover:underline transition-colors"
             >
-              &lt;{actionLink.label}&gt;
+              {actionLink.label}
             </button>
-          )}
-        </span>
-        <span className="text-panel-muted">{formatTime(item.created_at)}</span>
+          </>
+        )}
       </div>
     </div>
   );
