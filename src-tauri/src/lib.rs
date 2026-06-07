@@ -6,7 +6,6 @@ mod tray;
 mod commands;
 mod export;
 
-use tauri::Manager;
 use std::path::PathBuf;
 use once_cell::sync::OnceCell;
 
