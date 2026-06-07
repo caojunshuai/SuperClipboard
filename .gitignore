@@ -3,3 +3,5 @@ dist/
 target/
 *.pdb
 *.log
+.claude/settings.local.json
+*.zip
