@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { FilterType, DateFilter } from '../types';
 
 interface Props {
@@ -9,25 +10,27 @@ interface Props {
   onDateFilterChange: (v: DateFilter) => void;
 }
 
-const TYPE_OPTIONS: { value: FilterType; label: string }[] = [
-  { value: 'all', label: '全部' },
-  { value: 'text', label: '文字' },
-  { value: 'image', label: '图片' },
-  { value: 'file', label: '文件' },
-];
-
-const DATE_OPTIONS: { value: DateFilter; label: string }[] = [
-  { value: 'all', label: '不限' },
-  { value: 'today', label: '今天' },
-  { value: '3days', label: '近3天' },
-  { value: '7days', label: '近7天' },
-];
-
 export default function SearchBar({
   keyword, onKeywordChange,
   typeFilter, onTypeFilterChange,
   dateFilter, onDateFilterChange,
 }: Props) {
+  const { t } = useTranslation();
+
+  const TYPE_OPTIONS: { value: FilterType; labelKey: string }[] = [
+    { value: 'all', labelKey: 'search.typeAll' },
+    { value: 'text', labelKey: 'search.typeText' },
+    { value: 'image', labelKey: 'search.typeImage' },
+    { value: 'file', labelKey: 'search.typeFile' },
+  ];
+
+  const DATE_OPTIONS: { value: DateFilter; labelKey: string }[] = [
+    { value: 'all', labelKey: 'search.dateAll' },
+    { value: 'today', labelKey: 'search.dateToday' },
+    { value: '3days', labelKey: 'search.date3Days' },
+    { value: '7days', labelKey: 'search.date7Days' },
+  ];
+
   return (
     <div className="p-3 space-y-2 border-b border-panel-border">
       <div className="relative">
@@ -38,7 +41,7 @@ export default function SearchBar({
           type="text"
           value={keyword}
           onChange={e => onKeywordChange(e.target.value)}
-          placeholder="搜索剪切板历史..."
+          placeholder={t('search.placeholder')}
           className="w-full pl-9 pr-3 py-2 bg-panel-card border border-panel-border rounded-lg text-sm text-panel-text placeholder-panel-muted focus:outline-none focus:border-panel-accent"
         />
       </div>
@@ -54,7 +57,7 @@ export default function SearchBar({
                   : 'bg-panel-card text-panel-muted hover:text-panel-text'
               }`}
             >
-              {opt.label}
+              {t(opt.labelKey)}
             </button>
           ))}
         </div>
@@ -65,7 +68,7 @@ export default function SearchBar({
           className="bg-panel-card border border-panel-border rounded-md text-xs text-panel-text px-2 py-1 focus:outline-none focus:border-panel-accent"
         >
           {DATE_OPTIONS.map(opt => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
+            <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
           ))}
         </select>
       </div>

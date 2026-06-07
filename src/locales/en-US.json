@@ -1,0 +1,112 @@
+{
+  "app": {
+    "title": "SuperClipboard"
+  },
+  "card": {
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "preview": "Preview",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "favorite": "Favorite",
+    "unfavorite": "Unfavorite",
+    "delete": "Delete",
+    "textType": "Text",
+    "imageType": "Image",
+    "fileType": "File",
+    "filesCount": "{{count}} files",
+    "filesCount_one": "{{count}} file",
+    "moreFiles": "...{{count}} more files",
+    "moreFiles_one": "...{{count}} more file",
+    "loading": "Loading...",
+    "imageFallback": "🖼 Image"
+  },
+  "tab": {
+    "all": "All",
+    "favorites": "⭐ Favorites"
+  },
+  "search": {
+    "placeholder": "Search clipboard history...",
+    "typeAll": "All",
+    "typeText": "Text",
+    "typeImage": "Image",
+    "typeFile": "File",
+    "dateAll": "Any",
+    "dateToday": "Today",
+    "date3Days": "3 days",
+    "date7Days": "7 days"
+  },
+  "settings": {
+    "title": "Settings",
+    "hotkey": "Global Hotkey",
+    "hotkeyHint": "Default Alt+V (customization not supported in this version)",
+    "historyLimit": "History Limit",
+    "historyRange": "Range 100 - 5000",
+    "imageLimit": "Image Limit",
+    "imageRange": "Range 10 - 500",
+    "autoPaste": "Auto-paste after selection",
+    "autoPasteHint": "Automatically Ctrl+V after selecting a clip",
+    "autoStart": "Start with Windows",
+    "autoStartHint": "Automatically run on Windows startup",
+    "save": "Save Settings",
+    "saving": "Saving...",
+    "close": "Close",
+    "cancel": "Cancel",
+    "discard": "Discard",
+    "dirtyConfirm": "You have unsaved changes. Save now?",
+    "errorItems": "Please enter a value no less than 100",
+    "errorItemsMax": "Maximum is 5000",
+    "errorImages": "Please enter a value no less than 10",
+    "errorImagesMax": "Maximum is 500"
+  },
+  "export": {
+    "title": "Export",
+    "textExport": "Export Text",
+    "textExportDesc": "Merge all text into a single .txt file",
+    "imageExport": "Export Images",
+    "imageExportDesc": "Export as original PNG/JPG files",
+    "cancel": "Cancel",
+    "exportBtn": "Choose Location & Export",
+    "exporting": "Exporting...",
+    "error": "Export failed: {{error}}"
+  },
+  "backup": {
+    "title": "Backup & Restore",
+    "backupTitle": "Create Backup",
+    "backupDesc": "Export all data and images as a .zip archive",
+    "createBackup": "Create Backup",
+    "restoreTitle": "Restore Backup",
+    "restoreDesc": "Restore data from a .zip backup (will clear current data)",
+    "selectFile": "Select Backup File",
+    "close": "Close",
+    "backingUp": "Backing up...",
+    "restoring": "Restoring...",
+    "backupError": "Backup failed: {{error}}",
+    "restoreError": "Restore failed: {{error}}",
+    "confirmRestore": "Restore will clear all current data. Continue?"
+  },
+  "list": {
+    "empty": "No clipboard history",
+    "emptyHint": "Use Ctrl+C to copy content and start recording",
+    "total": "{{count}} records",
+    "total_one": "{{count}} record",
+    "error": "Operation failed"
+  },
+  "time": {
+    "justNow": "just now",
+    "minutesAgo": "{{count}} min ago",
+    "minutesAgo_one": "{{count}} min ago",
+    "hoursAgo": "{{count}} hr ago",
+    "hoursAgo_one": "{{count}} hr ago",
+    "daysAgo": "{{count}} days ago",
+    "daysAgo_one": "{{count}} day ago",
+    "today": "Today {{time}}",
+    "yesterday": "Yesterday {{time}}",
+    "charCount": "{{count}} chars",
+    "charCountK": "{{count}}k chars"
+  },
+  "lang": {
+    "zh-CN": "中文",
+    "en-US": "English"
+  }
+}

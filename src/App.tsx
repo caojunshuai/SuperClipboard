@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { onPanelShown, onClipboardChanged, hideWindow, startDrag } from './api';
 import ClipboardPanel from './components/ClipboardPanel';
 import ExportDialog from './components/ExportDialog';
@@ -8,6 +9,7 @@ import SettingsPanel from './components/SettingsPanel';
 type DialogType = 'none' | 'export' | 'backup' | 'settings';
 
 function App() {
+  const { t } = useTranslation();
   const [dialog, setDialog] = useState<DialogType>('none');
   const [refreshKey, setRefreshKey] = useState(0);
   const titleBarRef = useRef<HTMLDivElement>(null);
@@ -55,13 +57,13 @@ function App() {
         <span className="text-xs font-medium text-panel-text">SuperClipboard</span>
         <div className="flex gap-1">
           <button onClick={() => setDialog('export')} className="p-1 text-xs text-panel-muted hover:text-panel-text"
-                  title="导出">📤</button>
+                  title={t('export.title')}>📤</button>
           <button onClick={() => setDialog('backup')} className="p-1 text-xs text-panel-muted hover:text-panel-text"
-                  title="备份/恢复">💾</button>
+                  title={t('backup.title')}>💾</button>
           <button onClick={() => setDialog('settings')} className="p-1 text-xs text-panel-muted hover:text-panel-text"
-                  title="设置">⚙</button>
+                  title={t('settings.title')}>⚙</button>
           <button onClick={handleClose} className="p-1 text-xs text-panel-muted hover:text-red-400"
-                  title="关闭">✕</button>
+                  title={t('settings.close')}>✕</button>
         </div>
       </div>
 

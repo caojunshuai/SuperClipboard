@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ClipboardItem } from '../../types';
 import { readImageBase64 } from '../../api';
 
@@ -7,6 +8,7 @@ interface Props {
 }
 
 export default function ImageCard({ item }: Props) {
+  const { t } = useTranslation();
   const [dataUrl, setDataUrl] = useState<string | null>(null);
   const [error, setError] = useState(false);
 
@@ -25,15 +27,15 @@ export default function ImageCard({ item }: Props) {
   return (
     <div>
       <div className="flex items-center gap-2 mb-1">
-        <span className="text-xs px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded">图片</span>
+        <span className="text-xs px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded">{t('card.imageType')}</span>
         {item.image_size && <span className="text-xs text-panel-muted">{item.image_size}</span>}
       </div>
       <div className="rounded-md overflow-hidden bg-black/30">
         {!dataUrl && !error && (
-          <div className="h-20 flex items-center justify-center text-panel-muted text-xs">加载中...</div>
+          <div className="h-20 flex items-center justify-center text-panel-muted text-xs">{t('card.loading')}</div>
         )}
         {error && (
-          <div className="h-20 flex items-center justify-center text-panel-muted text-xs">🖼 图片</div>
+          <div className="h-20 flex items-center justify-center text-panel-muted text-xs">{t('card.imageFallback')}</div>
         )}
         {dataUrl && (
           <img

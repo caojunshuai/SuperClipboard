@@ -38,6 +38,7 @@ export interface AppSettings {
   max_images: number;
   auto_paste: boolean;
   auto_start: boolean;
+  language: string;
 }
 
 export type TabType = 'all' | 'favorites';

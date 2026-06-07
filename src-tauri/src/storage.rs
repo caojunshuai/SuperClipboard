@@ -395,6 +395,7 @@ pub fn get_all_settings() -> SqliteResult<AppSettings> {
     if let Some(v) = get_setting("max_images")? { settings.max_images = v.parse().unwrap_or(500); }
     if let Some(v) = get_setting("auto_paste")? { settings.auto_paste = v == "true"; }
     if let Some(v) = get_setting("auto_start")? { settings.auto_start = v == "true"; }
+    if let Some(v) = get_setting("language")? { settings.language = v; }
     Ok(settings)
 }
 
@@ -404,5 +405,6 @@ pub fn save_all_settings(settings: &AppSettings) -> SqliteResult<()> {
     set_setting("max_images", &settings.max_images.to_string())?;
     set_setting("auto_paste", if settings.auto_paste { "true" } else { "false" })?;
     set_setting("auto_start", if settings.auto_start { "true" } else { "false" })?;
+    set_setting("language", &settings.language)?;
     Ok(())
 }

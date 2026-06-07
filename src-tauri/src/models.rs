@@ -71,6 +71,12 @@ pub struct AppSettings {
     pub max_images: i64,
     pub auto_paste: bool,
     pub auto_start: bool,
+    #[serde(default = "default_language")]
+    pub language: String,
+}
+
+fn default_language() -> String {
+    "en-US".to_string()
 }
 
 impl Default for AppSettings {
@@ -81,6 +87,7 @@ impl Default for AppSettings {
             max_images: 500,
             auto_paste: false,
             auto_start: false,
+            language: default_language(),
         }
     }
 }

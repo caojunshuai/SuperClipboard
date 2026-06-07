@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getClipboardHistory, copyToClipboard, autoPaste, togglePin, toggleFavorite, deleteClipboardItem, getSettings } from '../api';
 import ClipboardCard from './ClipboardCard';
 import type { ClipboardItem, HistoryQuery } from '../types';
@@ -13,6 +14,7 @@ interface Props {
 const PAGE_SIZE = 50;
 
 export default function CardList({ query, refreshKey, onClose }: Props) {
+  const { t } = useTranslation();
   const [items, setItems] = useState<ClipboardItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -73,7 +75,7 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
       }
       onClose();
     } catch (err) {
-      const msg = typeof err === 'string' ? err : '操作失败';
+      const msg = typeof err === 'string' ? err : t('list.error');
       setToast({ message: msg, type: 'error' });
       setTimeout(() => setToast(null), 4000);
     }
@@ -136,8 +138,8 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
           <svg className="w-12 h-12 mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
           </svg>
-          <p className="text-sm">暂无剪切板记录</p>
-          <p className="text-xs mt-1">使用 Ctrl+C 复制内容开始记录</p>
+          <p className="text-sm">{t('list.empty')}</p>
+          <p className="text-xs mt-1">{t('list.emptyHint')}</p>
         </div>
       )}
 
@@ -161,7 +163,7 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
 
       {total > 0 && (
         <div className="text-center text-xs text-panel-muted py-2 border-t border-panel-border mt-2">
-          共 {total} 条记录
+          {t('list.total', { count: total })}
         </div>
       )}
     </div>

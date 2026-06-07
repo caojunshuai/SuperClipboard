@@ -1,0 +1,106 @@
+{
+  "app": {
+    "title": "SuperClipboard"
+  },
+  "card": {
+    "expand": "展开",
+    "collapse": "收起",
+    "preview": "预览",
+    "pin": "置顶",
+    "unpin": "取消置顶",
+    "favorite": "收藏",
+    "unfavorite": "取消收藏",
+    "delete": "删除",
+    "textType": "文字",
+    "imageType": "图片",
+    "fileType": "文件",
+    "filesCount": "{{count}} 个文件",
+    "moreFiles": "...还有 {{count}} 个文件",
+    "loading": "加载中...",
+    "imageFallback": "🖼 图片"
+  },
+  "tab": {
+    "all": "全部",
+    "favorites": "⭐ 收藏"
+  },
+  "search": {
+    "placeholder": "搜索剪切板历史...",
+    "typeAll": "全部",
+    "typeText": "文字",
+    "typeImage": "图片",
+    "typeFile": "文件",
+    "dateAll": "不限",
+    "dateToday": "今天",
+    "date3Days": "近3天",
+    "date7Days": "近7天"
+  },
+  "settings": {
+    "title": "设置",
+    "hotkey": "全局快捷键",
+    "hotkeyHint": "默认 Alt+V（当前版本不支持自定义）",
+    "historyLimit": "历史记录上限",
+    "historyRange": "范围 100 - 5000",
+    "imageLimit": "图片保留上限",
+    "imageRange": "范围 10 - 500",
+    "autoPaste": "选中后自动粘贴",
+    "autoPasteHint": "选择记录后自动 Ctrl+V",
+    "autoStart": "开机自启",
+    "autoStartHint": "Windows 启动时自动运行",
+    "save": "保存设置",
+    "saving": "保存中...",
+    "close": "关闭",
+    "cancel": "取消",
+    "discard": "不保存",
+    "dirtyConfirm": "有未保存的修改，是否保存？",
+    "errorItems": "请输入不小于 100 的数值",
+    "errorItemsMax": "上限为 5000",
+    "errorImages": "请输入不小于 10 的数值",
+    "errorImagesMax": "上限为 500"
+  },
+  "export": {
+    "title": "导出",
+    "textExport": "导出文字",
+    "textExportDesc": "合并导出为一个 .txt 文件",
+    "imageExport": "导出图片",
+    "imageExportDesc": "导出为原始 PNG/JPG 文件",
+    "cancel": "取消",
+    "exportBtn": "选择位置并导出",
+    "exporting": "导出中...",
+    "error": "导出失败: {{error}}"
+  },
+  "backup": {
+    "title": "备份与恢复",
+    "backupTitle": "创建备份",
+    "backupDesc": "导出所有数据和图片为 .zip 包",
+    "createBackup": "创建备份",
+    "restoreTitle": "恢复备份",
+    "restoreDesc": "从 .zip 备份包恢复数据（会清空当前数据）",
+    "selectFile": "选择备份文件",
+    "close": "关闭",
+    "backingUp": "备份中...",
+    "restoring": "恢复中...",
+    "backupError": "备份失败: {{error}}",
+    "restoreError": "恢复失败: {{error}}",
+    "confirmRestore": "恢复将清空当前数据，确定继续？"
+  },
+  "list": {
+    "empty": "暂无剪切板记录",
+    "emptyHint": "使用 Ctrl+C 复制内容开始记录",
+    "total": "共 {{count}} 条记录",
+    "error": "操作失败"
+  },
+  "time": {
+    "justNow": "刚刚",
+    "minutesAgo": "{{count}} 分钟前",
+    "hoursAgo": "{{count}} 小时前",
+    "daysAgo": "{{count}} 天前",
+    "today": "今天 {{time}}",
+    "yesterday": "昨天 {{time}}",
+    "charCount": "{{count}} 字",
+    "charCountK": "{{count}}k 字"
+  },
+  "lang": {
+    "zh-CN": "中文",
+    "en-US": "English"
+  }
+}

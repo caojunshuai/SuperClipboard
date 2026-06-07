@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getSettings, updateSettings as saveSettings, getAppVersion } from '../api';
 import type { AppSettings } from '../types';
 
@@ -7,6 +8,7 @@ interface Props {
 }
 
 export default function SettingsPanel({ onClose }: Props) {
+  const { t } = useTranslation();
   const [version, setVersion] = useState('');
   const [settings, setSettings] = useState<AppSettings>({
     hotkey: 'Alt+V',
@@ -14,6 +16,7 @@ export default function SettingsPanel({ onClose }: Props) {
     max_images: 500,
     auto_paste: false,
     auto_start: false,
+    language: 'en-US',
   });
   const [original, setOriginal] = useState<AppSettings | null>(null);
   const [saving, setSaving] = useState(false);
@@ -38,6 +41,7 @@ export default function SettingsPanel({ onClose }: Props) {
     settings.hotkey !== original.hotkey ||
     settings.auto_paste !== original.auto_paste ||
     settings.auto_start !== original.auto_start ||
+    settings.language !== original.language ||
     maxItemsStr !== original.max_items.toString() ||
     maxImagesStr !== original.max_images.toString()
   );
@@ -54,15 +58,15 @@ export default function SettingsPanel({ onClose }: Props) {
     const images = parseInt(maxImagesStr);
 
     if (!maxItemsStr.trim() || isNaN(items) || items < 100) {
-      e.items = '请输入不小于 100 的数值';
+      e.items = t('settings.errorItems');
     } else if (items > 5000) {
-      e.items = '上限为 5000';
+      e.items = t('settings.errorItemsMax');
     }
 
     if (!maxImagesStr.trim() || isNaN(images) || images < 10) {
-      e.images = '请输入不小于 10 的数值';
+      e.images = t('settings.errorImages');
     } else if (images > 500) {
-      e.images = '上限为 500';
+      e.images = t('settings.errorImagesMax');
     }
 
     setErrors(e);
@@ -119,20 +123,20 @@ export default function SettingsPanel({ onClose }: Props) {
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={handleClose}>
       <div className="bg-panel-bg border border-panel-border rounded-xl p-6 w-96 shadow-2xl max-h-[95vh] flex flex-col relative" onClick={e => e.stopPropagation()}>
-        <h2 className="text-lg font-semibold text-panel-text mb-4 shrink-0">设置</h2>
+        <h2 className="text-lg font-semibold text-panel-text mb-4 shrink-0">{t('settings.title')}</h2>
         <div className="space-y-4 overflow-y-auto flex-1 pr-1 scrollbar-thin">
           <div>
-            <label className="text-sm text-panel-text block mb-1">全局快捷键</label>
+            <label className="text-sm text-panel-text block mb-1">{t('settings.hotkey')}</label>
             <input
               type="text"
               value={settings.hotkey}
               readOnly
               className="w-full px-3 py-2 bg-panel-card border border-panel-border rounded-lg text-sm text-panel-muted"
             />
-            <p className="text-xs text-panel-muted mt-1">默认 Alt+V（当前版本不支持自定义）</p>
+            <p className="text-xs text-panel-muted mt-1">{t('settings.hotkeyHint')}</p>
           </div>
           <div>
-            <label className="text-sm text-panel-text block mb-1">历史记录上限</label>
+            <label className="text-sm text-panel-text block mb-1">{t('settings.historyLimit')}</label>
             <input
               type="text"
               inputMode="numeric"
@@ -142,10 +146,10 @@ export default function SettingsPanel({ onClose }: Props) {
               className={`w-full px-3 py-2 bg-panel-card border rounded-lg text-sm text-panel-text ${errors.items ? 'border-red-500/50' : 'border-panel-border'}`}
             />
             {errors.items && <p className="text-xs text-red-400 mt-1">{errors.items}</p>}
-            <p className="text-xs text-panel-muted mt-1">范围 100 - 5000</p>
+            <p className="text-xs text-panel-muted mt-1">{t('settings.historyRange')}</p>
           </div>
           <div>
-            <label className="text-sm text-panel-text block mb-1">图片保留上限</label>
+            <label className="text-sm text-panel-text block mb-1">{t('settings.imageLimit')}</label>
             <input
               type="text"
               inputMode="numeric"
@@ -155,12 +159,12 @@ export default function SettingsPanel({ onClose }: Props) {
               className={`w-full px-3 py-2 bg-panel-card border rounded-lg text-sm text-panel-text ${errors.images ? 'border-red-500/50' : 'border-panel-border'}`}
             />
             {errors.images && <p className="text-xs text-red-400 mt-1">{errors.images}</p>}
-            <p className="text-xs text-panel-muted mt-1">范围 10 - 500</p>
+            <p className="text-xs text-panel-muted mt-1">{t('settings.imageRange')}</p>
           </div>
           <label className="flex items-center justify-between p-3 bg-panel-card rounded-lg cursor-pointer">
             <div>
-              <div className="text-sm text-panel-text">选中后自动粘贴</div>
-              <div className="text-xs text-panel-muted">选择记录后自动 Ctrl+V</div>
+              <div className="text-sm text-panel-text">{t('settings.autoPaste')}</div>
+              <div className="text-xs text-panel-muted">{t('settings.autoPasteHint')}</div>
             </div>
             <input
               type="checkbox"
@@ -171,8 +175,8 @@ export default function SettingsPanel({ onClose }: Props) {
           </label>
           <label className="flex items-center justify-between p-3 bg-panel-card rounded-lg cursor-pointer">
             <div>
-              <div className="text-sm text-panel-text">开机自启</div>
-              <div className="text-xs text-panel-muted">Windows 启动时自动运行</div>
+              <div className="text-sm text-panel-text">{t('settings.autoStart')}</div>
+              <div className="text-xs text-panel-muted">{t('settings.autoStartHint')}</div>
             </div>
             <input
               type="checkbox"
@@ -184,14 +188,14 @@ export default function SettingsPanel({ onClose }: Props) {
         </div>
         <div className="flex justify-end gap-3 mt-4 shrink-0">
           <button onClick={handleClose} className="px-4 py-2 text-sm text-panel-muted hover:text-panel-text">
-            {dirty ? '取消' : '关闭'}
+            {dirty ? t('settings.cancel') : t('settings.close')}
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
             className="px-4 py-2 text-sm bg-panel-accent text-white rounded-lg hover:opacity-90 disabled:opacity-50"
           >
-            {saving ? '保存中...' : '保存设置'}
+            {saving ? t('settings.saving') : t('settings.save')}
           </button>
         </div>
 
@@ -203,10 +207,10 @@ export default function SettingsPanel({ onClose }: Props) {
         {showConfirm && (
           <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-xl" onClick={() => setShowConfirm(false)}>
             <div className="bg-panel-bg border border-panel-border rounded-lg p-4 shadow-2xl mx-4" onClick={e => e.stopPropagation()}>
-              <p className="text-sm text-panel-text mb-3">有未保存的修改，是否保存？</p>
+              <p className="text-sm text-panel-text mb-3">{t('settings.dirtyConfirm')}</p>
               <div className="flex justify-end gap-2">
-                <button onClick={handleDiscard} className="px-3 py-1.5 text-xs text-panel-muted hover:text-panel-text">不保存</button>
-                <button onClick={handleSave} className="px-3 py-1.5 text-xs bg-panel-accent text-white rounded hover:opacity-90">保存</button>
+                <button onClick={handleDiscard} className="px-3 py-1.5 text-xs text-panel-muted hover:text-panel-text">{t('settings.discard')}</button>
+                <button onClick={handleSave} className="px-3 py-1.5 text-xs bg-panel-accent text-white rounded hover:opacity-90">{t('settings.save')}</button>
               </div>
             </div>
           </div>

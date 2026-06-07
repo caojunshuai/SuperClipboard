@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { TabType } from '../types';
 
 interface Props {
@@ -6,6 +7,7 @@ interface Props {
 }
 
 export default function TabBar({ tab, onTabChange }: Props) {
+  const { t } = useTranslation();
   return (
     <div className="flex border-b border-panel-border px-3">
       <button
@@ -16,7 +18,7 @@ export default function TabBar({ tab, onTabChange }: Props) {
             : 'border-transparent text-panel-muted hover:text-panel-text'
         }`}
       >
-        全部
+        {t('tab.all')}
       </button>
       <button
         onClick={() => onTabChange('favorites')}
@@ -26,7 +28,7 @@ export default function TabBar({ tab, onTabChange }: Props) {
             : 'border-transparent text-panel-muted hover:text-panel-text'
         }`}
       >
-        ⭐ 收藏
+        {t('tab.favorites')}
       </button>
     </div>
   );
