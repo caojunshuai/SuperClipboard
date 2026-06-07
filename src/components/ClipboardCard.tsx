@@ -224,9 +224,7 @@ export default function ClipboardCard({ item, deleting, onCopy, onTogglePin, onT
             >
               {note}
             </span>
-          ) : (
-            <span className="flex-1" />
-          )}
+          ) : null}
 
           <button
             onClick={e => { e.stopPropagation(); setEditingNote(!editingNote); }}
@@ -236,8 +234,8 @@ export default function ClipboardCard({ item, deleting, onCopy, onTogglePin, onT
             ✏️
           </button>
 
-          {/* Spacer pushes actions to the right */}
-          <span className="flex-1 min-w-0" />
+          {/* Spacer — capped so ✏️ doesn't stray too far from actions */}
+          <span className="flex-1 min-w-[8px] max-w-[120px]" />
 
           {/* Action icons — always visible */}
           <button
