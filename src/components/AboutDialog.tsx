@@ -34,13 +34,13 @@ export default function AboutDialog({ onClose }: Props) {
           </div>
           <div className="pt-2">
             <a
-              href="https://github.com/caojunshuai/SuperClipboard"
+              href="https://github.com/caojunshuai/SuperClipboard/issues"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-400 hover:text-blue-300 text-xs break-all"
+              className="text-blue-400 hover:text-blue-300 text-sm"
               onClick={e => e.stopPropagation()}
             >
-              github.com/caojunshuai/SuperClipboard
+              {t('about.feedback')}
             </a>
           </div>
         </div>

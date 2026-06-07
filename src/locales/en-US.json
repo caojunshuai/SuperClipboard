@@ -113,7 +113,8 @@
     "version": "Version",
     "buildTime": "Build Time",
     "author": "Author",
-    "close": "Close"
+    "close": "Close",
+    "feedback": "💬 Feedback"
   },
   "lang": {
     "zh-CN": "中文",

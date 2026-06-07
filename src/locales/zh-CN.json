@@ -107,7 +107,8 @@
     "version": "版本",
     "buildTime": "构建时间",
     "author": "作者",
-    "close": "关闭"
+    "close": "关闭",
+    "feedback": "💬 意见反馈"
   },
   "lang": {
     "zh-CN": "中文",
