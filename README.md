@@ -40,10 +40,11 @@ Built with **Tauri 2 + React + TypeScript + Tailwind CSS**.
 - **Auto-collapse** — scrolling past an expanded card collapses it automatically
 
 ### UI / UX
+- **Multi-language** — Chinese (中文) and English, switch in Settings, auto-detect on first launch
 - **Floating panel** — press Alt+V to toggle, ESC to dismiss
 - **System tray** — runs quietly in the notification area
 - **Drag to move** — drag the title bar to reposition the window
-- **Smart timestamps** — today (`今天 HH:MM:SS`), yesterday (`昨天 HH:MM:SS`), older (`YYYY-MM-DD`)
+- **Smart timestamps** — today (Today), yesterday (Yesterday), older (YYYY-MM-DD)
 - **Tooltips** — hover on file paths to see the full path
 - **Delete animation** — graceful fade-out when removing items
 - **Dark theme** — easy on the eyes
@@ -55,6 +56,7 @@ Built with **Tauri 2 + React + TypeScript + Tailwind CSS**.
 | Desktop framework | [Tauri 2](https://v2.tauri.app/) |
 | Frontend | React 18 + TypeScript |
 | Styling | Tailwind CSS 3 |
+| i18n | react-i18next / i18next |
 | Backend | Rust |
 | Database | SQLite (via rusqlite, bundled) |
 | Clipboard | Windows Clipboard API (Win32) |
@@ -102,6 +104,9 @@ SuperClipboard/
 │   ├── api.ts                    # Tauri invoke wrappers & event listeners
 │   ├── types.ts                  # TypeScript type definitions
 │   ├── App.css                   # Global styles & scrollbar themes
+│   ├── locales/                   # i18n translation files
+│   │   ├── zh-CN.json, en-US.json  # Chinese & English translations
+│   │   └── index.ts               # i18next initialization
 │   └── components/
 │       ├── ClipboardPanel.tsx    # Main panel: search, tabs, card list
 │       ├── ClipboardCard.tsx     # Card with expand, preview, floating collapse
@@ -171,6 +176,7 @@ User copies → Windows clipboard
 - **File clipboard** uses CF_HDROP with the `DROPFILES` structure — pastes as real files, not paths
 - **Window drag** uses direct `PostMessageW` instead of Tauri's `startDragging()` — avoids async IPC losing the mouse gesture
 - **Image preview** opens independent Tauri windows per image — spawns an OS thread for `build()` to avoid tokio deadlock, uses `HashMap` keyed by window label for per-window state, polls for WebView2 IPC readiness
+- **i18n** uses `react-i18next` with JSON locale files — auto-detects system language on first launch, persisted in SQLite settings, instant switching without reload
 - **CJK search** uses SQL `LIKE` instead of FTS5 — FTS5's `unicode61` tokenizer can't handle CJK without word boundaries; `LIKE` is fast enough at clipboard scale (thousands of items)
 
 ### Building for Release
