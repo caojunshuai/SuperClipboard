@@ -202,7 +202,10 @@ export default function ClipboardCard({ item, deleting, onCopy, onTogglePin, onT
             <span className="text-xs text-panel-muted shrink-0">{metadata}</span>
           )}
 
-          <span className="text-xs text-panel-muted/60 mx-0.5 shrink-0">·</span>
+          {/* Separator — only shown when there's a note or editing */}
+          {(note || editingNote) && (
+            <span className="text-xs text-panel-muted/60 mx-0.5 shrink-0">·</span>
+          )}
 
           {/* Note text / input — takes remaining space */}
           {editingNote ? (
