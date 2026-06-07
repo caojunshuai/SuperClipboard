@@ -90,7 +90,9 @@
     "empty": "暂无剪切板记录",
     "emptyHint": "使用 Ctrl+C 复制内容开始记录",
     "total": "共 {{count}} 条记录",
-    "error": "操作失败"
+    "error": "操作失败",
+    "loadMore": "加载更多",
+    "showing": "已显示 {{shown}} / {{total}} 条"
   },
   "time": {
     "justNow": "刚刚",

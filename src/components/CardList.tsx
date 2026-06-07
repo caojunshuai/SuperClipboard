@@ -12,6 +12,7 @@ interface Props {
 }
 
 const PAGE_SIZE = 50;
+const MAX_VISIBLE = 200; // Cap displayed items to limit memory
 
 export default function CardList({ query, refreshKey, onClose }: Props) {
   const { t } = useTranslation();
@@ -44,10 +45,24 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
       if (reset) {
         setItems(result.items);
       } else {
-        setItems(prev => [...prev, ...result.items]);
+        setItems(prev => {
+          const next = [...prev, ...result.items];
+          // Cap at MAX_VISIBLE to limit memory
+          if (next.length > MAX_VISIBLE) {
+            setHasMore(true); // force "load more" button
+            return next.slice(0, MAX_VISIBLE);
+          }
+          return next;
+        });
       }
       setTotal(result.total);
-      setHasMore(result.items.length === PAGE_SIZE);
+      if (result.items.length < PAGE_SIZE) {
+        setHasMore(false); // no more from DB
+      } else if (!reset && items.length + result.items.length > MAX_VISIBLE) {
+        setHasMore(true); // capped — show "load more" button
+      } else {
+        setHasMore(result.items.length === PAGE_SIZE);
+      }
     } catch (err) {
       console.error('Failed to fetch clipboard history:', err);
     } finally {
@@ -59,13 +74,11 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
     fetchItems(true);
   }, [query.keyword, query.item_type, query.date_from, query.tab, refreshKey]);
 
-  const handleScroll = useCallback(() => {
-    if (!listRef.current || loading || !hasMore) return;
-    const { scrollTop, scrollHeight, clientHeight } = listRef.current;
-    if (scrollHeight - scrollTop - clientHeight < 100) {
-      fetchItems(false);
-    }
-  }, [loading, hasMore, fetchItems]);
+  const loadMore = useCallback(() => {
+    if (loading) return;
+    // Load another page, will be capped at MAX_VISIBLE
+    fetchItems(false);
+  }, [loading, fetchItems]);
 
   const handleCopy = useCallback(async (item: ClipboardItem) => {
     try {
@@ -123,7 +136,7 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
   }, []);
 
   return (
-    <div ref={listRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin">
+    <div ref={listRef} className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin">
       {/* Toast notification */}
       {toast && (
         <div className={`fixed top-14 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg text-sm shadow-lg transition-all ${
@@ -161,7 +174,16 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
         </div>
       )}
 
-      {total > 0 && (
+      {hasMore && !loading && (
+        <button
+          onClick={loadMore}
+          className="w-full py-2 text-xs text-panel-muted hover:text-panel-text border border-dashed border-panel-border rounded-lg transition-colors"
+        >
+          {t('list.loadMore')} ({t('list.showing', { shown: items.length, total })})
+        </button>
+      )}
+
+      {!hasMore && total > 0 && (
         <div className="text-center text-xs text-panel-muted py-2 border-t border-panel-border mt-2">
           {t('list.total', { count: total })}
         </div>

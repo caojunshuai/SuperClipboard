@@ -93,7 +93,9 @@
     "emptyHint": "Use Ctrl+C to copy content and start recording",
     "total": "{{count}} records",
     "total_one": "{{count}} record",
-    "error": "Operation failed"
+    "error": "Operation failed",
+    "loadMore": "Load more",
+    "showing": "Showing {{shown}} / {{total}}"
   },
   "time": {
     "justNow": "just now",
