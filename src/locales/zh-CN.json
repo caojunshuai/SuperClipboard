@@ -77,14 +77,14 @@
     "backupDesc": "导出所有数据和图片为 .zip 包",
     "createBackup": "创建备份",
     "restoreTitle": "恢复备份",
-    "restoreDesc": "从 .zip 备份包恢复数据（会清空当前数据）",
+    "restoreDesc": "从 .zip 备份包追加导入，自动去重，超限截断",
     "selectFile": "选择备份文件",
     "close": "关闭",
     "backingUp": "备份中...",
     "restoring": "恢复中...",
     "backupError": "备份失败: {{error}}",
     "restoreError": "恢复失败: {{error}}",
-    "confirmRestore": "恢复将清空当前数据，确定继续？"
+    "confirmRestore": "将追加导入备份中的数据，确定继续？"
   },
   "list": {
     "empty": "暂无剪切板记录",
@@ -101,6 +101,13 @@
     "yesterday": "昨天 {{time}}",
     "charCount": "{{count}} 字",
     "charCountK": "{{count}}k 字"
+  },
+  "about": {
+    "title": "关于",
+    "version": "版本",
+    "buildTime": "构建时间",
+    "author": "作者",
+    "close": "关闭"
   },
   "lang": {
     "zh-CN": "中文",

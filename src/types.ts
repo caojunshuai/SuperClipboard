@@ -42,6 +42,11 @@ export interface AppSettings {
   language: string;
 }
 
+export interface BuildInfo {
+  version: string;
+  build_time: string;
+}
+
 export type TabType = 'all' | 'favorites';
 export type FilterType = 'all' | 'text' | 'image' | 'file';
 export type DateFilter = 'all' | 'today' | '3days' | '7days' | 'custom';

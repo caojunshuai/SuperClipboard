@@ -79,14 +79,14 @@
     "backupDesc": "Export all data and images as a .zip archive",
     "createBackup": "Create Backup",
     "restoreTitle": "Restore Backup",
-    "restoreDesc": "Restore data from a .zip backup (will clear current data)",
+    "restoreDesc": "Append items from a .zip backup with dedup & limits",
     "selectFile": "Select Backup File",
     "close": "Close",
     "backingUp": "Backing up...",
     "restoring": "Restoring...",
     "backupError": "Backup failed: {{error}}",
     "restoreError": "Restore failed: {{error}}",
-    "confirmRestore": "Restore will clear all current data. Continue?"
+    "confirmRestore": "This will append items from the backup. Continue?"
   },
   "list": {
     "empty": "No clipboard history",
@@ -107,6 +107,13 @@
     "yesterday": "Yesterday {{time}}",
     "charCount": "{{count}} chars",
     "charCountK": "{{count}}k chars"
+  },
+  "about": {
+    "title": "About",
+    "version": "Version",
+    "buildTime": "Build Time",
+    "author": "Author",
+    "close": "Close"
   },
   "lang": {
     "zh-CN": "中文",

@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import type { HistoryQuery, HistoryResult, ClipboardItem, AppSettings } from './types';
+import type { HistoryQuery, HistoryResult, ClipboardItem, AppSettings, BuildInfo } from './types';
 
 export async function getClipboardHistory(query: HistoryQuery): Promise<HistoryResult> {
   return invoke('get_clipboard_history', { query });
@@ -86,6 +86,10 @@ export async function updateNote(id: number, note: string | null): Promise<void>
 
 export async function getAppVersion(): Promise<string> {
   return invoke('get_app_version');
+}
+
+export async function getBuildInfo(): Promise<BuildInfo> {
+  return invoke('get_build_info');
 }
 
 export function onPanelShown(callback: () => void): Promise<UnlistenFn> {

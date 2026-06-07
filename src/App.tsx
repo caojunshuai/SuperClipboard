@@ -5,8 +5,9 @@ import ClipboardPanel from './components/ClipboardPanel';
 import ExportDialog from './components/ExportDialog';
 import BackupDialog from './components/BackupDialog';
 import SettingsPanel from './components/SettingsPanel';
+import AboutDialog from './components/AboutDialog';
 
-type DialogType = 'none' | 'export' | 'backup' | 'settings';
+type DialogType = 'none' | 'export' | 'backup' | 'settings' | 'about';
 
 function App() {
   const { t } = useTranslation();
@@ -62,8 +63,10 @@ function App() {
                   title={t('backup.title')}>💾</button>
           <button onClick={() => setDialog('settings')} className="p-1 text-xs text-panel-muted hover:text-panel-text"
                   title={t('settings.title')}>⚙</button>
+          <button onClick={() => setDialog('about')} className="p-1 text-xs text-panel-muted hover:text-panel-text"
+                  title={t('about.title')}>ℹ️</button>
           <button onClick={handleClose} className="p-1 text-xs text-panel-muted hover:text-red-400"
-                  title={t('settings.close')}>✕</button>
+                  title={t('about.close')}>✕</button>
         </div>
       </div>
 
@@ -76,6 +79,7 @@ function App() {
       {dialog === 'export' && <ExportDialog itemIds={[]} onClose={() => setDialog('none')} />}
       {dialog === 'backup' && <BackupDialog onClose={() => setDialog('none')} />}
       {dialog === 'settings' && <SettingsPanel onClose={() => setDialog('none')} />}
+      {dialog === 'about' && <AboutDialog onClose={() => setDialog('none')} />}
     </div>
   );
 }

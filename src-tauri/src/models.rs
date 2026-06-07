@@ -77,6 +77,12 @@ pub struct AppSettings {
     pub language: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BuildInfo {
+    pub version: String,
+    pub build_time: String,
+}
+
 fn default_language() -> String {
     "en-US".to_string()
 }

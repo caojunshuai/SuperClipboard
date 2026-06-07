@@ -390,6 +390,16 @@ pub fn get_app_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
 }
 
+/// Return version + build time as a JSON-like struct.
+/// build_time is embedded at compile time via build.rs.
+#[tauri::command]
+pub fn get_build_info() -> BuildInfo {
+    BuildInfo {
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        build_time: env!("BUILD_TIME").to_string(),
+    }
+}
+
 use std::collections::HashMap;
 
 /// Monotonic counter for unique preview window labels.
