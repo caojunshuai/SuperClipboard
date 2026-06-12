@@ -12,7 +12,6 @@ interface Props {
 }
 
 const PAGE_SIZE = 50;
-const MAX_VISIBLE = 200;
 
 function buildQuery(q: HistoryQuery, offset: number): HistoryQuery {
   const dateFilter = q.date_from || 'all';
@@ -33,73 +32,58 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
   const [items, setItems] = useState<ClipboardItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
   const [autoPasteEnabled, setAutoPasteEnabled] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
   const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
+  const [page, setPage] = useState(1);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Refs for latest values — avoids stale closures in async callbacks
   const queryRef = useRef(query);
   queryRef.current = query;
-  const itemsRef = useRef(items);
-  itemsRef.current = items;
-  const loadingRef = useRef(loading);
-  loadingRef.current = loading;
-
   const fetchGenRef = useRef(0);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   useEffect(() => {
     getSettings().then(s => setAutoPasteEnabled(s.auto_paste)).catch(() => {});
   }, []);
 
-  // Effect for initial fetch and filter/tab changes.
-  // Uses generation counter — immune to React StrictMode double-invocation.
-  useEffect(() => {
+  const fetchPage = useCallback(async (pageNum: number) => {
     const gen = ++fetchGenRef.current;
-
-    const run = async () => {
-      const fetchQuery = buildQuery(queryRef.current, 0);
-      setLoading(true);
-      try {
-        const result = await getClipboardHistory(fetchQuery);
-        if (fetchGenRef.current !== gen) return;
-        setItems(result.items);
-        setTotal(result.total);
-        setHasMore(result.items.length >= PAGE_SIZE);
-      } catch (err) {
-        if (fetchGenRef.current !== gen) return;
-        console.error('Failed to fetch clipboard history:', err);
-      } finally {
-        if (fetchGenRef.current === gen) setLoading(false);
-      }
-    };
-    run();
-  }, [query.keyword, query.item_type, query.date_from, query.tab, refreshKey]);
-
-  const loadMore = useCallback(async () => {
-    if (loadingRef.current) return;
-    const currentLen = itemsRef.current.length;
-    const fetchQuery = buildQuery(queryRef.current, currentLen);
+    const offset = (pageNum - 1) * PAGE_SIZE;
+    const fetchQuery = buildQuery(queryRef.current, offset);
 
     setLoading(true);
     try {
       const result = await getClipboardHistory(fetchQuery);
-      const newLen = currentLen + result.items.length;
-      const capped = newLen > MAX_VISIBLE;
-
-      setItems(prev => {
-        const next = [...prev, ...result.items];
-        return next.length > MAX_VISIBLE ? next.slice(0, MAX_VISIBLE) : next;
-      });
+      if (fetchGenRef.current !== gen) return;
+      setItems(result.items);
       setTotal(result.total);
-      setHasMore(!capped && result.items.length >= PAGE_SIZE);
     } catch (err) {
-      console.error('Failed to load more:', err);
+      if (fetchGenRef.current !== gen) return;
+      console.error('Failed to fetch clipboard history:', err);
     } finally {
-      setLoading(false);
+      if (fetchGenRef.current === gen) setLoading(false);
     }
   }, []);
+
+  // When filters/tabs change, reset to page 1
+  useEffect(() => {
+    setPage(1);
+    fetchPage(1);
+  }, [query.keyword, query.item_type, query.date_from, query.tab, refreshKey]);
+
+  // When page changes, fetch that page
+  useEffect(() => {
+    if (page === 1) return; // Already fetched by the filter-change effect
+    fetchPage(page);
+  }, [page]);
+
+  const goToPage = useCallback((p: number) => {
+    if (p < 1 || p > totalPages || loading) return;
+    setPage(p);
+    listRef.current?.scrollTo({ top: 0, behavior: 'instant' });
+  }, [totalPages, loading]);
 
   const handleCopy = useCallback(async (item: ClipboardItem) => {
     try {
@@ -134,10 +118,8 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
 
   const handleDelete = useCallback(async (id: number) => {
     try {
-      // Start exit animation
       setDeletingIds(prev => new Set(prev).add(id));
       await deleteClipboardItem(id);
-      // Wait for fade-out animation
       await new Promise(r => setTimeout(r, 200));
       setItems(prev => prev.filter(i => i.id !== id));
       setTotal(t => t - 1);
@@ -156,9 +138,22 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
     }
   }, []);
 
+  // If current page becomes empty after delete, go to previous page
+  useEffect(() => {
+    if (items.length === 0 && total > 0 && page > 1) {
+      setPage(page - 1);
+    }
+  }, [items.length, total, page]);
+
+  // If total shrinks so current page no longer exists, go to last page
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [totalPages, page]);
+
   return (
     <div ref={listRef} className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin">
-      {/* Toast notification */}
       {toast && (
         <div className={`fixed top-14 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg text-sm shadow-lg transition-all ${
           toast.type === 'error' ? 'bg-red-500/90 text-white' : 'bg-green-500/90 text-white'
@@ -195,16 +190,34 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
         </div>
       )}
 
-      {hasMore && !loading && (
-        <button
-          onClick={loadMore}
-          className="w-full py-2 text-xs text-panel-muted hover:text-panel-text border border-dashed border-panel-border rounded-lg transition-colors"
-        >
-          {t('list.loadMore')} ({t('list.showing', { shown: items.length, total })})
-        </button>
+      {totalPages > 1 && !loading && (
+        <div className="flex items-center justify-between pt-2 border-t border-panel-border mt-2 text-xs">
+          <span className="text-panel-muted">
+            {t('list.total', { count: total })}
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => goToPage(page - 1)}
+              disabled={page <= 1}
+              className="px-2 py-1 rounded text-panel-muted hover:text-panel-text hover:bg-panel-card disabled:opacity-30 disabled:cursor-default transition-colors"
+            >
+              ← {t('list.pagePrev')}
+            </button>
+            <span className="px-2 text-panel-muted">
+              {page} / {totalPages}
+            </span>
+            <button
+              onClick={() => goToPage(page + 1)}
+              disabled={page >= totalPages}
+              className="px-2 py-1 rounded text-panel-muted hover:text-panel-text hover:bg-panel-card disabled:opacity-30 disabled:cursor-default transition-colors"
+            >
+              {t('list.pageNext')} →
+            </button>
+          </div>
+        </div>
       )}
 
-      {!hasMore && total > 0 && (
+      {totalPages <= 1 && total > 0 && !loading && (
         <div className="text-center text-xs text-panel-muted py-2 border-t border-panel-border mt-2">
           {t('list.total', { count: total })}
         </div>

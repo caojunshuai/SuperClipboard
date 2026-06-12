@@ -94,8 +94,8 @@
     "total": "{{count}} records",
     "total_one": "{{count}} record",
     "error": "Operation failed",
-    "loadMore": "Load more",
-    "showing": "Showing {{shown}} / {{total}}"
+    "pagePrev": "Previous",
+    "pageNext": "Next"
   },
   "time": {
     "justNow": "just now",

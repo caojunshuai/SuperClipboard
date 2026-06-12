@@ -91,8 +91,8 @@
     "emptyHint": "使用 Ctrl+C 复制内容开始记录",
     "total": "共 {{count}} 条记录",
     "error": "操作失败",
-    "loadMore": "加载更多",
-    "showing": "已显示 {{shown}} / {{total}} 条"
+    "pagePrev": "上一页",
+    "pageNext": "下一页"
   },
   "time": {
     "justNow": "刚刚",
