@@ -199,7 +199,7 @@ npm run tauri build
 npm run package
 ```
 
-The exe is at `src-tauri/target/release/SuperClipboard.exe`. The portable zip is self-contained — data directories and the database are auto-created alongside the exe on first run. Extract anywhere except `C:\Program Files\` (requires admin write permission).
+The exe is at `src-tauri/target/release/SuperClipboard.exe`. The portable zip contains `SuperClipboard.exe`, `WebView2Loader.dll`, and `liblzma-5.dll` — self-contained, data directories and the database are auto-created alongside the exe on first run. Extract anywhere except `C:\Program Files\` (requires admin write permission).
 
 ### Icon Generation
 

@@ -15,6 +15,7 @@ const version = versionMatch ? versionMatch[1] : '0.0.0';
 const releaseDir = join(root, 'src-tauri', 'target', 'release');
 const exeName = 'SuperClipboard.exe';
 const dllName = 'WebView2Loader.dll';
+const lzmaPath = join(root, 'src-tauri', 'liblzma-5.dll');
 const zipName = `SuperClipboard-v${version}-portable.zip`;
 const zipPath = join(root, zipName);
 
@@ -24,10 +25,15 @@ if (!existsSync(join(releaseDir, exeName))) {
   process.exit(1);
 }
 
+if (!existsSync(lzmaPath)) {
+  console.error(`Error: liblzma-5.dll not found at ${lzmaPath}`);
+  process.exit(1);
+}
+
 console.log(`Packaging SuperClipboard v${version} portable...`);
 
 execSync(
-  `powershell -Command "Compress-Archive -Path '${join(releaseDir, exeName)}','${join(releaseDir, dllName)}' -DestinationPath '${zipPath}' -Force"`,
+  `powershell -Command "Compress-Archive -Path '${join(releaseDir, exeName)}','${join(releaseDir, dllName)}','${lzmaPath}' -DestinationPath '${zipPath}' -Force"`,
   { stdio: 'inherit' }
 );
 

@@ -23,7 +23,7 @@ npm run tauri build    # build the binary
 npm run package        # create portable zip in project root
 ```
 
-The zip contains `SuperClipboard.exe` + `WebView2Loader.dll`. Data directories and DB are auto-created alongside the exe on first run.
+The zip contains `SuperClipboard.exe` + `WebView2Loader.dll` + `liblzma-5.dll`. Data directories and DB are auto-created alongside the exe on first run.
 
 ## Project Structure
 

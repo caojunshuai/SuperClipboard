@@ -21,6 +21,10 @@
 - **Same-day date filter** — `date_to` now includes `23:59:59` so same-day selection captures all records from that day. ([56198e2](https://github.com/caojunshuai/SuperClipboard/commit/56198e2))
 - **Date filter responsiveness** — Added `query.date_to` to effect dependency array so changing the "to" date triggers an immediate refresh. ([56198e2](https://github.com/caojunshuai/SuperClipboard/commit/56198e2))
 
+### 🏗️ Build
+
+- `liblzma-5.dll` bundled in portable zip — required on PCs without MSYS2/MinGW. ([b85478b](https://github.com/caojunshuai/SuperClipboard/commit/b85478b))
+
 ---
 
 ## 🎉 v0.2.0 — Portable, International, and Smarter
