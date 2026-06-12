@@ -12,7 +12,21 @@ interface Props {
 }
 
 const PAGE_SIZE = 50;
-const MAX_VISIBLE = 200; // Cap displayed items to limit memory
+const MAX_VISIBLE = 200;
+
+function buildQuery(q: HistoryQuery, offset: number): HistoryQuery {
+  const dateFilter = q.date_from || 'all';
+  const { from, to } = getDateRange(dateFilter);
+  return {
+    keyword: q.keyword,
+    item_type: q.item_type,
+    date_from: from,
+    date_to: to,
+    tab: q.tab,
+    limit: PAGE_SIZE,
+    offset,
+  };
+}
 
 export default function CardList({ query, refreshKey, onClose }: Props) {
   const { t } = useTranslation();
@@ -25,60 +39,67 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
   const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
   const listRef = useRef<HTMLDivElement>(null);
 
+  // Refs for latest values — avoids stale closures in async callbacks
+  const queryRef = useRef(query);
+  queryRef.current = query;
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+  const loadingRef = useRef(loading);
+  loadingRef.current = loading;
+
+  const fetchGenRef = useRef(0);
+
   useEffect(() => {
     getSettings().then(s => setAutoPasteEnabled(s.auto_paste)).catch(() => {});
   }, []);
 
-  const fetchItems = useCallback(async (reset: boolean) => {
+  // Effect for initial fetch and filter/tab changes.
+  // Uses generation counter — immune to React StrictMode double-invocation.
+  useEffect(() => {
+    const gen = ++fetchGenRef.current;
+
+    const run = async () => {
+      const fetchQuery = buildQuery(queryRef.current, 0);
+      setLoading(true);
+      try {
+        const result = await getClipboardHistory(fetchQuery);
+        if (fetchGenRef.current !== gen) return;
+        setItems(result.items);
+        setTotal(result.total);
+        setHasMore(result.items.length >= PAGE_SIZE);
+      } catch (err) {
+        if (fetchGenRef.current !== gen) return;
+        console.error('Failed to fetch clipboard history:', err);
+      } finally {
+        if (fetchGenRef.current === gen) setLoading(false);
+      }
+    };
+    run();
+  }, [query.keyword, query.item_type, query.date_from, query.tab, refreshKey]);
+
+  const loadMore = useCallback(async () => {
+    if (loadingRef.current) return;
+    const currentLen = itemsRef.current.length;
+    const fetchQuery = buildQuery(queryRef.current, currentLen);
+
     setLoading(true);
     try {
-      const dateFilter = query.date_from || 'all';
-      const { from, to } = getDateRange(dateFilter);
-      const q: HistoryQuery = {
-        ...query,
-        date_from: from,
-        date_to: to,
-        limit: PAGE_SIZE,
-        offset: reset ? 0 : items.length,
-      };
-      const result = await getClipboardHistory(q);
-      if (reset) {
-        setItems(result.items);
-      } else {
-        setItems(prev => {
-          const next = [...prev, ...result.items];
-          // Cap at MAX_VISIBLE to limit memory
-          if (next.length > MAX_VISIBLE) {
-            setHasMore(true); // force "load more" button
-            return next.slice(0, MAX_VISIBLE);
-          }
-          return next;
-        });
-      }
+      const result = await getClipboardHistory(fetchQuery);
+      const newLen = currentLen + result.items.length;
+      const capped = newLen > MAX_VISIBLE;
+
+      setItems(prev => {
+        const next = [...prev, ...result.items];
+        return next.length > MAX_VISIBLE ? next.slice(0, MAX_VISIBLE) : next;
+      });
       setTotal(result.total);
-      if (result.items.length < PAGE_SIZE) {
-        setHasMore(false); // no more from DB
-      } else if (!reset && items.length + result.items.length > MAX_VISIBLE) {
-        setHasMore(true); // capped — show "load more" button
-      } else {
-        setHasMore(result.items.length === PAGE_SIZE);
-      }
+      setHasMore(!capped && result.items.length >= PAGE_SIZE);
     } catch (err) {
-      console.error('Failed to fetch clipboard history:', err);
+      console.error('Failed to load more:', err);
     } finally {
       setLoading(false);
     }
-  }, [query]);
-
-  useEffect(() => {
-    fetchItems(true);
-  }, [query.keyword, query.item_type, query.date_from, query.tab, refreshKey]);
-
-  const loadMore = useCallback(() => {
-    if (loading) return;
-    // Load another page, will be capped at MAX_VISIBLE
-    fetchItems(false);
-  }, [loading, fetchItems]);
+  }, []);
 
   const handleCopy = useCallback(async (item: ClipboardItem) => {
     try {
