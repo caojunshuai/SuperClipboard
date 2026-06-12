@@ -17,7 +17,8 @@ Built with **Tauri 2 + React + TypeScript + Tailwind CSS**.
 ### Search & Browse
 - **Full-text search** — supports both English and Chinese/Japanese/Korean (CJK)
 - **Filter by type** — text / image / file
-- **Date filters** — today / 3 days / 7 days / custom range
+- **Date filters** — today / 3 days / 7 days / custom range with date picker
+- **Page navigation** — ← 上一页 | 1/20 | 下一页 → pagination, 50 items per page, supports thousands of records
 - **Favorites tab** — quick access to starred items
 
 ### Organize
@@ -25,7 +26,7 @@ Built with **Tauri 2 + React + TypeScript + Tailwind CSS**.
 - **Pin** items to keep them at the top (📌↔📍)
 - **Favorite** items for quick recall (☆↔⭐)
 - **Delete** with a smooth fade-out animation
-- **Settings** — configure history limit, image limit, language, auto-paste, and more
+- **Settings** — configure history limit, image limit, language, auto-paste, always-on-top, and more
 
 ### Export & Backup
 - **Export text** — merge all text clips into a `.txt` file with timestamps
@@ -49,6 +50,7 @@ Built with **Tauri 2 + React + TypeScript + Tailwind CSS**.
 ### UI / UX
 - **Multi-language** — Chinese (中文) and English, switch in Settings, auto-detect on first launch
 - **Floating panel** — press Alt+V to toggle, ESC to dismiss
+- **Always on top** — configurable in Settings; when off, window shows in taskbar
 - **System tray** — runs quietly in the notification area
 - **Drag to move** — drag the title bar to reposition the window
 - **About dialog** — ℹ️ shows version, build time, and feedback link (opens in browser)

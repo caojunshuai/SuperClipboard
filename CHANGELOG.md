@@ -1,3 +1,28 @@
+## 🎉 v0.3.0 — Pagination, Date Filters & Settings
+
+> Released 2026-06-12 · 6 commits since v0.2.0
+
+### ✨ New Features
+
+- **Page-based pagination** — Replace "Load More" with page navigation (← 上一页 | 1/20 | 下一页 →). Each page shows 50 items, memory stays fixed regardless of database size. Supports thousands of records. ([aba9bb8](https://github.com/caojunshuai/SuperClipboard/commit/aba9bb8))
+- **Always-on-top setting** — Toggle whether the main window stays on top of other apps (Settings > 窗口置顶). When off, the window appears in the taskbar for easy access. ([4251867](https://github.com/caojunshuai/SuperClipboard/commit/4251867))
+- **Custom date range filter** — Date filter now includes "自定义" option with from/to date pickers. Validated year range 2000–2100, auto-adjust from ≤ to. ([56198e2](https://github.com/caojunshuai/SuperClipboard/commit/56198e2))
+- **Copy success toast** — Green "已复制" notification at the bottom of the window when a clip is copied. ([6aa1005](https://github.com/caojunshuai/SuperClipboard/commit/6aa1005))
+
+### 🔧 Improvements
+
+- **Auto-paste** now uses `SendInput` (reliable) instead of deprecated `keybd_event`. Window hides first so Ctrl+V targets the previous app. ([340ccbf](https://github.com/caojunshuai/SuperClipboard/commit/340ccbf))
+- **UI text** changed from "文字" to "文本" across all Chinese labels. ([6aa1005](https://github.com/caojunshuai/SuperClipboard/commit/6aa1005))
+- **White calendar icon** in date pickers via CSS `filter: invert(1)` — visible on dark theme. ([56198e2](https://github.com/caojunshuai/SuperClipboard/commit/56198e2))
+
+### 🐛 Fixes
+
+- **Filter freeze** — Fixed async race condition where stale responses overwrote newer filter results after loading many items. Replaced `useCallback`+`useEffect` pattern with ref-based generation counter immune to React StrictMode double-invocation. ([f79a283](https://github.com/caojunshuai/SuperClipboard/commit/f79a283))
+- **Same-day date filter** — `date_to` now includes `23:59:59` so same-day selection captures all records from that day. ([56198e2](https://github.com/caojunshuai/SuperClipboard/commit/56198e2))
+- **Date filter responsiveness** — Added `query.date_to` to effect dependency array so changing the "to" date triggers an immediate refresh. ([56198e2](https://github.com/caojunshuai/SuperClipboard/commit/56198e2))
+
+---
+
 ## 🎉 v0.2.0 — Portable, International, and Smarter
 
 > Released 2026-06-07 · 34 commits since v0.1.0

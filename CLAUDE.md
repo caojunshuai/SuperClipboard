@@ -37,7 +37,7 @@ src/                          # React frontend
   components/
     ClipboardPanel.tsx        # Main panel: search + tabs + card list
     ClipboardCard.tsx         # Card: expand/collapse, preview, floating collapse button
-    CardList.tsx              # Virtual scroll list, toast notifications
+    CardList.tsx              # Page-based list (50 per page), toast notifications, gen counter for race safety
     SearchBar.tsx             # Search input, type/date filters
     TabBar.tsx                # All / Favorites tabs
     SettingsPanel.tsx         # Settings form with validation & dirty detection
@@ -82,7 +82,7 @@ src-tauri/src/                # Rust backend
 ### IPC (commands.rs)
 - All commands async via `#[tauri::command]`
 - `copy_to_clipboard`: CF_UNICODETEXT / CF_DIB (top-down, negative biHeight) / CF_HDROP (DROPFILES struct)
-- `auto_paste`: `keybd_event` Ctrl+V. `start_drag`: `PostMessageW(WM_NCLBUTTONDOWN, HTCAPTION)` — Tauri's `startDragging()` loses mouse gesture in async IPC
+- `auto_paste`: hides window, sleeps 80ms, then `SendInput` Ctrl+V to previous window. `start_drag`: `PostMessageW(WM_NCLBUTTONDOWN, HTCAPTION)` — Tauri's `startDragging()` loses mouse gesture in async IPC
 
 ### Image Preview (commands.rs + preview.html)
 - Opens independent Tauri window (`image-preview-{N}`) via `WebviewUrl::App("preview.html")`
@@ -112,6 +112,26 @@ src-tauri/src/                # Rust backend
 
 ### CJK Search
 - Detects CJK ranges (Unified, Hiragana, Katakana, Hangul) → `LIKE '%keyword%'` substring match
+
+### Pagination (CardList.tsx)
+- `PAGE_SIZE = 50`, page state tracks current page. `totalPages = ceil(total / PAGE_SIZE)`
+- **Ref-based query:** `queryRef.current` always has latest filter values — no stale closures
+- **Gen counter:** `fetchGenRef` increments on each request; responses with stale gen are discarded. Immune to React StrictMode double-invocation
+- **Two effects:** filter/tab changes reset to page 1; page number changes fetch that page (skipped for page 1 to avoid double-fetch)
+- **Bottom bar:** total count (left) · ← Prev | N/M | Next → (right). Hidden when only one page
+- **Delete recovery:** empty page after delete → auto-navigate to previous page; shrunk total → clamp to last valid page
+
+### Always-On-Top Setting (commands.rs + lib.rs + SettingsPanel.tsx)
+- `AppSettings.always_on_top: bool`, default `true`
+- `set_always_on_top()` applied at startup (lib.rs) and on settings save (commands.rs)
+- Toggles `skip_taskbar` alongside: on = floating panel (no taskbar), off = normal window (taskbar icon)
+- CSS `filter: invert(1)` on date input calendar icons for dark theme visibility
+
+### Date Filter (SearchBar.tsx + ClipboardPanel.tsx)
+- Dropdown: All / Today / 3 days / 7 days / Custom
+- Custom shows two `<input type="date">` (from/to), validated year 2000–2100
+- `handleFromChange` / `handleToChange`: from must not exceed to (auto-adjusts)
+- `buildQuery()` detects known keywords vs custom date strings; appends ` 23:59:59` to `date_to` for same-day capture
 
 ## Common Tasks
 
