@@ -1,8 +1,13 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import SearchBar from './SearchBar';
 import TabBar from './TabBar';
 import CardList from './CardList';
 import type { FilterType, DateFilter, TabType } from '../types';
+
+function todayStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 interface Props {
   refreshKey: number;
@@ -14,6 +19,18 @@ export default function ClipboardPanel({ refreshKey, onClose }: Props) {
   const [typeFilter, setTypeFilter] = useState<FilterType>('all');
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [tab, setTab] = useState<TabType>('all');
+  const [customDateFrom, setCustomDateFrom] = useState(todayStr());
+  const [customDateTo, setCustomDateTo] = useState(todayStr());
+
+  const handleFromChange = useCallback((v: string) => {
+    setCustomDateFrom(v);
+    if (v > customDateTo) setCustomDateTo(v);
+  }, [customDateTo]);
+
+  const handleToChange = useCallback((v: string) => {
+    setCustomDateTo(v);
+    if (v < customDateFrom) setCustomDateFrom(v);
+  }, [customDateFrom]);
 
   return (
     <div className="flex flex-col h-full">
@@ -24,6 +41,10 @@ export default function ClipboardPanel({ refreshKey, onClose }: Props) {
         onTypeFilterChange={setTypeFilter}
         dateFilter={dateFilter}
         onDateFilterChange={setDateFilter}
+        customDateFrom={customDateFrom}
+        onCustomDateFromChange={handleFromChange}
+        customDateTo={customDateTo}
+        onCustomDateToChange={handleToChange}
       />
       <TabBar tab={tab} onTabChange={setTab} />
       <CardList
@@ -31,8 +52,8 @@ export default function ClipboardPanel({ refreshKey, onClose }: Props) {
           keyword: keyword || null,
           item_type: typeFilter,
           tab,
-          date_from: dateFilter,
-          date_to: null,
+          date_from: dateFilter === 'custom' ? customDateFrom : dateFilter,
+          date_to: dateFilter === 'custom' ? customDateTo : null,
           offset: 0,
           limit: 100,
         }}

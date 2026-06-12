@@ -14,13 +14,27 @@ interface Props {
 const PAGE_SIZE = 50;
 
 function buildQuery(q: HistoryQuery, offset: number): HistoryQuery {
-  const dateFilter = q.date_from || 'all';
-  const { from, to } = getDateRange(dateFilter);
+  const df = q.date_from;
+  const KNOWN_FILTERS = ['all', 'today', '3days', '7days'];
+  if (!df || KNOWN_FILTERS.includes(df)) {
+    const { from, to } = getDateRange(df || 'all');
+    return {
+      keyword: q.keyword,
+      item_type: q.item_type,
+      date_from: from,
+      date_to: to,
+      tab: q.tab,
+      limit: PAGE_SIZE,
+      offset,
+    };
+  }
+  // Custom date range — append time so same-day selection works
+  const dt = q.date_to;
   return {
     keyword: q.keyword,
     item_type: q.item_type,
-    date_from: from,
-    date_to: to,
+    date_from: q.date_from,
+    date_to: dt ? `${dt} 23:59:59` : null,
     tab: q.tab,
     limit: PAGE_SIZE,
     offset,
@@ -71,7 +85,7 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
   useEffect(() => {
     setPage(1);
     fetchPage(1);
-  }, [query.keyword, query.item_type, query.date_from, query.tab, refreshKey]);
+  }, [query.keyword, query.item_type, query.date_from, query.date_to, query.tab, refreshKey]);
 
   // When page changes, fetch that page
   useEffect(() => {

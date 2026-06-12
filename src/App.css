@@ -32,3 +32,8 @@ body {
 .scrollbar-thin::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+/* White calendar icon for date inputs in dark theme */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}

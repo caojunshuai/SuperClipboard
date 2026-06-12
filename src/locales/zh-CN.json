@@ -34,7 +34,10 @@
     "dateAll": "不限",
     "dateToday": "今天",
     "date3Days": "近3天",
-    "date7Days": "近7天"
+    "date7Days": "近7天",
+    "dateCustom": "自定义",
+    "dateFrom": "从",
+    "dateTo": "至"
   },
   "settings": {
     "title": "设置",

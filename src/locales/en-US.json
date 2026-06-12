@@ -36,7 +36,10 @@
     "dateAll": "Any",
     "dateToday": "Today",
     "date3Days": "3 days",
-    "date7Days": "7 days"
+    "date7Days": "7 days",
+    "dateCustom": "Custom",
+    "dateFrom": "From",
+    "dateTo": "To"
   },
   "settings": {
     "title": "Settings",

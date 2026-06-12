@@ -1,6 +1,18 @@
 import { useTranslation } from 'react-i18next';
 import type { FilterType, DateFilter } from '../types';
 
+function todayStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function validDate(v: string): string {
+  if (!v) return todayStr();
+  const year = parseInt(v.slice(0, 4));
+  if (isNaN(year) || year < 2000 || year > 2100) return todayStr();
+  return v;
+}
+
 interface Props {
   keyword: string;
   onKeywordChange: (v: string) => void;
@@ -8,12 +20,18 @@ interface Props {
   onTypeFilterChange: (v: FilterType) => void;
   dateFilter: DateFilter;
   onDateFilterChange: (v: DateFilter) => void;
+  customDateFrom: string;
+  onCustomDateFromChange: (v: string) => void;
+  customDateTo: string;
+  onCustomDateToChange: (v: string) => void;
 }
 
 export default function SearchBar({
   keyword, onKeywordChange,
   typeFilter, onTypeFilterChange,
   dateFilter, onDateFilterChange,
+  customDateFrom, onCustomDateFromChange,
+  customDateTo, onCustomDateToChange,
 }: Props) {
   const { t } = useTranslation();
 
@@ -29,6 +47,7 @@ export default function SearchBar({
     { value: 'today', labelKey: 'search.dateToday' },
     { value: '3days', labelKey: 'search.date3Days' },
     { value: '7days', labelKey: 'search.date7Days' },
+    { value: 'custom', labelKey: 'search.dateCustom' },
   ];
 
   return (
@@ -72,6 +91,28 @@ export default function SearchBar({
           ))}
         </select>
       </div>
+      {dateFilter === 'custom' && (
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-panel-muted shrink-0">{t('search.dateFrom')}</span>
+          <input
+            type="date"
+            min="2000-01-01"
+            max="2100-12-31"
+            value={customDateFrom}
+            onChange={e => onCustomDateFromChange(validDate(e.target.value))}
+            className="bg-panel-card border border-panel-border rounded text-xs text-panel-text px-2 py-1 focus:outline-none focus:border-panel-accent"
+          />
+          <span className="text-xs text-panel-muted shrink-0">{t('search.dateTo')}</span>
+          <input
+            type="date"
+            min="2000-01-01"
+            max="2100-12-31"
+            value={customDateTo}
+            onChange={e => onCustomDateToChange(validDate(e.target.value))}
+            className="bg-panel-card border border-panel-border rounded text-xs text-panel-text px-2 py-1 focus:outline-none focus:border-panel-accent"
+          />
+        </div>
+      )}
     </div>
   );
 }
