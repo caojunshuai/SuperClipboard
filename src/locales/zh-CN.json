@@ -58,7 +58,9 @@
     "errorItemsMax": "上限为 5000",
     "errorImages": "请输入不小于 10 的数值",
     "errorImagesMax": "上限为 500",
-    "language": "界面语言"
+    "language": "界面语言",
+    "alwaysOnTop": "窗口置顶",
+    "alwaysOnTopHint": "主窗口始终显示在最前"
   },
   "export": {
     "title": "导出",

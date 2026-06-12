@@ -18,6 +18,7 @@ export default function SettingsPanel({ onClose }: Props) {
     auto_paste: false,
     auto_start: false,
     language: 'en-US',
+    always_on_top: true,
   });
   const [original, setOriginal] = useState<AppSettings | null>(null);
   const [saving, setSaving] = useState(false);
@@ -50,6 +51,7 @@ export default function SettingsPanel({ onClose }: Props) {
     settings.hotkey !== original.hotkey ||
     settings.auto_paste !== original.auto_paste ||
     settings.auto_start !== original.auto_start ||
+    settings.always_on_top !== original.always_on_top ||
     settings.language !== original.language ||
     maxItemsStr !== original.max_items.toString() ||
     maxImagesStr !== original.max_images.toString()
@@ -191,6 +193,18 @@ export default function SettingsPanel({ onClose }: Props) {
               type="checkbox"
               checked={settings.auto_start}
               onChange={e => setSettings(s => ({ ...s, auto_start: e.target.checked }))}
+              className="w-4 h-4 text-panel-accent"
+            />
+          </label>
+          <label className="flex items-center justify-between p-3 bg-panel-card rounded-lg cursor-pointer">
+            <div>
+              <div className="text-sm text-panel-text">{t('settings.alwaysOnTop')}</div>
+              <div className="text-xs text-panel-muted">{t('settings.alwaysOnTopHint')}</div>
+            </div>
+            <input
+              type="checkbox"
+              checked={settings.always_on_top}
+              onChange={e => setSettings(s => ({ ...s, always_on_top: e.target.checked }))}
               className="w-4 h-4 text-panel-accent"
             />
           </label>

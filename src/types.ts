@@ -40,6 +40,7 @@ export interface AppSettings {
   auto_paste: boolean;
   auto_start: boolean;
   language: string;
+  always_on_top: boolean;
 }
 
 export interface BuildInfo {

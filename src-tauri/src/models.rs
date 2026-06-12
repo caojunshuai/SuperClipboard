@@ -75,6 +75,8 @@ pub struct AppSettings {
     pub auto_start: bool,
     #[serde(default = "default_language")]
     pub language: String,
+    #[serde(default = "default_true")]
+    pub always_on_top: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -88,6 +90,10 @@ fn default_language() -> String {
     String::new()
 }
 
+fn default_true() -> bool {
+    true
+}
+
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
@@ -97,6 +103,7 @@ impl Default for AppSettings {
             auto_paste: false,
             auto_start: false,
             language: default_language(),
+            always_on_top: true,
         }
     }
 }

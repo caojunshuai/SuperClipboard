@@ -144,8 +144,14 @@ pub fn get_settings() -> Result<AppSettings, String> {
 }
 
 #[tauri::command]
-pub fn update_settings(settings: AppSettings) -> Result<(), String> {
-    storage::save_all_settings(&settings).map_err(|e| e.to_string())
+pub fn update_settings(app: tauri::AppHandle, settings: AppSettings) -> Result<(), String> {
+    let always_on_top = settings.always_on_top;
+    storage::save_all_settings(&settings).map_err(|e| e.to_string())?;
+    if let Some(window) = app.get_webview_window("main") {
+        window.set_always_on_top(always_on_top).ok();
+        window.set_skip_taskbar(always_on_top).ok();
+    }
+    Ok(())
 }
 
 #[tauri::command]

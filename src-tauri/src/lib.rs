@@ -6,6 +6,7 @@ mod tray;
 mod commands;
 mod export;
 
+use tauri::Manager;
 use std::path::PathBuf;
 use once_cell::sync::OnceCell;
 
@@ -37,6 +38,14 @@ pub fn run() {
             let dir = app_data_dir();
             APP_DATA_DIR.set(dir.clone()).ok();
             storage::init_db(&dir).expect("Failed to initialize database");
+
+            // Apply always-on-top setting from DB
+            if let Ok(settings) = storage::get_all_settings() {
+                if let Some(window) = app.get_webview_window("main") {
+                    window.set_always_on_top(settings.always_on_top).ok();
+                    window.set_skip_taskbar(settings.always_on_top).ok();
+                }
+            }
 
             let handle = app.handle().clone();
             let images_dir = dir.join("images");
