@@ -11,7 +11,7 @@
     "favorite": "收藏",
     "unfavorite": "取消收藏",
     "delete": "删除",
-    "textType": "文字",
+    "textType": "文本",
     "imageType": "图片",
     "fileType": "文件",
     "filesCount": "{{count}} 个文件",
@@ -28,7 +28,7 @@
   "search": {
     "placeholder": "搜索剪切板历史...",
     "typeAll": "全部",
-    "typeText": "文字",
+    "typeText": "文本",
     "typeImage": "图片",
     "typeFile": "文件",
     "dateAll": "不限",
@@ -64,7 +64,7 @@
   },
   "export": {
     "title": "导出",
-    "textExport": "导出文字",
+    "textExport": "导出文本",
     "textExportDesc": "合并导出为一个 .txt 文件",
     "imageExport": "导出图片",
     "imageExportDesc": "导出为原始 PNG/JPG 文件",
@@ -93,6 +93,7 @@
     "emptyHint": "使用 Ctrl+C 复制内容开始记录",
     "total": "共 {{count}} 条记录",
     "error": "操作失败",
+    "copied": "已复制",
     "pagePrev": "上一页",
     "pageNext": "下一页"
   },

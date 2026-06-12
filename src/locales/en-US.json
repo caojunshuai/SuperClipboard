@@ -96,6 +96,7 @@
     "total": "{{count}} records",
     "total_one": "{{count}} record",
     "error": "Operation failed",
+    "copied": "Copied",
     "pagePrev": "Previous",
     "pageNext": "Next"
   },

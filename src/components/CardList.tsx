@@ -91,7 +91,11 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
       if (autoPasteEnabled) {
         await autoPaste();
       }
-      onClose();
+      setToast({ message: t('list.copied'), type: 'success' });
+      setTimeout(() => {
+        setToast(null);
+        onClose();
+      }, 600);
     } catch (err) {
       const msg = typeof err === 'string' ? err : t('list.error');
       setToast({ message: msg, type: 'error' });
@@ -155,8 +159,8 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
   return (
     <div ref={listRef} className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin">
       {toast && (
-        <div className={`fixed top-14 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg text-sm shadow-lg transition-all ${
-          toast.type === 'error' ? 'bg-red-500/90 text-white' : 'bg-green-500/90 text-white'
+        <div className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg text-sm shadow-lg transition-all ${
+          toast.type === 'error' ? 'bg-red-500/90 text-white' : 'bg-green-500 text-white'
         }`}>
           {toast.message}
         </div>
