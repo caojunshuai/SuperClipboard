@@ -71,14 +71,40 @@ fn base64_encode(data: &[u8]) -> String {
 }
 
 #[tauri::command]
-pub fn auto_paste() -> Result<(), String> {
+pub fn auto_paste(app: tauri::AppHandle) -> Result<(), String> {
     #[cfg(target_os = "windows")]
-    unsafe {
-        use windows_sys::Win32::UI::Input::KeyboardAndMouse::*;
-        keybd_event(0x11, 0, 0, 0);
-        keybd_event(0x56, 0, 0, 0);
-        keybd_event(0x56, 0, KEYEVENTF_KEYUP, 0);
-        keybd_event(0x11, 0, KEYEVENTF_KEYUP, 0);
+    {
+        // Hide ourselves first so Ctrl+V goes to the previous window
+        if let Some(window) = app.get_webview_window("main") {
+            window.hide().ok();
+        }
+        // Brief pause for focus to return to the previous window
+        std::thread::sleep(std::time::Duration::from_millis(80));
+
+        unsafe {
+            use windows_sys::Win32::UI::Input::KeyboardAndMouse::*;
+            let mut inputs: [INPUT; 4] = std::mem::zeroed();
+            // Ctrl down
+            inputs[0].r#type = INPUT_KEYBOARD;
+            inputs[0].Anonymous.ki.wVk = 0x11; // VK_CONTROL
+            // V down
+            inputs[1].r#type = INPUT_KEYBOARD;
+            inputs[1].Anonymous.ki.wVk = 0x56; // 'V'
+            // V up
+            inputs[2].r#type = INPUT_KEYBOARD;
+            inputs[2].Anonymous.ki.wVk = 0x56;
+            inputs[2].Anonymous.ki.dwFlags = KEYEVENTF_KEYUP;
+            // Ctrl up
+            inputs[3].r#type = INPUT_KEYBOARD;
+            inputs[3].Anonymous.ki.wVk = 0x11;
+            inputs[3].Anonymous.ki.dwFlags = KEYEVENTF_KEYUP;
+
+            SendInput(
+                inputs.len() as u32,
+                inputs.as_ptr(),
+                std::mem::size_of::<INPUT>() as i32,
+            );
+        }
     }
     Ok(())
 }
