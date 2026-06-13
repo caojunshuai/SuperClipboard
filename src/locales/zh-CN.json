@@ -69,7 +69,13 @@
     "theme": "主题",
     "themeDark": "深色",
     "themeLight": "浅色",
-    "themeSystem": "跟随系统"
+    "themeSystem": "跟随系统",
+    "categoryAppearance": "外观",
+    "categoryBrowsing": "浏览",
+    "categoryWindow": "窗口",
+    "categoryBehavior": "操作",
+    "categoryStorage": "存储",
+    "categoryShortcut": "快捷键"
   },
   "export": {
     "title": "导出",

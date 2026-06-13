@@ -97,3 +97,39 @@ html.light input[type="date"]::-webkit-calendar-picker-indicator {
 html.dark input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(0.7);
 }
+
+/* Custom select dropdown */
+select.custom-select {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  padding-right: 2rem;
+  background-color: var(--panel-card);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+select.custom-select:hover {
+  border-color: var(--panel-muted);
+}
+select.custom-select:focus {
+  outline: none;
+  border-color: var(--panel-accent);
+  box-shadow: 0 0 0 1px rgba(124, 140, 248, 0.2);
+}
+select.custom-select option {
+  background-color: var(--panel-card);
+  color: var(--panel-text);
+}
+
+/* Darker arrow for light themes */
+html.light select.custom-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%23666' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+@media (prefers-color-scheme: light) {
+  select.custom-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%23666' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  }
+}

@@ -71,7 +71,13 @@
     "theme": "Theme",
     "themeDark": "Dark",
     "themeLight": "Light",
-    "themeSystem": "Follow System"
+    "themeSystem": "Follow System",
+    "categoryAppearance": "Appearance",
+    "categoryBrowsing": "Browsing",
+    "categoryWindow": "Window",
+    "categoryBehavior": "Behavior",
+    "categoryStorage": "Storage",
+    "categoryShortcut": "Shortcut"
   },
   "export": {
     "title": "Export",

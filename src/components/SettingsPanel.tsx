@@ -142,122 +142,163 @@ export default function SettingsPanel({ onClose }: Props) {
       <div className="bg-panel-bg border border-panel-border rounded-xl p-6 w-96 shadow-2xl max-h-[95vh] flex flex-col relative" onClick={e => e.stopPropagation()}>
         <h2 className="text-lg font-semibold text-panel-text mb-4 shrink-0">{t('settings.title')}</h2>
         <div className="space-y-4 overflow-y-auto flex-1 pr-1 scrollbar-thin">
+          {/* ====== Appearance ====== */}
           <div>
-            <label className="text-sm text-panel-text block mb-1">{t('settings.hotkey')}</label>
-            <input
-              type="text"
-              value={settings.hotkey}
-              readOnly
-              className="w-full px-3 py-2 bg-panel-card border border-panel-border rounded-lg text-sm text-panel-muted"
-            />
-            <p className="text-xs text-panel-muted mt-1">{t('settings.hotkeyHint')}</p>
-          </div>
-          <div>
-            <label className="text-sm text-panel-text block mb-1">{t('settings.historyLimit')}</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={maxItemsStr}
-              onChange={e => { setMaxItemsStr(e.target.value.replace(/\D/g, '')); setErrors(e => ({ ...e, items: undefined })); }}
-              className={`w-full px-3 py-2 bg-panel-card border rounded-lg text-sm text-panel-text ${errors.items ? 'border-red-500/50' : 'border-panel-border'}`}
-            />
-            {errors.items && <p className="text-xs text-red-400 mt-1">{errors.items}</p>}
-            <p className="text-xs text-panel-muted mt-1">{t('settings.historyRange')}</p>
-          </div>
-          <div>
-            <label className="text-sm text-panel-text block mb-1">{t('settings.imageLimit')}</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={maxImagesStr}
-              onChange={e => { setMaxImagesStr(e.target.value.replace(/\D/g, '')); setErrors(e => ({ ...e, images: undefined })); }}
-              className={`w-full px-3 py-2 bg-panel-card border rounded-lg text-sm text-panel-text ${errors.images ? 'border-red-500/50' : 'border-panel-border'}`}
-            />
-            {errors.images && <p className="text-xs text-red-400 mt-1">{errors.images}</p>}
-            <p className="text-xs text-panel-muted mt-1">{t('settings.imageRange')}</p>
-          </div>
-          <label className="flex items-center justify-between p-3 bg-panel-card rounded-lg cursor-pointer">
-            <div>
-              <div className="text-sm text-panel-text">{t('settings.autoPaste')}</div>
-              <div className="text-xs text-panel-muted">{t('settings.autoPasteHint')}</div>
+            <h3 className="text-xs font-semibold text-panel-muted uppercase tracking-wide border-b border-panel-border pb-1 mb-3">{t('settings.categoryAppearance')}</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm text-panel-text block mb-1">{t('settings.language')}</label>
+                <select
+                  value={settings.language}
+                  onChange={e => {
+                    const lng = e.target.value as Locale;
+                    setSettings(s => ({ ...s, language: lng }));
+                    i18n.changeLanguage(lng);
+                  }}
+                  className="w-full custom-select px-3 py-2 border border-panel-border rounded-lg text-sm text-panel-text"
+                >
+                  {SUPPORTED_LOCALES.map(loc => (
+                    <option key={loc} value={loc}>{t('lang.' + loc)}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm text-panel-text block mb-1">{t('settings.theme')}</label>
+                <select
+                  value={settings.theme}
+                  onChange={e => {
+                    const thm = e.target.value as Theme;
+                    setSettings(s => ({ ...s, theme: thm }));
+                    applyTheme(thm);
+                  }}
+                  className="w-full custom-select px-3 py-2 border border-panel-border rounded-lg text-sm text-panel-text"
+                >
+                  {(['dark', 'light', 'system'] as Theme[]).map(thm => (
+                    <option key={thm} value={thm}>{t('settings.theme' + thm.charAt(0).toUpperCase() + thm.slice(1))}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <input
-              type="checkbox"
-              checked={settings.auto_paste}
-              onChange={e => setSettings(s => ({ ...s, auto_paste: e.target.checked }))}
-              className="w-4 h-4 text-panel-accent"
-            />
-          </label>
-          <label className="flex items-center justify-between p-3 bg-panel-card rounded-lg cursor-pointer">
-            <div>
-              <div className="text-sm text-panel-text">{t('settings.autoStart')}</div>
-              <div className="text-xs text-panel-muted">{t('settings.autoStartHint')}</div>
-            </div>
-            <input
-              type="checkbox"
-              checked={settings.auto_start}
-              onChange={e => setSettings(s => ({ ...s, auto_start: e.target.checked }))}
-              className="w-4 h-4 text-panel-accent"
-            />
-          </label>
-          <label className="flex items-center justify-between p-3 bg-panel-card rounded-lg cursor-pointer">
-            <div>
-              <div className="text-sm text-panel-text">{t('settings.alwaysOnTop')}</div>
-              <div className="text-xs text-panel-muted">{t('settings.alwaysOnTopHint')}</div>
-            </div>
-            <input
-              type="checkbox"
-              checked={settings.always_on_top}
-              onChange={e => setSettings(s => ({ ...s, always_on_top: e.target.checked }))}
-              className="w-4 h-4 text-panel-accent"
-            />
-          </label>
-          <div>
-            <label className="text-sm text-panel-text block mb-1">{t('settings.pageSize')}</label>
-            <select
-              value={settings.page_size}
-              onChange={e => setSettings(s => ({ ...s, page_size: parseInt(e.target.value) }))}
-              className="w-full px-3 py-2 bg-panel-card border border-panel-border rounded-lg text-sm text-panel-text focus:outline-none focus:border-panel-accent"
-            >
-              {[10, 20, 30, 40, 50].map(n => (
-                <option key={n} value={n}>{n}</option>
-              ))}
-            </select>
-            <p className="text-xs text-panel-muted mt-1">{t('settings.pageSizeHint')}</p>
           </div>
+
+          {/* ====== Browsing ====== */}
           <div>
-            <label className="text-sm text-panel-text block mb-1">{t('settings.language')}</label>
-            <select
-              value={settings.language}
-              onChange={e => {
-                const lng = e.target.value as Locale;
-                setSettings(s => ({ ...s, language: lng }));
-                i18n.changeLanguage(lng);
-              }}
-              className="w-full px-3 py-2 bg-panel-card border border-panel-border rounded-lg text-sm text-panel-text focus:outline-none focus:border-panel-accent"
-            >
-              {SUPPORTED_LOCALES.map(loc => (
-                <option key={loc} value={loc}>{t('lang.' + loc)}</option>
-              ))}
-            </select>
+            <h3 className="text-xs font-semibold text-panel-muted uppercase tracking-wide border-b border-panel-border pb-1 mb-3">{t('settings.categoryBrowsing')}</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm text-panel-text block mb-1">{t('settings.pageSize')}</label>
+                <select
+                  value={settings.page_size}
+                  onChange={e => setSettings(s => ({ ...s, page_size: parseInt(e.target.value) }))}
+                  className="w-full custom-select px-3 py-2 border border-panel-border rounded-lg text-sm text-panel-text"
+                >
+                  {[10, 20, 30, 40, 50].map(n => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-panel-muted mt-1">{t('settings.pageSizeHint')}</p>
+              </div>
+            </div>
           </div>
+
+          {/* ====== Window ====== */}
           <div>
-            <label className="text-sm text-panel-text block mb-1">{t('settings.theme')}</label>
-            <select
-              value={settings.theme}
-              onChange={e => {
-                const thm = e.target.value as Theme;
-                setSettings(s => ({ ...s, theme: thm }));
-                applyTheme(thm);
-              }}
-              className="w-full px-3 py-2 bg-panel-card border border-panel-border rounded-lg text-sm text-panel-text focus:outline-none focus:border-panel-accent"
-            >
-              {(['dark', 'light', 'system'] as Theme[]).map(thm => (
-                <option key={thm} value={thm}>{t('settings.theme' + thm.charAt(0).toUpperCase() + thm.slice(1))}</option>
-              ))}
-            </select>
+            <h3 className="text-xs font-semibold text-panel-muted uppercase tracking-wide border-b border-panel-border pb-1 mb-3">{t('settings.categoryWindow')}</h3>
+            <div className="space-y-3">
+              <label className="flex items-center justify-between p-3 bg-panel-card rounded-lg cursor-pointer">
+                <div>
+                  <div className="text-sm text-panel-text">{t('settings.alwaysOnTop')}</div>
+                  <div className="text-xs text-panel-muted">{t('settings.alwaysOnTopHint')}</div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.always_on_top}
+                  onChange={e => setSettings(s => ({ ...s, always_on_top: e.target.checked }))}
+                  className="w-4 h-4 text-panel-accent"
+                />
+              </label>
+            </div>
+          </div>
+
+          {/* ====== Behavior ====== */}
+          <div>
+            <h3 className="text-xs font-semibold text-panel-muted uppercase tracking-wide border-b border-panel-border pb-1 mb-3">{t('settings.categoryBehavior')}</h3>
+            <div className="space-y-3">
+              <label className="flex items-center justify-between p-3 bg-panel-card rounded-lg cursor-pointer">
+                <div>
+                  <div className="text-sm text-panel-text">{t('settings.autoPaste')}</div>
+                  <div className="text-xs text-panel-muted">{t('settings.autoPasteHint')}</div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.auto_paste}
+                  onChange={e => setSettings(s => ({ ...s, auto_paste: e.target.checked }))}
+                  className="w-4 h-4 text-panel-accent"
+                />
+              </label>
+              <label className="flex items-center justify-between p-3 bg-panel-card rounded-lg cursor-pointer">
+                <div>
+                  <div className="text-sm text-panel-text">{t('settings.autoStart')}</div>
+                  <div className="text-xs text-panel-muted">{t('settings.autoStartHint')}</div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.auto_start}
+                  onChange={e => setSettings(s => ({ ...s, auto_start: e.target.checked }))}
+                  className="w-4 h-4 text-panel-accent"
+                />
+              </label>
+            </div>
+          </div>
+
+          {/* ====== Storage ====== */}
+          <div>
+            <h3 className="text-xs font-semibold text-panel-muted uppercase tracking-wide border-b border-panel-border pb-1 mb-3">{t('settings.categoryStorage')}</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm text-panel-text block mb-1">{t('settings.historyLimit')}</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={maxItemsStr}
+                  onChange={e => { setMaxItemsStr(e.target.value.replace(/\D/g, '')); setErrors(e => ({ ...e, items: undefined })); }}
+                  className={`w-full px-3 py-2 bg-panel-card border rounded-lg text-sm text-panel-text ${errors.items ? 'border-red-500/50' : 'border-panel-border'}`}
+                />
+                {errors.items && <p className="text-xs text-red-400 mt-1">{errors.items}</p>}
+                <p className="text-xs text-panel-muted mt-1">{t('settings.historyRange')}</p>
+              </div>
+              <div>
+                <label className="text-sm text-panel-text block mb-1">{t('settings.imageLimit')}</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={maxImagesStr}
+                  onChange={e => { setMaxImagesStr(e.target.value.replace(/\D/g, '')); setErrors(e => ({ ...e, images: undefined })); }}
+                  className={`w-full px-3 py-2 bg-panel-card border rounded-lg text-sm text-panel-text ${errors.images ? 'border-red-500/50' : 'border-panel-border'}`}
+                />
+                {errors.images && <p className="text-xs text-red-400 mt-1">{errors.images}</p>}
+                <p className="text-xs text-panel-muted mt-1">{t('settings.imageRange')}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* ====== Shortcut ====== */}
+          <div>
+            <h3 className="text-xs font-semibold text-panel-muted uppercase tracking-wide border-b border-panel-border pb-1 mb-3">{t('settings.categoryShortcut')}</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm text-panel-text block mb-1">{t('settings.hotkey')}</label>
+                <input
+                  type="text"
+                  value={settings.hotkey}
+                  readOnly
+                  className="w-full px-3 py-2 bg-panel-card border border-panel-border rounded-lg text-sm text-panel-muted"
+                />
+                <p className="text-xs text-panel-muted mt-1">{t('settings.hotkeyHint')}</p>
+              </div>
+            </div>
           </div>
         </div>
         <div className="flex justify-end gap-3 mt-4 shrink-0">
