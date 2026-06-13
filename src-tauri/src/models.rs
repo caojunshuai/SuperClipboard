@@ -47,6 +47,10 @@ pub struct ClipboardItem {
     pub note: Option<String>,
     pub created_at: String,
     pub updated_at: String,
+    /// Whether the original image file still exists on disk (false → file was deleted).
+    /// Not persisted to DB — computed at query time.
+    #[serde(default = "default_true")]
+    pub image_exists: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

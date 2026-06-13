@@ -71,6 +71,7 @@ pub fn run() {
             commands::update_note,
             commands::delete_clipboard_item,
             commands::delete_clipboard_items,
+            commands::clear_item_images,
             commands::export_text,
             commands::export_images,
             commands::backup,

@@ -144,6 +144,16 @@ pub fn delete_clipboard_items(ids: Vec<i64>) -> Result<(), String> {
     storage::delete_items(&ids).map_err(|e| e.to_string())
 }
 
+/// Clear image/thumbnail paths for an item whose original file was deleted.
+/// Removes the thumbnail file from disk and sets both paths to NULL in DB.
+#[tauri::command]
+pub fn clear_item_images(id: i64) -> Result<(), String> {
+    if let Ok(Some(item)) = storage::get_item(id) {
+        if let Some(ref p) = item.thumbnail_path { std::fs::remove_file(p).ok(); }
+    }
+    storage::clear_item_images(id).map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 pub fn export_text(ids: Vec<i64>, output_path: String) -> Result<String, String> {
     export::export_text(&ids, &output_path)
@@ -229,7 +239,7 @@ fn set_clipboard_image(png_path: &str) -> Result<(), String> {
     use image::GenericImageView;
 
     let png_data = std::fs::read(png_path)
-        .map_err(|e| format!("Failed to read {}: {}", png_path, e))?;
+        .map_err(|_| "Image file not found".to_string())?;
     let img = image::load_from_memory(&png_data)
         .map_err(|e| format!("Failed to decode image: {}", e))?;
     let (w, h) = img.dimensions();
@@ -307,7 +317,12 @@ fn set_clipboard_file_list(paths_json: &str) -> Result<(), String> {
         .map(|p| p.as_str())
         .collect();
     if !missing.is_empty() {
-        return Err(format!("文件不存在: {}", missing.join("\n")));
+        let count = missing.len();
+        return Err(if count == 1 {
+            "File not found".to_string()
+        } else {
+            format!("{} files not found", count)
+        });
     }
 
     // Build DROPFILES header (20 bytes) + wide-char file list
@@ -448,6 +463,11 @@ static PENDING_PATHS: std::sync::LazyLock<std::sync::Mutex<HashMap<String, Strin
 /// command thread pool causes a deadlock with the main event loop.
 #[tauri::command]
 pub fn open_image_preview(app: tauri::AppHandle, path: String) -> Result<(), String> {
+    // Check file exists before opening preview window
+    if !std::path::Path::new(&path).exists() {
+        return Err("Image file not found".to_string());
+    }
+
     let id = PREVIEW_ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
     let label = format!("image-preview-{}", id);
 

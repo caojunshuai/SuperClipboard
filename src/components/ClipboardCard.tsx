@@ -14,15 +14,16 @@ interface Props {
   onTogglePin: (id: number) => void;
   onToggleFavorite: (id: number) => void;
   onDelete: (id: number) => void;
+  onImageMissing?: (id: number) => void;
 }
 
 const TYPE_STYLES: Record<string, string> = {
-  text: 'bg-panel-accent/20 text-panel-accent',
+  text: 'bg-blue-500/20 text-blue-400',
   image: 'bg-green-500/20 text-green-400',
   file: 'bg-orange-500/20 text-orange-400',
 };
 
-export default function ClipboardCard({ item, deleting, onCopy, onTogglePin, onToggleFavorite, onDelete }: Props) {
+export default function ClipboardCard({ item, deleting, onCopy, onTogglePin, onToggleFavorite, onDelete, onImageMissing }: Props) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [floatingCollapse, setFloatingCollapse] = useState(false);
@@ -151,10 +152,18 @@ export default function ClipboardCard({ item, deleting, onCopy, onTogglePin, onT
       case 'image':
         return {
           label: t('card.preview'),
-          onClick: (e: React.MouseEvent) => {
+          onClick: async (e: React.MouseEvent) => {
             e.stopPropagation();
             const path = item.image_path || item.thumbnail_path;
-            if (path) openImagePreview(path);
+            if (path) {
+              try {
+                await openImagePreview(path);
+              } catch (err) {
+                if (typeof err === 'string' && err === 'Image file not found') {
+                  onImageMissing?.(item.id);
+                }
+              }
+            }
           },
         };
       case 'file': {

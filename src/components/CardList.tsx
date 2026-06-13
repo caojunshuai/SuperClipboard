@@ -119,7 +119,24 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
         onClose();
       }, 600);
     } catch (err) {
-      const msg = typeof err === 'string' ? err : tRef.current('list.error');
+      let msg: string;
+      if (typeof err === 'string') {
+        // Map known Rust errors to i18n keys
+        const filesMatch = err.match(/^(\d+) files not found$/);
+        if (err === 'Image file not found') {
+          msg = tRef.current('list.imageNotFound');
+          deleteClipboardItem(item.id).catch(() => {});
+          setItems(prev => prev.filter(it => it.id !== item.id));
+        } else if (err === 'File not found') {
+          msg = tRef.current('list.fileNotFound');
+        } else if (filesMatch) {
+          msg = tRef.current('list.filesNotFound', { count: parseInt(filesMatch[1]) });
+        } else {
+          msg = err;
+        }
+      } else {
+        msg = tRef.current('list.error');
+      }
       setToast({ message: msg, type: 'error' });
       setTimeout(() => setToast(null), 4000);
     }
@@ -207,6 +224,12 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
           onTogglePin={handleTogglePin}
           onToggleFavorite={handleToggleFavorite}
           onDelete={handleDelete}
+          onImageMissing={(id: number) => {
+            deleteClipboardItem(id).catch(() => {});
+            setItems(prev => prev.filter(it => it.id !== id));
+            setToast({ message: tRef.current('list.imageNotFound'), type: 'error' });
+            setTimeout(() => setToast(null), 4000);
+          }}
         />
       ))}
 

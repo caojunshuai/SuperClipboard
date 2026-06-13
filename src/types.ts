@@ -14,6 +14,7 @@ export interface ClipboardItem {
   is_favorite: boolean;
   metadata: string | null;
   note: string | null;
+  image_exists: boolean;
   created_at: string;
   updated_at: string;
 }

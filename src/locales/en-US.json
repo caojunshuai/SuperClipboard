@@ -111,6 +111,9 @@
     "total": "{{count}} records",
     "total_one": "{{count}} record",
     "error": "Operation failed",
+    "imageNotFound": "Image file not found",
+    "fileNotFound": "File not found",
+    "filesNotFound": "{{count}} files not found",
     "copied": "Copied",
     "pagePrev": "Previous",
     "pageNext": "Next"

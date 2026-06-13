@@ -192,7 +192,7 @@ pub fn query_history(query: &HistoryQuery) -> SqliteResult<HistoryResult> {
     let mut stmt = conn.prepare(&query_sql)?;
     let params_refs: Vec<&dyn rusqlite::types::ToSql> = bind_values.iter().map(|b| b.as_ref()).collect();
 
-    let items = stmt.query_map(params_refs.as_slice(), |row| {
+    let mut items: Vec<ClipboardItem> = stmt.query_map(params_refs.as_slice(), |row| {
         Ok(ClipboardItem {
             id: row.get(0)?,
             item_type: ItemType::from_str(&row.get::<_, String>(1)?).unwrap_or(ItemType::Text),
@@ -210,8 +210,20 @@ pub fn query_history(query: &HistoryQuery) -> SqliteResult<HistoryResult> {
             note: row.get(13)?,
             created_at: row.get(14)?,
             updated_at: row.get(15)?,
+            image_exists: true,
         })
     })?.filter_map(|r| r.ok()).collect();
+
+    // Check whether image files still exist on disk
+    for item in &mut items {
+        if item.item_type == ItemType::Image {
+            if let Some(ref path) = item.image_path {
+                if !std::path::Path::new(path).exists() {
+                    item.image_exists = false;
+                }
+            }
+        }
+    }
 
     Ok(HistoryResult { items, total })
 }
@@ -269,6 +281,7 @@ pub fn get_item(id: i64) -> SqliteResult<Option<ClipboardItem>> {
             note: row.get(13)?,
             created_at: row.get(14)?,
             updated_at: row.get(15)?,
+            image_exists: true,
         })
     })?;
     Ok(rows.next().transpose()?)
@@ -277,6 +290,15 @@ pub fn get_item(id: i64) -> SqliteResult<Option<ClipboardItem>> {
 pub fn delete_item(id: i64) -> SqliteResult<()> {
     let conn = get_conn().lock().unwrap();
     conn.execute("DELETE FROM clipboard_items WHERE id = ?1", params![id])?;
+    Ok(())
+}
+
+pub fn clear_item_images(id: i64) -> SqliteResult<()> {
+    let conn = get_conn().lock().unwrap();
+    conn.execute(
+        "UPDATE clipboard_items SET image_path = NULL, thumbnail_path = NULL WHERE id = ?1",
+        [id],
+    )?;
     Ok(())
 }
 
@@ -350,6 +372,7 @@ pub fn get_all_items_for_backup() -> SqliteResult<Vec<ClipboardItem>> {
             note: row.get(13)?,
             created_at: row.get(14)?,
             updated_at: row.get(15)?,
+            image_exists: true,
         })
     })?.filter_map(|r| r.ok()).collect();
     Ok(items)

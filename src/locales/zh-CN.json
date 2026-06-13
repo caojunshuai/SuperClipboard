@@ -108,6 +108,9 @@
     "emptyHint": "使用 Ctrl+C 复制内容开始记录",
     "total": "共 {{count}} 条记录",
     "error": "操作失败",
+    "imageNotFound": "图片文件不存在",
+    "fileNotFound": "文件不存在",
+    "filesNotFound": "{{count}} 个文件不存在",
     "copied": "已复制",
     "pagePrev": "上一页",
     "pageNext": "下一页"

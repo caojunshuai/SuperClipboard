@@ -12,8 +12,10 @@ import i18n from './locales';
 type DialogType = 'none' | 'export' | 'backup' | 'settings' | 'about';
 
 interface ContextMenuState {
-  x: number;
-  y: number;
+  left: number;
+  top: number;
+  flipX: boolean;
+  flipY: boolean;
 }
 
 function App() {
@@ -63,7 +65,16 @@ function App() {
       e.preventDefault();
       const sel = window.getSelection()?.toString().trim();
       if (sel) {
-        setContextMenu({ x: e.clientX, y: e.clientY });
+        const EST_H = 40;
+        const EST_W = 90;
+        const flipY = e.clientY + EST_H > window.innerHeight;
+        const flipX = e.clientX + EST_W > window.innerWidth;
+        setContextMenu({
+          left: flipX ? e.clientX - EST_W : e.clientX,
+          top: flipY ? e.clientY - EST_H : e.clientY,
+          flipX,
+          flipY,
+        });
       }
     };
     const dismiss = (e: MouseEvent) => {
@@ -134,7 +145,7 @@ function App() {
       {contextMenu && (
         <div
           className="fixed z-[100] bg-panel-card border border-panel-border rounded-lg py-1 px-1 shadow-xl min-w-[80px]"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
+          style={{ left: contextMenu.left, top: contextMenu.top }}
         >
           <button
             onClick={handleContextCopy}
