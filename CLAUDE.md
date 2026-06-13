@@ -31,30 +31,32 @@ The zip contains `SuperClipboard.exe` + `WebView2Loader.dll` + `liblzma-5.dll`. 
 public/preview.html           # Standalone image preview window (polls for IPC init)
 
 src/                          # React frontend
-  App.tsx                     # Root: dialog state, title bar, drag, theme init
+  App.tsx                     # Root: dialog state, title bar, drag, theme init, context menu
   api.ts                      # Tauri invoke() wrappers + event listeners
-  types.ts                    # TS types (ClipboardItem, etc.)
+  types.ts                    # TS types (ClipboardItem, ExportResult, etc.)
   theme.ts                    # applyTheme(), Theme type (dark/light/system)
   components/
     ClipboardPanel.tsx        # Main panel: search + tabs + card list
     ClipboardCard.tsx         # Card: expand/collapse, preview, floating collapse button
-    CardList.tsx              # Page-based list (50 per page), toast notifications, gen counter for race safety
+    CardList.tsx              # Page-based list, toast notifications, gen counter for race safety
     SearchBar.tsx             # Search input, type/date filters
+    DatePicker.tsx            # Custom calendar dropdown (replaces native date inputs)
     TabBar.tsx                # All / Favorites tabs
-    SettingsPanel.tsx         # Settings form with validation & dirty detection
+    SettingsPanel.tsx         # Settings form with validation, dirty detection, clear data
     ExportDialog.tsx          # Export text or images
-    BackupDialog.tsx          # Backup to zip / Restore from zip
+    BackupDialog.tsx          # Backup to zip / Restore from zip with structured summary
+    AboutDialog.tsx           # Version info + feedback link
     cards/
       TextCard.tsx            # Text content (expandable: line-clamp-3 → full)
-      ImageCard.tsx           # Image thumbnail + preview button
+      ImageCard.tsx           # Image thumbnail (object-contain) + preview button
       FileCard.tsx            # File paths (expandable: capped at 3 → show all)
 
 src-tauri/src/                # Rust backend
   main.rs                     # Entry point
   lib.rs                      # Plugin setup, DB init, spawn clipboard monitor
   clipboard.rs                # Windows clipboard poll loop (CF_UNICODETEXT/DIB/HDROP)
-  storage.rs                  # SQLite: upsert, query, FTS, settings CRUD
-  models.rs                   # ClipboardItem, ItemType, HistoryQuery, AppSettings
+  storage.rs                  # SQLite: upsert, query, FTS, settings CRUD, clear_all_data
+  models.rs                   # ClipboardItem, ItemType, HistoryQuery, AppSettings, Result structs
   commands.rs                 # Tauri #[command] handlers (IPC from frontend)
   export.rs                   # Text export, image export, zip backup/restore
   hotkey.rs                   # Global hotkey Alt+V via tauri-plugin-global-shortcut
@@ -66,6 +68,7 @@ src-tauri/src/                # Rust backend
 ### Clipboard Monitor (clipboard.rs)
 - Runs in `std::thread` (not tokio). Polls `GetClipboardSequenceNumber()` every 500ms
 - Reads CF_UNICODETEXT / CF_DIB / CF_HDROP; converts DIB → PNG via `image` crate
+- Thumbnails: Lanczos3 resampling at 360px max dimension, aspect-ratio-preserving
 - Deduplicates via FNV-1a 64-bit hash → `upsert_item()` bumps timestamp on duplicate
 
 ### Portable Data Directory (lib.rs)
@@ -78,70 +81,71 @@ src-tauri/src/                # Rust backend
 ### Database (storage.rs)
 - SQLite via `rusqlite` (bundled), WAL mode. Global `OnceCell<Mutex<Connection>>` singleton
 - Search uses `LIKE '%keyword%'` for all queries — FTS5's `unicode61` tokenizer can't handle CJK, and `LIKE` is fast enough at clipboard scale
-- **Restore** uses `try_restore_item()`: append mode with content_hash dedup, respects max_items/max_images limits, truncates with warning message when over capacity
+- **Restore** uses `try_restore_item()`: append mode with content_hash dedup, respects max_items/max_images limits, truncates with warning when over capacity
+- **Missing image detection:** query checks file existence on disk, auto-deletes stale DB rows, excludes from results
+- **Clear all data:** `clear_all_data()` collects image/thumbnail paths, DELETEs all rows, optimizes FTS5, removes files
 
 ### IPC (commands.rs)
 - All commands async via `#[tauri::command]`
 - `copy_to_clipboard`: CF_UNICODETEXT / CF_DIB (top-down, negative biHeight) / CF_HDROP (DROPFILES struct)
 - `auto_paste`: hides window, sleeps 80ms, then `SendInput` Ctrl+V to previous window. `start_drag`: `PostMessageW(WM_NCLBUTTONDOWN, HTCAPTION)` — Tauri's `startDragging()` loses mouse gesture in async IPC
+- **Structured results:** `ExportResult`, `BackupResult`, `RestoreResult` structs in models.rs. Restore computes expected/imported/duplicates/skipped_by_limit. Frontend displays color-coded summary rows (✓ green / — yellow / ! red)
 
 ### Image Preview (commands.rs + preview.html)
 - Opens independent Tauri window (`image-preview-{N}`) via `WebviewUrl::App("preview.html")`
-- **Tokio deadlock fix:** `WebviewWindowBuilder::build()` blocks on main event loop → must call from `std::thread::spawn`, not tokio command thread pool
-- **IPC init race:** `__TAURI_INTERNALS__.invoke` not attached synchronously by WebView2 → `preview.html` polls every 50ms for `typeof ipc.invoke === 'function'` (10s timeout)
-- **Per-window state:** `HashMap<String, String>` keyed by window label in `LazyLock<Mutex<>>`. `open_image_preview` inserts path, `get_preview_image_path(window)` looks up by `window.label()` and removes entry. `PREVIEW_ID: AtomicU64` for unique labels
-- Image data via `read_image_base64(path)` → `data:image/png;base64,...` (custom base64, no crate)
+- **Tokio deadlock fix:** `WebviewWindowBuilder::build()` must call from `std::thread::spawn`, not tokio command thread pool
+- **IPC init race:** `preview.html` polls every 50ms for `typeof ipc.invoke === 'function'` (10s timeout)
+- **Per-window state:** `HashMap<String, String>` keyed by window label in `LazyLock<Mutex<>>`. `PREVIEW_ID: AtomicU64` for unique labels. Image data via `read_image_base64(path)` (custom base64, no crate)
 
 ### Expand/Collapse & Floating Button (ClipboardCard.tsx)
-- Text: exceeds 3 lines / 200 chars → `<展开>` link. `TextCard` accepts `expanded` prop (removes `line-clamp-3`)
-- Files: >3 entries → `<展开>` link. `FileCard` shows capped vs all
-- **Floating collapse:** fixed `收起 ▲` pill at viewport bottom-right when expanded card overflows container. Hidden when footer is in view (inline `收起` takes over)
-- **Auto-collapse:** when card scrolls entirely above viewport → `setExpanded(false)`
-- **scrollIntoView before collapse:** prevents viewport jumping to unrelated cards
+- Text: exceeds 3 lines / 200 chars → `<Expand>` link. Files: >3 entries → `<Expand>` link
+- **Floating collapse:** fixed `Collapse ▲` pill at viewport bottom-right when expanded card overflows container. Hidden when footer is in view
+- **Auto-collapse:** when card scrolls entirely above viewport → `setExpanded(false)`. `scrollIntoView` before collapse prevents viewport jumping
 - Detection: `requestAnimationFrame` + passive scroll listener on `.overflow-y-auto` ancestor
 
 ### Note Feature (ClipboardCard.tsx)
-- **DB:** `clipboard_items.note TEXT` column (NULL = no note). Search includes `OR note LIKE`
-- **Top bar:** unified row with type badge, metadata, note text, and icon group (✏️📌⭐🗑) right-aligned
-- **Edit:** click ✏️ → inline `<input>`, Enter/blur saves via `update_note` command, Esc cancels
-- **Display:** note text truncated with `title` tooltip for full content. `·` separator hidden when note is empty
-- **Child cards:** TextCard/ImageCard/FileCard simplified to content-only rendering (type badge + metadata moved up to ClipboardCard)
+- `clipboard_items.note TEXT` column. Click ✏️ → inline `<input>`, Enter/blur saves via `update_note`, Esc cancels
+- Display: note truncated with `title` tooltip. `·` separator hidden when note is empty
+- Type badge + metadata rendered in ClipboardCard top bar; child cards (TextCard/ImageCard/FileCard) are content-only
 
 ### Time Format
 - Today → `今天 HH:MM:SS`, Yesterday → `昨天 HH:MM:SS`, Older → `YYYY-MM-DD HH:MM:SS`
-- Bottom bar: time (left) · action link (right)
 
 ### CJK Search
 - Detects CJK ranges (Unified, Hiragana, Katakana, Hangul) → `LIKE '%keyword%'` substring match
 
 ### Pagination (CardList.tsx)
-- `pageSizeRef` loaded from settings (default 50), user-configurable (10/20/30/40/50). `totalPages = ceil(total / pageSizeRef.current)`
+- `pageSizeRef` loaded from settings (default 20), user-configurable (10/20/30/40/50). `totalPages = ceil(total / pageSizeRef.current)`
 - **Ref-based query:** `queryRef.current` always has latest filter values — no stale closures
-- **Gen counter:** `fetchGenRef` increments on each request; responses with stale gen are discarded. Immune to React StrictMode double-invocation
-- **Two effects:** settings/refreshKey reloads settings then fetches; filter/tab changes reset to page 1
-- **Bottom bar:** total count (left) · ← Prev | N/M | Next → (right). Hidden when only one page
+- **Gen counter:** `fetchGenRef` increments on each request; responses with stale gen are discarded
+- **Page refill after delete:** immediate `fetchPage(page)` after optimistic removal keeps page at max capacity
 - **Delete recovery:** empty page after delete → auto-navigate to previous page; shrunk total → clamp to last valid page
+- **Bottom bar:** total count (left) · ← Prev | N/M | Next → (right). Hidden when only one page
 
 ### Always-On-Top Setting (commands.rs + lib.rs + SettingsPanel.tsx)
-- `AppSettings.always_on_top: bool`, default `true`
-- `set_always_on_top()` applied at startup (lib.rs) and on settings save (commands.rs)
-- Toggles `skip_taskbar` alongside: on = floating panel (no taskbar), off = normal window (taskbar icon)
-- CSS `filter: invert(1)` on date input calendar icons for dark theme visibility
+- `AppSettings.always_on_top: bool`, default `true`. Applied at startup and on settings save
+- Toggles `skip_taskbar`: on = floating panel (no taskbar), off = normal window (taskbar icon)
 
 ### Theme Switching (App.css + theme.ts + SettingsPanel.tsx)
-- `AppSettings.theme: String`, values `"dark"` / `"light"` / `"system"`, default `"dark"`
-- **CSS-driven:** `:root` defines dark defaults; `@media (prefers-color-scheme: light)` handles system light; `html.light` / `html.dark` classes force specific themes (higher specificity)
-- **No JS listener:** when theme is `"system"`, no class is added — CSS `@media` rule handles everything natively, no WebView2 `matchMedia` event listener needed
-- **`applyTheme()`** in `theme.ts`: removes both classes, then adds `dark`/`light` class for forced modes
-- **`color-scheme` CSS property** on `input[type="date"]` ensures native date picker popup matches theme
-- **Startup:** App.tsx loads settings and calls `applyTheme()` on mount
-- **SettingsPanel:** `<select>` with three options, applies theme immediately via `applyTheme()`, persisted on save
+- Values: `"dark"` / `"light"` / `"system"`, default `"dark"`
+- **CSS-driven:** `:root` for dark defaults; `@media (prefers-color-scheme: light)` for system light; `html.light`/`html.dark` classes force specific themes. No JS listener needed for system mode
+- `applyTheme()` removes both classes, then adds the forced class if not system. Called on startup and on settings change
+- SettingsPanel discard reverts language via `i18n.changeLanguage()` and theme via `applyTheme()` to original values
 
-### Date Filter (SearchBar.tsx + ClipboardPanel.tsx)
+### Date Filter (SearchBar.tsx + DatePicker.tsx)
 - Dropdown: All / Today / 3 days / 7 days / Custom
-- Custom shows two `<input type="date">` (from/to), validated year 2000–2100
-- `handleFromChange` / `handleToChange`: from must not exceed to (auto-adjusts)
-- `buildQuery()` detects known keywords vs custom date strings; appends ` 23:59:59` to `date_to` for same-day capture
+- Custom mode shows two `DatePicker` components (from/to) with mutual constraints
+- **DatePicker:** custom dropdown calendar widget, i18n-aware month/day labels, popup alignment, year 2000–2100 range
+- `buildQuery()` (CardList.tsx) appends ` 23:59:59` to `date_to` for same-day capture
+
+### Context Menu (App.tsx)
+- Intercepts native `contextmenu` event, shows custom "Copy" button for selected text via `navigator.clipboard.writeText`
+- Auto-positions with flip detection (avoids overflow on right/bottom edges). Dismisses on outside click
+
+### Clear All Data (storage.rs + commands.rs + SettingsPanel.tsx)
+- `clear_all_data()` in storage.rs: collects image/thumbnail paths, DELETEs all rows from clipboard_items (triggers FTS5 delete), optimizes FTS5, removes files
+- Exposed via `clear_all_data` Tauri command, wrapped in `api.ts`
+- UI in SettingsPanel → Storage section: red-border danger button → custom confirm dialog overlay
 
 ## Common Tasks
 

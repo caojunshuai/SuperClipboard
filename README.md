@@ -44,6 +44,7 @@ Built with **Tauri 2 + React + TypeScript + Tailwind CSS**.
 ### Data & Portability
 - **Portable by default** — all data (database, images, thumbnails) stored alongside the exe, not in `%APPDATA%`
 - **Clean uninstall** — delete the app folder to remove everything
+- **Clear all data** — one-click purge of all history and image files from Settings → Storage
 - **Easy migration** — copy the entire folder to another machine to move all data
 - ⚠️ **Avoid `C:\Program Files\`** — the app needs write permission for its data directory; extracting to a protected system folder will cause startup errors. Use a user directory (e.g. `D:\Tools\SuperClipboard`) instead.
 
@@ -55,6 +56,7 @@ Built with **Tauri 2 + React + TypeScript + Tailwind CSS**.
 - **Drag to move** — drag the title bar to reposition the window
 - **About dialog** — ℹ️ shows version, build time, and feedback link (opens in browser)
 - **Smart timestamps** — today (Today), yesterday (Yesterday), older (YYYY-MM-DD)
+- **Custom context menu** — right-click selected text to copy
 - **Tooltips** — hover on file paths to see the full path
 - **Delete animation** — graceful fade-out when removing items
 - **Dark & light themes** — choose Dark, Light, or Follow System; instant switching, CSS-native system theme detection
