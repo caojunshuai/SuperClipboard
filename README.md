@@ -35,10 +35,10 @@ Built with **Tauri 2 + React + TypeScript + Tailwind CSS**.
 - **Restore** — append from a previous backup with dedup & limits, truncated with warning when over capacity
 
 ### Preview & Expand
-- **Image preview** — click `<预览>` to open images in a separate, resizable window
-- **Text expand** — long text (>3 lines / 200 chars) shows `<展开>`; inline expand to full content
-- **File expand** — when >3 files, click `<展开>` to show all paths
-- **Floating collapse** — when an expanded card overflows the viewport, a fixed `收起 ▲` button appears at the bottom-right
+- **Image preview** — click `<Preview>` to open images in a separate, resizable window
+- **Text expand** — long text (>3 lines / 200 chars) shows `<Expand>`; inline expand to full content
+- **File expand** — when >3 files, click `<Expand>` to show all paths
+- **Floating collapse** — when an expanded card overflows the viewport, a fixed `Collapse ▲` button appears at the bottom-right
 - **Auto-collapse** — scrolling past an expanded card collapses it automatically
 
 ### Data & Portability
