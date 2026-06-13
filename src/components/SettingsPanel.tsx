@@ -119,6 +119,14 @@ export default function SettingsPanel({ onClose }: Props) {
 
   const handleDiscard = () => {
     setShowConfirm(false);
+    if (original) {
+      if (settings.language !== original.language) {
+        i18n.changeLanguage(original.language);
+      }
+      if (settings.theme !== original.theme) {
+        applyTheme(original.theme as Theme);
+      }
+    }
     onClose();
   };
 
