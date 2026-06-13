@@ -127,6 +127,8 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
           msg = tRef.current('list.imageNotFound');
           deleteClipboardItem(item.id).catch(() => {});
           setItems(prev => prev.filter(it => it.id !== item.id));
+          setTotal(t => t - 1);
+          fetchPage(page);
         } else if (err === 'File not found') {
           msg = tRef.current('list.fileNotFound');
         } else if (filesMatch) {
@@ -140,7 +142,7 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
       setToast({ message: msg, type: 'error' });
       setTimeout(() => setToast(null), 4000);
     }
-  }, [autoPasteEnabled, onClose]);
+  }, [autoPasteEnabled, onClose, page, fetchPage]);
 
   const handleTogglePin = useCallback(async (id: number) => {
     try {
@@ -164,8 +166,10 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
       setDeletingIds(prev => new Set(prev).add(id));
       await deleteClipboardItem(id);
       await new Promise(r => setTimeout(r, 200));
+      // Optimistic: remove locally, then refetch to fill the page gap
       setItems(prev => prev.filter(i => i.id !== id));
       setTotal(t => t - 1);
+      fetchPage(page);
       setDeletingIds(prev => {
         const next = new Set(prev);
         next.delete(id);
@@ -179,7 +183,7 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
       });
       console.error(err);
     }
-  }, []);
+  }, [page, fetchPage]);
 
   // If current page becomes empty after delete, go to previous page
   useEffect(() => {
@@ -227,6 +231,8 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
           onImageMissing={(id: number) => {
             deleteClipboardItem(id).catch(() => {});
             setItems(prev => prev.filter(it => it.id !== id));
+            setTotal(t => t - 1);
+            fetchPage(page);
             setToast({ message: tRef.current('list.imageNotFound'), type: 'error' });
             setTimeout(() => setToast(null), 4000);
           }}
