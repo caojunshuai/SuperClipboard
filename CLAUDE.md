@@ -31,9 +31,10 @@ The zip contains `SuperClipboard.exe` + `WebView2Loader.dll` + `liblzma-5.dll`. 
 public/preview.html           # Standalone image preview window (polls for IPC init)
 
 src/                          # React frontend
-  App.tsx                     # Root: dialog state, title bar, drag
+  App.tsx                     # Root: dialog state, title bar, drag, theme init
   api.ts                      # Tauri invoke() wrappers + event listeners
   types.ts                    # TS types (ClipboardItem, etc.)
+  theme.ts                    # applyTheme(), Theme type (dark/light/system)
   components/
     ClipboardPanel.tsx        # Main panel: search + tabs + card list
     ClipboardCard.tsx         # Card: expand/collapse, preview, floating collapse button
@@ -114,10 +115,10 @@ src-tauri/src/                # Rust backend
 - Detects CJK ranges (Unified, Hiragana, Katakana, Hangul) → `LIKE '%keyword%'` substring match
 
 ### Pagination (CardList.tsx)
-- `PAGE_SIZE = 50`, page state tracks current page. `totalPages = ceil(total / PAGE_SIZE)`
+- `pageSizeRef` loaded from settings (default 50), user-configurable (10/20/30/40/50). `totalPages = ceil(total / pageSizeRef.current)`
 - **Ref-based query:** `queryRef.current` always has latest filter values — no stale closures
 - **Gen counter:** `fetchGenRef` increments on each request; responses with stale gen are discarded. Immune to React StrictMode double-invocation
-- **Two effects:** filter/tab changes reset to page 1; page number changes fetch that page (skipped for page 1 to avoid double-fetch)
+- **Two effects:** settings/refreshKey reloads settings then fetches; filter/tab changes reset to page 1
 - **Bottom bar:** total count (left) · ← Prev | N/M | Next → (right). Hidden when only one page
 - **Delete recovery:** empty page after delete → auto-navigate to previous page; shrunk total → clamp to last valid page
 
@@ -126,6 +127,15 @@ src-tauri/src/                # Rust backend
 - `set_always_on_top()` applied at startup (lib.rs) and on settings save (commands.rs)
 - Toggles `skip_taskbar` alongside: on = floating panel (no taskbar), off = normal window (taskbar icon)
 - CSS `filter: invert(1)` on date input calendar icons for dark theme visibility
+
+### Theme Switching (App.css + theme.ts + SettingsPanel.tsx)
+- `AppSettings.theme: String`, values `"dark"` / `"light"` / `"system"`, default `"dark"`
+- **CSS-driven:** `:root` defines dark defaults; `@media (prefers-color-scheme: light)` handles system light; `html.light` / `html.dark` classes force specific themes (higher specificity)
+- **No JS listener:** when theme is `"system"`, no class is added — CSS `@media` rule handles everything natively, no WebView2 `matchMedia` event listener needed
+- **`applyTheme()`** in `theme.ts`: removes both classes, then adds `dark`/`light` class for forced modes
+- **`color-scheme` CSS property** on `input[type="date"]` ensures native date picker popup matches theme
+- **Startup:** App.tsx loads settings and calls `applyTheme()` on mount
+- **SettingsPanel:** `<select>` with three options, applies theme immediately via `applyTheme()`, persisted on save
 
 ### Date Filter (SearchBar.tsx + ClipboardPanel.tsx)
 - Dropdown: All / Today / 3 days / 7 days / Custom
