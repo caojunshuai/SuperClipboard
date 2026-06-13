@@ -137,7 +137,7 @@ function App() {
 
       {/* Dialogs */}
       {dialog === 'export' && <ExportDialog itemIds={[]} onClose={() => setDialog('none')} />}
-      {dialog === 'backup' && <BackupDialog onClose={() => setDialog('none')} />}
+      {dialog === 'backup' && <BackupDialog onClose={() => { setDialog('none'); setRefreshKey(k => k + 1); }} />}
       {dialog === 'settings' && <SettingsPanel onClose={() => { setDialog('none'); setRefreshKey(k => k + 1); }} />}
       {dialog === 'about' && <AboutDialog onClose={() => setDialog('none')} />}
 
