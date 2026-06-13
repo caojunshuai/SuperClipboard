@@ -26,6 +26,8 @@
         "width": 400,
         "height": 800,
         "resizable": true,
+        "minWidth": 350,
+        "minHeight": 380,
         "decorations": false,
         "transparent": false,
         "alwaysOnTop": true,
