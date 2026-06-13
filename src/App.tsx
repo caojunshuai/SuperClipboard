@@ -7,13 +7,20 @@ import BackupDialog from './components/BackupDialog';
 import SettingsPanel from './components/SettingsPanel';
 import AboutDialog from './components/AboutDialog';
 import { applyTheme } from './theme';
+import i18n from './locales';
 
 type DialogType = 'none' | 'export' | 'backup' | 'settings' | 'about';
+
+interface ContextMenuState {
+  x: number;
+  y: number;
+}
 
 function App() {
   const { t } = useTranslation();
   const [dialog, setDialog] = useState<DialogType>('none');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const titleBarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -50,6 +57,41 @@ function App() {
     return () => el.removeEventListener('mousedown', onMouseDown);
   }, []);
 
+  // Intercept native context menu — only allow Copy whitelist option
+  useEffect(() => {
+    const onCtx = (e: MouseEvent) => {
+      e.preventDefault();
+      const sel = window.getSelection()?.toString().trim();
+      if (sel) {
+        setContextMenu({ x: e.clientX, y: e.clientY });
+      }
+    };
+    const dismiss = (e: MouseEvent) => {
+      // Don't dismiss if clicking inside the custom context menu
+      const target = e.target as HTMLElement;
+      if (target.closest('.context-menu-item')) return;
+      setContextMenu(null);
+    };
+    window.addEventListener('contextmenu', onCtx);
+    window.addEventListener('mousedown', dismiss);
+    return () => {
+      window.removeEventListener('contextmenu', onCtx);
+      window.removeEventListener('mousedown', dismiss);
+    };
+  }, []);
+
+  const handleContextCopy = useCallback(async () => {
+    const sel = window.getSelection()?.toString().trim();
+    if (sel) {
+      try {
+        await navigator.clipboard.writeText(sel);
+      } catch {
+        document.execCommand('copy');
+      }
+    }
+    setContextMenu(null);
+  }, []);
+
   const handleClose = useCallback(() => {
     setDialog('none');
     hideWindow();
@@ -60,19 +102,19 @@ function App() {
       {/* Title bar */}
       <div
         ref={titleBarRef}
-        className="flex items-center justify-between px-3 py-2 border-b border-panel-border bg-panel-card/50 select-none cursor-grab"
+        className="flex items-center justify-between px-3 py-2 border-b border-panel-border bg-panel-card/50 select-none"
       >
-        <span className="text-xs font-medium text-panel-text">SuperClipboard</span>
+        <span className="text-sm font-medium text-panel-text">SuperClipboard</span>
         <div className="flex gap-1">
-          <button onClick={() => setDialog('export')} className="p-1 text-xs text-panel-muted hover:text-panel-text"
+          <button onClick={() => setDialog('export')} className="p-1 text-sm text-panel-muted hover:text-panel-text"
                   title={t('export.title')}>📤</button>
-          <button onClick={() => setDialog('backup')} className="p-1 text-xs text-panel-muted hover:text-panel-text"
+          <button onClick={() => setDialog('backup')} className="p-1 text-sm text-panel-muted hover:text-panel-text"
                   title={t('backup.title')}>💾</button>
-          <button onClick={() => setDialog('settings')} className="p-1 text-xs text-panel-muted hover:text-panel-text"
+          <button onClick={() => setDialog('settings')} className="p-1 text-sm text-panel-muted hover:text-panel-text"
                   title={t('settings.title')}>⚙</button>
-          <button onClick={() => setDialog('about')} className="p-1 text-xs text-panel-muted hover:text-panel-text"
+          <button onClick={() => setDialog('about')} className="p-1 text-sm text-panel-muted hover:text-panel-text"
                   title={t('about.title')}>ℹ️</button>
-          <button onClick={handleClose} className="p-1 text-xs text-panel-muted hover:text-red-400"
+          <button onClick={handleClose} className="p-1 text-sm text-panel-muted hover:text-red-400"
                   title={t('about.close')}>✕</button>
         </div>
       </div>
@@ -87,6 +129,21 @@ function App() {
       {dialog === 'backup' && <BackupDialog onClose={() => setDialog('none')} />}
       {dialog === 'settings' && <SettingsPanel onClose={() => { setDialog('none'); setRefreshKey(k => k + 1); }} />}
       {dialog === 'about' && <AboutDialog onClose={() => setDialog('none')} />}
+
+      {/* Custom context menu — Copy only */}
+      {contextMenu && (
+        <div
+          className="fixed z-[100] bg-panel-card border border-panel-border rounded-lg py-1 px-1 shadow-xl min-w-[80px]"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+        >
+          <button
+            onClick={handleContextCopy}
+            className="context-menu-item w-full text-left px-3 py-1.5 text-xs text-panel-text hover:bg-panel-hover rounded"
+          >
+            {i18n.language.startsWith('zh') ? '复制' : 'Copy'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
