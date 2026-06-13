@@ -88,7 +88,11 @@
     "cancel": "Cancel",
     "exportBtn": "Choose Location & Export",
     "exporting": "Exporting...",
-    "error": "Export failed: {{error}}"
+    "error": "Export failed: {{error}}",
+    "textSuccess": "Exported {{count}} text items",
+    "textSuccess_one": "Exported {{count}} text item",
+    "imageSuccess": "Exported {{count}} images",
+    "imageSuccess_one": "Exported {{count}} image"
   },
   "backup": {
     "title": "Backup & Restore",
@@ -99,11 +103,20 @@
     "restoreDesc": "Append items from a .zip backup with dedup & limits",
     "selectFile": "Select Backup File",
     "close": "Close",
-    "backingUp": "Backing up...",
-    "restoring": "Restoring...",
     "backupError": "Backup failed: {{error}}",
     "restoreError": "Restore failed: {{error}}",
-    "confirmRestore": "This will append items from the backup. Continue?"
+    "confirmRestore": "This will append items from the backup. Continue?",
+    "backupSuccessTitle": "Backup complete",
+    "restoreSuccessTitle": "Restore complete",
+    "restoreNothingTitle": "Nothing imported",
+    "restoreNothingHint": "All items already exist in the database",
+    "rowExpected": "Expected",
+    "rowImported": "Imported",
+    "rowDuplicates": "Duplicates",
+    "rowExceeded": "Capacity exceeded",
+    "rowTotal": "Total",
+    "rowItems": "{{count}} items",
+    "restoreLimits": "Capacity: max {{maxItems}} text + {{maxImages}} images"
   },
   "list": {
     "empty": "No clipboard history",

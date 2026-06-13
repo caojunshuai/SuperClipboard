@@ -51,6 +51,26 @@ export interface BuildInfo {
   build_time: string;
 }
 
+export interface ExportResult {
+  count: number;
+  output_path: string;
+}
+
+export interface BackupResult {
+  count: number;
+  output_path: string;
+}
+
+export interface RestoreResult {
+  expected: number;
+  imported: number;
+  duplicates: number;
+  truncated: boolean;
+  skipped_by_limit: number;
+  max_items: number;
+  max_images: number;
+}
+
 export type TabType = 'all' | 'favorites';
 export type FilterType = 'all' | 'text' | 'image' | 'file';
 export type DateFilter = 'all' | 'today' | '3days' | '7days' | 'custom';

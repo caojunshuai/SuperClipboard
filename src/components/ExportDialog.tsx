@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { exportText, exportImages } from '../api';
+import type { ExportResult } from '../types';
 import { open, save } from '@tauri-apps/plugin-dialog';
 
 interface Props {
@@ -11,7 +12,9 @@ interface Props {
 export default function ExportDialog({ itemIds, onClose }: Props) {
   const { t } = useTranslation();
   const [exportMode, setExportMode] = useState<'text' | 'images'>('text');
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState<ExportResult | null>(null);
+  const [isError, setIsError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const handleExport = async () => {
     try {
@@ -21,16 +24,20 @@ export default function ExportDialog({ itemIds, onClose }: Props) {
           defaultPath: `superclipboard_export_${Date.now()}.txt`,
         });
         if (!path) return;
-        const msg = await exportText(itemIds, path as string);
-        setStatus(msg);
+        setIsError(false);
+        const result = await exportText(itemIds, path as string);
+        setStatus(result);
       } else {
         const dir = await open({ directory: true, multiple: false });
         if (!dir) return;
-        const msg = await exportImages(itemIds, dir as string);
-        setStatus(msg);
+        setIsError(false);
+        const result = await exportImages(itemIds, dir as string);
+        setStatus(result);
       }
     } catch (err: any) {
-      setStatus(t('export.error', { error: String(err) }));
+      setStatus(null);
+      setIsError(true);
+      setErrorMsg(t('export.error', { error: String(err) }));
     }
   };
 
@@ -56,7 +63,14 @@ export default function ExportDialog({ itemIds, onClose }: Props) {
             </div>
           </label>
         </div>
-        {status && <p className="text-sm text-panel-muted mb-3">{status}</p>}
+        {isError && <p className="text-sm p-3 rounded-lg bg-red-500/10 text-red-400 mb-3">{errorMsg}</p>}
+        {status && (
+          <p className="text-sm p-3 rounded-lg bg-green-500/10 text-green-400 mb-3">
+            {exportMode === 'text'
+              ? t('export.textSuccess', { count: status.count })
+              : t('export.imageSuccess', { count: status.count })}
+          </p>
+        )}
         <div className="flex justify-end gap-3">
           <button onClick={onClose} className="px-4 py-2 text-sm text-panel-muted hover:text-panel-text">{t('export.cancel')}</button>
           <button onClick={handleExport} className="px-4 py-2 text-sm bg-panel-accent text-white rounded-lg hover:opacity-90">

@@ -86,7 +86,9 @@
     "cancel": "取消",
     "exportBtn": "选择位置并导出",
     "exporting": "导出中...",
-    "error": "导出失败: {{error}}"
+    "error": "导出失败: {{error}}",
+    "textSuccess": "已导出 {{count}} 条文本",
+    "imageSuccess": "已导出 {{count}} 张图片"
   },
   "backup": {
     "title": "备份与恢复",
@@ -97,11 +99,20 @@
     "restoreDesc": "从 .zip 备份包追加导入，自动去重，超限截断",
     "selectFile": "选择备份文件",
     "close": "关闭",
-    "backingUp": "备份中...",
-    "restoring": "恢复中...",
     "backupError": "备份失败: {{error}}",
     "restoreError": "恢复失败: {{error}}",
-    "confirmRestore": "将追加导入备份中的数据，确定继续？"
+    "confirmRestore": "将追加导入备份中的数据，确定继续？",
+    "backupSuccessTitle": "备份完成",
+    "restoreSuccessTitle": "恢复完成",
+    "restoreNothingTitle": "未导入任何数据",
+    "restoreNothingHint": "所有记录已存在于数据库中",
+    "rowExpected": "预计导入",
+    "rowImported": "实际导入",
+    "rowDuplicates": "跳过重复",
+    "rowExceeded": "超出容量",
+    "rowTotal": "总计",
+    "rowItems": "{{count}} 条",
+    "restoreLimits": "容量限制：文本 ≤ {{maxItems}} 条，图片 ≤ {{maxImages}} 张"
   },
   "list": {
     "empty": "暂无剪切板记录",

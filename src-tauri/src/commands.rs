@@ -155,22 +155,22 @@ pub fn clear_item_images(id: i64) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn export_text(ids: Vec<i64>, output_path: String) -> Result<String, String> {
+pub fn export_text(ids: Vec<i64>, output_path: String) -> Result<ExportResult, String> {
     export::export_text(&ids, &output_path)
 }
 
 #[tauri::command]
-pub fn export_images(ids: Vec<i64>, output_dir: String) -> Result<String, String> {
+pub fn export_images(ids: Vec<i64>, output_dir: String) -> Result<ExportResult, String> {
     export::export_images(&ids, &output_dir)
 }
 
 #[tauri::command]
-pub fn backup(output_path: String) -> Result<String, String> {
+pub fn backup(output_path: String) -> Result<BackupResult, String> {
     export::backup(&output_path)
 }
 
 #[tauri::command]
-pub fn restore(backup_path: String) -> Result<String, String> {
+pub fn restore(backup_path: String) -> Result<RestoreResult, String> {
     export::restore(&backup_path)
 }
 

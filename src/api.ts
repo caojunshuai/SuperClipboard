@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import type { HistoryQuery, HistoryResult, ClipboardItem, AppSettings, BuildInfo } from './types';
+import type { HistoryQuery, HistoryResult, ClipboardItem, AppSettings, BuildInfo, ExportResult, BackupResult, RestoreResult } from './types';
 
 export async function getClipboardHistory(query: HistoryQuery): Promise<HistoryResult> {
   return invoke('get_clipboard_history', { query });
@@ -30,19 +30,19 @@ export async function deleteClipboardItems(ids: number[]): Promise<void> {
   return invoke('delete_clipboard_items', { ids });
 }
 
-export async function exportText(ids: number[], outputPath: string): Promise<string> {
+export async function exportText(ids: number[], outputPath: string): Promise<ExportResult> {
   return invoke('export_text', { ids, outputPath });
 }
 
-export async function exportImages(ids: number[], outputDir: string): Promise<string> {
+export async function exportImages(ids: number[], outputDir: string): Promise<ExportResult> {
   return invoke('export_images', { ids, outputDir });
 }
 
-export async function backup(outputPath: string): Promise<string> {
+export async function backup(outputPath: string): Promise<BackupResult> {
   return invoke('backup', { outputPath });
 }
 
-export async function restore(backupPath: string): Promise<string> {
+export async function restore(backupPath: string): Promise<RestoreResult> {
   return invoke('restore', { backupPath });
 }
 

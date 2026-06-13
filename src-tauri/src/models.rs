@@ -93,6 +93,41 @@ pub struct BuildInfo {
     pub build_time: String,
 }
 
+/// Result of an export operation (text/images).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExportResult {
+    pub count: usize,
+    pub output_path: String,
+}
+
+/// Result of a backup operation.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BackupResult {
+    pub count: usize,
+    pub output_path: String,
+}
+
+/// Structured result of a restore operation — enables the frontend
+/// to display a clean i18n summary rather than a raw log line.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RestoreResult {
+    /// Total items found in the backup archive.
+    pub expected: usize,
+    /// Items successfully imported (new, non-duplicate, within capacity).
+    pub imported: usize,
+    /// Items skipped because they already exist in the DB (content-hash dedup).
+    pub duplicates: usize,
+    /// Whether import stopped early due to capacity limits.
+    pub truncated: bool,
+    /// Items that could not be imported because the limit was reached.
+    /// (expected - imported - duplicates - items_before_truncation)
+    pub skipped_by_limit: usize,
+    /// Configured max text items (informational, for display).
+    pub max_items: i64,
+    /// Configured max image items (informational, for display).
+    pub max_images: i64,
+}
+
 fn default_language() -> String {
     // Empty = not set yet; frontend will detect system locale on first launch
     String::new()
@@ -103,7 +138,7 @@ fn default_true() -> bool {
 }
 
 fn default_page_size() -> i64 {
-    50
+    20
 }
 
 fn default_theme() -> String {
@@ -114,13 +149,13 @@ impl Default for AppSettings {
     fn default() -> Self {
         Self {
             hotkey: "Alt+V".to_string(),
-            max_items: 3000,
-            max_images: 500,
+            max_items: 1000,
+            max_images: 100,
             auto_paste: false,
-            auto_start: false,
+            auto_start: true,
             language: default_language(),
             always_on_top: true,
-            page_size: 50,
+            page_size: 20,
             theme: default_theme(),
         }
     }

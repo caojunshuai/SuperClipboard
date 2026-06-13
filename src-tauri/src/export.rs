@@ -1,9 +1,10 @@
 use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
+use crate::models::{ExportResult, BackupResult, RestoreResult};
 use crate::storage;
 
-pub fn export_text(ids: &[i64], output_path: &str) -> Result<String, String> {
+pub fn export_text(ids: &[i64], output_path: &str) -> Result<ExportResult, String> {
     let items = get_items_by_ids(ids)?;
     let mut file = fs::File::create(output_path).map_err(|e| e.to_string())?;
     let mut count = 0;
@@ -20,10 +21,13 @@ pub fn export_text(ids: &[i64], output_path: &str) -> Result<String, String> {
         }
     }
 
-    Ok(format!("Exported {} text items", count))
+    Ok(ExportResult {
+        count,
+        output_path: output_path.to_string(),
+    })
 }
 
-pub fn export_images(ids: &[i64], output_dir: &str) -> Result<String, String> {
+pub fn export_images(ids: &[i64], output_dir: &str) -> Result<ExportResult, String> {
     fs::create_dir_all(output_dir).map_err(|e| e.to_string())?;
     let items = get_items_by_ids(ids)?;
     let mut count = 0;
@@ -41,11 +45,15 @@ pub fn export_images(ids: &[i64], output_dir: &str) -> Result<String, String> {
         }
     }
 
-    Ok(format!("Exported {} images", count))
+    Ok(ExportResult {
+        count,
+        output_path: output_dir.to_string(),
+    })
 }
 
-pub fn backup(output_path: &str) -> Result<String, String> {
+pub fn backup(output_path: &str) -> Result<BackupResult, String> {
     let items = storage::get_all_items_for_backup().map_err(|e| e.to_string())?;
+    let count = items.len();
     let json = serde_json::to_string_pretty(&items).map_err(|e| e.to_string())?;
 
     let file = fs::File::create(output_path).map_err(|e| e.to_string())?;
@@ -70,10 +78,13 @@ pub fn backup(output_path: &str) -> Result<String, String> {
     }
 
     zip.finish().map_err(|e| e.to_string())?;
-    Ok(format!("Backup saved to {}", output_path))
+    Ok(BackupResult {
+        count,
+        output_path: output_path.to_string(),
+    })
 }
 
-pub fn restore(backup_path: &str) -> Result<String, String> {
+pub fn restore(backup_path: &str) -> Result<RestoreResult, String> {
     let file = fs::File::open(backup_path).map_err(|e| e.to_string())?;
     let mut archive = zip::ZipArchive::new(file).map_err(|e| e.to_string())?;
 
@@ -81,7 +92,7 @@ pub fn restore(backup_path: &str) -> Result<String, String> {
     let items: Vec<crate::models::ClipboardItem> =
         serde_json::from_reader(json_entry).map_err(|e| e.to_string())?;
 
-    let total = items.len();
+    let expected = items.len();
 
     // Get limits from settings
     let settings = storage::get_all_settings().map_err(|e| e.to_string())?;
@@ -167,17 +178,26 @@ pub fn restore(backup_path: &str) -> Result<String, String> {
         }
     }
 
-    let mut msg = format!("Imported {} items", imported);
-    if duplicates > 0 {
-        msg.push_str(&format!(" ({} duplicates skipped)", duplicates));
-    }
-    if truncated {
-        msg.push_str(&format!(
-            " — backup has {} items, could not import all due to limits (max {} text, {} images)",
-            total, settings.max_items, settings.max_images
-        ));
-    }
-    Ok(msg)
+    // Items we never processed because we broke early (truncated),
+    // plus items that were processed but failed some check.
+    // Items after breakpoint: we stopped iterating, so those are the
+    // "could not import due to limits" count.
+    let skipped_by_limit = if truncated {
+        // The remaining items we didn't even try to import
+        expected - imported - duplicates
+    } else {
+        0
+    };
+
+    Ok(RestoreResult {
+        expected,
+        imported,
+        duplicates,
+        truncated,
+        skipped_by_limit,
+        max_items: settings.max_items,
+        max_images: settings.max_images,
+    })
 }
 
 /// Get items by IDs. If ids is empty, returns ALL items.
