@@ -203,9 +203,9 @@ export default function ClipboardCard({ item, deleting, onCopy, onTogglePin, onT
         }`}
         onClick={() => onCopy(item)}
       >
-        {/* ---- Top bar: type badge + metadata + note ... edit icon + actions (right-aligned) ---- */}
-        <div className="flex items-center gap-1.5 mb-2 min-w-0">
-          <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${typeStyle}`}>{t(typeKey)}</span>
+        {/* ---- Top bar: fixed height so show/hide icons doesn't change card height ---- */}
+        <div className="flex items-center gap-1.5 mb-2 min-w-0 h-6">
+          <span className={`text-xs px-1.5 py-0 rounded shrink-0 leading-6 ${typeStyle}`}>{t(typeKey)}</span>
 
           {metadata && (
             <span className="text-xs text-panel-muted shrink-0">{metadata}</span>
@@ -226,7 +226,7 @@ export default function ClipboardCard({ item, deleting, onCopy, onTogglePin, onT
               onBlur={handleSaveNote}
               onKeyDown={handleNoteKeyDown}
               placeholder={t('card.notePlaceholder')}
-              className="flex-1 min-w-0 px-1.5 py-0.5 text-xs bg-panel-card border border-panel-border rounded text-panel-text placeholder-panel-muted/50 focus:outline-none focus:border-panel-accent"
+              className="flex-1 min-w-0 px-1.5 py-0 text-xs bg-panel-card border border-panel-border rounded text-panel-text placeholder-panel-muted/50 focus:outline-none focus:border-panel-accent"
               onClick={e => e.stopPropagation()}
             />
           ) : note ? (
@@ -240,29 +240,31 @@ export default function ClipboardCard({ item, deleting, onCopy, onTogglePin, onT
             <span className="flex-1 min-w-0" />
           )}
 
-          {/* Right-aligned icon group: edit note + pin + fav + delete */}
-          <button
-            onClick={e => { e.stopPropagation(); setEditingNote(!editingNote); }}
-            className={`p-1 rounded text-xs shrink-0 transition-colors ${editingNote ? 'text-panel-accent' : 'text-panel-muted hover:text-panel-text'}`}
-            title={t('card.noteTitle')}
-          >
-            ✏️
-          </button>
-          <button
-            onClick={e => { e.stopPropagation(); onTogglePin(item.id); }}
-            className={`p-1 rounded text-xs shrink-0 transition-all duration-200 active:scale-125 ${item.is_pinned ? 'text-panel-accent' : 'text-panel-muted hover:text-panel-text'}`}
-            title={item.is_pinned ? t('card.unpin') : t('card.pin')}
-          >{item.is_pinned ? '📍' : '📌'}</button>
-          <button
-            onClick={e => { e.stopPropagation(); onToggleFavorite(item.id); }}
-            className={`p-1 rounded text-xs shrink-0 transition-all duration-200 active:scale-125 ${item.is_favorite ? 'text-yellow-400' : 'text-panel-muted hover:text-panel-text'}`}
-            title={item.is_favorite ? t('card.unfavorite') : t('card.favorite')}
-          >{item.is_favorite ? '⭐' : '☆'}</button>
-          <button
-            onClick={e => { e.stopPropagation(); onDelete(item.id); }}
-            className="p-1 rounded text-xs shrink-0 text-panel-muted hover:text-red-400 transition-all duration-200 active:scale-125"
-            title={t('card.delete')}
-          >🗑</button>
+          {/* Right-aligned icon group — hidden until hover, always visible when editing */}
+          <div className={`items-center gap-0.5 shrink-0 ${editingNote ? 'flex' : 'hidden group-hover:flex'}`}>
+            <button
+              onClick={e => { e.stopPropagation(); setEditingNote(!editingNote); }}
+              className={`p-0.5 rounded text-xs shrink-0 leading-6 transition-colors ${editingNote ? 'text-panel-accent' : 'text-panel-muted hover:text-panel-text'}`}
+              title={t('card.noteTitle')}
+            >
+              ✏️
+            </button>
+            <button
+              onClick={e => { e.stopPropagation(); onTogglePin(item.id); }}
+              className={`p-0.5 rounded text-xs shrink-0 leading-6 transition-all duration-200 active:scale-125 ${item.is_pinned ? 'text-panel-accent' : 'text-panel-muted hover:text-panel-text'}`}
+              title={item.is_pinned ? t('card.unpin') : t('card.pin')}
+            >{item.is_pinned ? '📍' : '📌'}</button>
+            <button
+              onClick={e => { e.stopPropagation(); onToggleFavorite(item.id); }}
+              className={`p-0.5 rounded text-xs shrink-0 leading-6 transition-all duration-200 active:scale-125 ${item.is_favorite ? 'text-yellow-400' : 'text-panel-muted hover:text-panel-text'}`}
+              title={item.is_favorite ? t('card.unfavorite') : t('card.favorite')}
+            >{item.is_favorite ? '⭐' : '☆'}</button>
+            <button
+              onClick={e => { e.stopPropagation(); onDelete(item.id); }}
+              className="p-0.5 rounded text-xs shrink-0 leading-6 text-panel-muted hover:text-red-400 transition-all duration-200 active:scale-125"
+              title={t('card.delete')}
+            >🗑</button>
+          </div>
         </div>
 
         {/* ---- Content area ---- */}
