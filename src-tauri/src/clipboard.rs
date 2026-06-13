@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tauri::Emitter;
 use crate::models::{ClipboardItem, ItemType};
@@ -13,6 +13,25 @@ fn fnv1a_64(data: &[u8]) -> i64 {
         hash = hash.wrapping_mul(0x100000001b3);
     }
     hash as i64
+}
+
+/// Generate a Lanczos3 thumbnail at 360px max dimension from PNG bytes.
+/// Shared by clipboard capture and backup restore paths.
+pub fn generate_thumbnail(png_data: &[u8], output_path: &Path) -> bool {
+    if let Ok(img) = image::load_from_memory(png_data) {
+        let max_dim = 360u32;
+        let (w, h) = (img.width(), img.height());
+        let (nw, nh) = if w > h {
+            let ratio = max_dim as f64 / w as f64;
+            (max_dim, (h as f64 * ratio).round() as u32)
+        } else {
+            let ratio = max_dim as f64 / h as f64;
+            ((w as f64 * ratio).round() as u32, max_dim)
+        };
+        let thumb = img.resize_exact(nw, nh, image::imageops::FilterType::Lanczos3);
+        return thumb.save(output_path).is_ok();
+    }
+    false
 }
 
 /// Compute a deterministic content hash for dedup, based on the item type.
@@ -101,20 +120,7 @@ mod win {
 
                 std::fs::write(&img_path, &png_data).ok()?;
 
-                if let Ok(img) = image::load_from_memory(&png_data) {
-                    // Lanczos3 resampling for crisp thumbnails at 360px (handles 2x DPI)
-                    let max_dim = 360u32;
-                    let (w, h) = (img.width(), img.height());
-                    let (nw, nh) = if w > h {
-                        let ratio = max_dim as f64 / w as f64;
-                        (max_dim, (h as f64 * ratio).round() as u32)
-                    } else {
-                        let ratio = max_dim as f64 / h as f64;
-                        ((w as f64 * ratio).round() as u32, max_dim)
-                    };
-                    let thumb = img.resize_exact(nw, nh, image::imageops::FilterType::Lanczos3);
-                    thumb.save(&thumb_path).ok()?;
-                }
+                super::generate_thumbnail(&png_data, &thumb_path);
 
                 Some((
                     img_path.to_string_lossy().to_string(),

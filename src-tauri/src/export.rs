@@ -3,6 +3,7 @@ use std::io::Write;
 use std::path::PathBuf;
 use crate::models::{ExportResult, BackupResult, RestoreResult};
 use crate::storage;
+use crate::clipboard::generate_thumbnail;
 
 pub fn export_text(ids: &[i64], output_path: &str) -> Result<ExportResult, String> {
     let items = get_items_by_ids(ids)?;
@@ -149,13 +150,9 @@ pub fn restore(backup_path: &str) -> Result<RestoreResult, String> {
                     if let Ok(mut entry) = archive.by_name(&zip_path) {
                         let mut png_data = Vec::new();
                         if std::io::Read::read_to_end(&mut entry, &mut png_data).is_ok() {
-                            // Save full image
+                            // Save full image and generate thumbnail
                             fs::write(images_dir.join(&filename), &png_data).ok();
-                            // Generate thumbnail
-                            if let Ok(img) = image::load_from_memory(&png_data) {
-                                let thumb = img.thumbnail(120, 120);
-                                thumb.save(thumbs_dir.join(&filename)).ok();
-                            }
+                            generate_thumbnail(&png_data, &thumbs_dir.join(&filename));
                         }
                     }
                 }

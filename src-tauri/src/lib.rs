@@ -1,6 +1,6 @@
 mod models;
 mod storage;
-mod clipboard;
+pub mod clipboard;
 mod hotkey;
 mod tray;
 mod commands;
