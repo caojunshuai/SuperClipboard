@@ -198,54 +198,10 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
     }
   }, [totalPages, page]);
 
-  return (
-    <div ref={listRef} className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin">
-      {toast && (
-        <div className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg text-sm shadow-lg transition-all ${
-          toast.type === 'error' ? 'bg-red-500/90 text-white' : 'bg-green-500 text-white'
-        }`}>
-          {toast.message}
-        </div>
-      )}
-
-      {items.length === 0 && !loading && (
-        <div className="flex flex-col items-center justify-center py-16 text-panel-muted">
-          <svg className="w-12 h-12 mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-          </svg>
-          <p className="text-sm">{t('list.empty')}</p>
-          <p className="text-xs mt-1">{t('list.emptyHint')}</p>
-        </div>
-      )}
-
-      {items.map(item => (
-        <ClipboardCard
-          key={item.id}
-          item={item}
-          deleting={deletingIds.has(item.id)}
-          onCopy={handleCopy}
-          onTogglePin={handleTogglePin}
-          onToggleFavorite={handleToggleFavorite}
-          onDelete={handleDelete}
-          onImageMissing={(id: number) => {
-            deleteClipboardItem(id).catch(() => {});
-            setItems(prev => prev.filter(it => it.id !== id));
-            setTotal(t => t - 1);
-            fetchPage(page);
-            setToast({ message: tRef.current('list.imageNotFound'), type: 'error' });
-            setTimeout(() => setToast(null), 4000);
-          }}
-        />
-      ))}
-
-      {loading && (
-        <div className="flex justify-center py-4">
-          <div className="w-5 h-5 border-2 border-panel-accent border-t-transparent rounded-full animate-spin" />
-        </div>
-      )}
-
+  const footer = (
+    <div className="shrink-0 px-3 py-1 border-t border-panel-border">
       {totalPages > 1 && !loading && (
-        <div className="flex items-center justify-between pt-2 border-t border-panel-border mt-2 text-xs">
+        <div className="flex items-center justify-between text-xs">
           <span className="text-panel-muted">
             {t('list.total', { count: total })}
           </span>
@@ -253,7 +209,7 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
             <button
               onClick={() => goToPage(page - 1)}
               disabled={page <= 1}
-              className="px-2 py-1 rounded text-panel-muted hover:text-panel-text hover:bg-panel-card disabled:opacity-30 disabled:cursor-default transition-colors"
+              className="px-2 py-0.5 rounded text-panel-muted hover:text-panel-text hover:bg-panel-card disabled:opacity-30 disabled:cursor-default transition-colors"
             >
               ← {t('list.pagePrev')}
             </button>
@@ -263,19 +219,68 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
             <button
               onClick={() => goToPage(page + 1)}
               disabled={page >= totalPages}
-              className="px-2 py-1 rounded text-panel-muted hover:text-panel-text hover:bg-panel-card disabled:opacity-30 disabled:cursor-default transition-colors"
+              className="px-2 py-0.5 rounded text-panel-muted hover:text-panel-text hover:bg-panel-card disabled:opacity-30 disabled:cursor-default transition-colors"
             >
               {t('list.pageNext')} →
             </button>
           </div>
         </div>
       )}
-
       {totalPages <= 1 && total > 0 && !loading && (
-        <div className="text-center text-xs text-panel-muted py-2 border-t border-panel-border mt-2">
+        <div className="text-center text-xs text-panel-muted">
           {t('list.total', { count: total })}
         </div>
       )}
+      {loading && (
+        <div className="flex justify-center py-1">
+          <div className="w-4 h-4 border-2 border-panel-accent border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
     </div>
+  );
+
+  return (
+    <>
+      <div ref={listRef} className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin">
+        {toast && (
+          <div className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg text-sm shadow-lg transition-all ${
+            toast.type === 'error' ? 'bg-red-500/90 text-white' : 'bg-green-500 text-white'
+          }`}>
+            {toast.message}
+          </div>
+        )}
+
+        {items.length === 0 && !loading && (
+          <div className="flex flex-col items-center justify-center py-16 text-panel-muted">
+            <svg className="w-12 h-12 mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            <p className="text-sm">{t('list.empty')}</p>
+            <p className="text-xs mt-1">{t('list.emptyHint')}</p>
+          </div>
+        )}
+
+        {items.map(item => (
+          <ClipboardCard
+            key={item.id}
+            item={item}
+            deleting={deletingIds.has(item.id)}
+            onCopy={handleCopy}
+            onTogglePin={handleTogglePin}
+            onToggleFavorite={handleToggleFavorite}
+            onDelete={handleDelete}
+            onImageMissing={(id: number) => {
+              deleteClipboardItem(id).catch(() => {});
+              setItems(prev => prev.filter(it => it.id !== id));
+              setTotal(t => t - 1);
+              fetchPage(page);
+              setToast({ message: tRef.current('list.imageNotFound'), type: 'error' });
+              setTimeout(() => setToast(null), 4000);
+            }}
+          />
+        ))}
+      </div>
+      {footer}
+    </>
   );
 }
