@@ -51,7 +51,7 @@ export default function ImageCard({ item }: Props) {
         <img
           src={dataUrl}
           alt="screenshot"
-          className="w-full max-h-48 object-cover"
+          className="w-full max-h-48 object-contain"
         />
       )}
     </div>

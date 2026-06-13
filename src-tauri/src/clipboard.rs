@@ -102,7 +102,17 @@ mod win {
                 std::fs::write(&img_path, &png_data).ok()?;
 
                 if let Ok(img) = image::load_from_memory(&png_data) {
-                    let thumb = img.thumbnail(120, 120);
+                    // Lanczos3 resampling for crisp thumbnails at 360px (handles 2x DPI)
+                    let max_dim = 360u32;
+                    let (w, h) = (img.width(), img.height());
+                    let (nw, nh) = if w > h {
+                        let ratio = max_dim as f64 / w as f64;
+                        (max_dim, (h as f64 * ratio).round() as u32)
+                    } else {
+                        let ratio = max_dim as f64 / h as f64;
+                        ((w as f64 * ratio).round() as u32, max_dim)
+                    };
+                    let thumb = img.resize_exact(nw, nh, image::imageops::FilterType::Lanczos3);
                     thumb.save(&thumb_path).ok()?;
                 }
 
