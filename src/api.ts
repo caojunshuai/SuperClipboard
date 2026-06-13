@@ -88,6 +88,10 @@ export async function getAppVersion(): Promise<string> {
   return invoke('get_app_version');
 }
 
+export async function clearAllData(): Promise<number> {
+  return invoke('clear_all_data');
+}
+
 export async function getBuildInfo(): Promise<BuildInfo> {
   return invoke('get_build_info');
 }

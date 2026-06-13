@@ -76,6 +76,7 @@ pub fn run() {
             commands::export_images,
             commands::backup,
             commands::restore,
+            commands::clear_all_data,
             commands::get_settings,
             commands::update_settings,
             commands::get_item_count,

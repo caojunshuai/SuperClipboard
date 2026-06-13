@@ -175,6 +175,11 @@ pub fn restore(backup_path: String) -> Result<RestoreResult, String> {
 }
 
 #[tauri::command]
+pub fn clear_all_data() -> Result<usize, String> {
+    storage::clear_all_data()
+}
+
+#[tauri::command]
 pub fn get_settings() -> Result<AppSettings, String> {
     storage::get_all_settings().map_err(|e| e.to_string())
 }

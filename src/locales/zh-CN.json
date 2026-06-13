@@ -112,7 +112,12 @@
     "rowExceeded": "超出容量",
     "rowTotal": "总计",
     "rowItems": "{{count}} 条",
-    "restoreLimits": "容量限制：文本 ≤ {{maxItems}} 条，图片 ≤ {{maxImages}} 张"
+    "restoreLimits": "容量限制：文本 ≤ {{maxItems}} 条，图片 ≤ {{maxImages}} 张",
+    "clearDataTitle": "清除数据",
+    "clearDataDesc": "删除所有历史记录和图片文件",
+    "clearDataBtn": "清除所有数据",
+    "clearDataConfirm": "将永久删除所有记录和关联的图片文件，此操作不可撤销，确定继续？",
+    "clearDataSuccess": "已删除 {{count}} 条记录"
   },
   "list": {
     "empty": "暂无剪切板记录",

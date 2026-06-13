@@ -478,3 +478,40 @@ pub fn save_all_settings(settings: &AppSettings) -> SqliteResult<()> {
     set_setting("theme", &settings.theme)?;
     Ok(())
 }
+
+/// Delete all clipboard items and their image/thumbnail files.
+/// Settings are preserved. Returns the number of deleted records.
+pub fn clear_all_data() -> Result<usize, String> {
+    let conn = get_conn().lock().map_err(|e| e.to_string())?;
+
+    // Collect image paths before deleting so we can remove files
+    let mut paths: Vec<String> = Vec::new();
+    let mut stmt = conn
+        .prepare("SELECT image_path, thumbnail_path FROM clipboard_items WHERE image_path IS NOT NULL")
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |row| {
+            Ok((row.get::<_, Option<String>>(0)?, row.get::<_, Option<String>>(1)?))
+        })
+        .map_err(|e| e.to_string())?;
+    for row in rows {
+        if let Ok((img, thumb)) = row {
+            if let Some(p) = img { paths.push(p); }
+            if let Some(p) = thumb { paths.push(p); }
+        }
+    }
+
+    let count = conn
+        .execute("DELETE FROM clipboard_items", [])
+        .map_err(|e| e.to_string())?;
+
+    // Compact FTS5 tombstones accumulated by the delete triggers
+    conn.execute("INSERT INTO clipboard_fts(clipboard_fts) VALUES ('optimize')", []).ok();
+
+    // Remove image/thumbnail files from disk
+    for p in &paths {
+        std::fs::remove_file(p).ok();
+    }
+
+    Ok(count)
+}

@@ -116,7 +116,12 @@
     "rowExceeded": "Capacity exceeded",
     "rowTotal": "Total",
     "rowItems": "{{count}} items",
-    "restoreLimits": "Capacity: max {{maxItems}} text + {{maxImages}} images"
+    "restoreLimits": "Capacity: max {{maxItems}} text + {{maxImages}} images",
+    "clearDataTitle": "Clear Data",
+    "clearDataDesc": "Delete all history records and image files",
+    "clearDataBtn": "Clear All Data",
+    "clearDataConfirm": "This will permanently delete all records and associated image files. This action cannot be undone. Continue?",
+    "clearDataSuccess": "Deleted {{count}} records"
   },
   "list": {
     "empty": "No clipboard history",

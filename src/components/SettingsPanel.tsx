@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getSettings, updateSettings as saveSettings } from '../api';
+import { getSettings, updateSettings as saveSettings, clearAllData } from '../api';
 import { SUPPORTED_LOCALES, type Locale, detectSystemLocale } from '../locales';
 import i18n from '../locales';
 import { applyTheme, type Theme } from '../theme';
@@ -27,6 +27,9 @@ export default function SettingsPanel({ onClose }: Props) {
   const [saving, setSaving] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [errors, setErrors] = useState<{ items?: string; images?: string }>({});
+  const [clearStatus, setClearStatus] = useState<string | null>(null);
+  const [clearError, setClearError] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   // Track number fields as strings so empty input doesn't auto-refill
   const [maxItemsStr, setMaxItemsStr] = useState('3000');
@@ -117,6 +120,22 @@ export default function SettingsPanel({ onClose }: Props) {
     }
   }, [dirty, onClose]);
 
+  const handleClearData = () => {
+    setShowClearConfirm(true);
+  };
+
+  const handleConfirmClear = async () => {
+    setShowClearConfirm(false);
+    try {
+      setClearError(false);
+      const count = await clearAllData();
+      setClearStatus(t('backup.clearDataSuccess', { count }));
+    } catch (err: any) {
+      setClearError(true);
+      setClearStatus(String(err));
+    }
+  };
+
   const handleDiscard = () => {
     setShowConfirm(false);
     if (original) {
@@ -134,7 +153,9 @@ export default function SettingsPanel({ onClose }: Props) {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (showConfirm) {
+        if (showClearConfirm) {
+          setShowClearConfirm(false);
+        } else if (showConfirm) {
           setShowConfirm(false);
         } else {
           handleClose();
@@ -289,6 +310,25 @@ export default function SettingsPanel({ onClose }: Props) {
                 {errors.images && <p className="text-xs text-red-400 mt-1">{errors.images}</p>}
                 <p className="text-xs text-panel-muted mt-1">{t('settings.imageRange')}</p>
               </div>
+              <div className="pt-3 border-t border-panel-border">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-panel-text">{t('backup.clearDataTitle')}</div>
+                    <div className="text-xs text-panel-muted">{t('backup.clearDataDesc')}</div>
+                  </div>
+                  <button
+                    onClick={handleClearData}
+                    className="px-3 py-1.5 text-xs border border-red-500/40 text-red-400 rounded-lg hover:bg-red-500/10 shrink-0 ml-4"
+                  >
+                    {t('backup.clearDataBtn')}
+                  </button>
+                </div>
+                {clearStatus && (
+                  <p className={`text-xs mt-2 ${clearError ? 'text-red-400' : 'text-green-400'}`}>
+                    {clearStatus}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
@@ -330,6 +370,19 @@ export default function SettingsPanel({ onClose }: Props) {
               <div className="flex justify-end gap-2">
                 <button onClick={handleDiscard} className="px-3 py-1.5 text-xs text-panel-muted hover:text-panel-text">{t('settings.discard')}</button>
                 <button onClick={handleSave} className="px-3 py-1.5 text-xs bg-panel-accent text-white rounded hover:opacity-90">{t('settings.save')}</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Clear data confirmation */}
+        {showClearConfirm && (
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-xl" onClick={() => setShowClearConfirm(false)}>
+            <div className="bg-panel-bg border border-panel-border rounded-lg p-4 shadow-2xl mx-4" onClick={e => e.stopPropagation()}>
+              <p className="text-sm text-panel-text mb-3">{t('backup.clearDataConfirm')}</p>
+              <div className="flex justify-end gap-2">
+                <button onClick={() => setShowClearConfirm(false)} className="px-3 py-1.5 text-xs text-panel-muted hover:text-panel-text">{t('settings.cancel')}</button>
+                <button onClick={handleConfirmClear} className="px-3 py-1.5 text-xs bg-red-500 text-white rounded hover:bg-red-600">{t('backup.clearDataBtn')}</button>
               </div>
             </div>
           </div>
