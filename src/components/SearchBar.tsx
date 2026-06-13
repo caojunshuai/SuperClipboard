@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import type { FilterType, DateFilter } from '../types';
+import DatePicker from './DatePicker';
 
 function todayStr(): string {
   const d = new Date();
@@ -94,22 +95,20 @@ export default function SearchBar({
       {dateFilter === 'custom' && (
         <div className="flex items-center gap-1.5">
           <span className="text-xs text-panel-muted shrink-0">{t('search.dateFrom')}</span>
-          <input
-            type="date"
+          <DatePicker
+            value={customDateFrom}
+            onChange={v => onCustomDateFromChange(validDate(v))}
             min="2000-01-01"
             max="2100-12-31"
-            value={customDateFrom}
-            onChange={e => onCustomDateFromChange(validDate(e.target.value))}
-            className="bg-panel-card border border-panel-border rounded text-xs text-panel-text px-2 py-1 focus:outline-none focus:border-panel-accent"
+            align="left"
           />
           <span className="text-xs text-panel-muted shrink-0">{t('search.dateTo')}</span>
-          <input
-            type="date"
+          <DatePicker
+            value={customDateTo}
+            onChange={v => onCustomDateToChange(validDate(v))}
             min="2000-01-01"
             max="2100-12-31"
-            value={customDateTo}
-            onChange={e => onCustomDateToChange(validDate(e.target.value))}
-            className="bg-panel-card border border-panel-border rounded text-xs text-panel-text px-2 py-1 focus:outline-none focus:border-panel-accent"
+            align="right"
           />
         </div>
       )}
