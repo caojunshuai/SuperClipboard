@@ -19,6 +19,7 @@ export default function SettingsPanel({ onClose }: Props) {
     auto_start: false,
     language: 'en-US',
     always_on_top: true,
+    page_size: 50,
   });
   const [original, setOriginal] = useState<AppSettings | null>(null);
   const [saving, setSaving] = useState(false);
@@ -52,6 +53,7 @@ export default function SettingsPanel({ onClose }: Props) {
     settings.auto_paste !== original.auto_paste ||
     settings.auto_start !== original.auto_start ||
     settings.always_on_top !== original.always_on_top ||
+    settings.page_size !== original.page_size ||
     settings.language !== original.language ||
     maxItemsStr !== original.max_items.toString() ||
     maxImagesStr !== original.max_images.toString()
@@ -208,6 +210,19 @@ export default function SettingsPanel({ onClose }: Props) {
               className="w-4 h-4 text-panel-accent"
             />
           </label>
+          <div>
+            <label className="text-sm text-panel-text block mb-1">{t('settings.pageSize')}</label>
+            <select
+              value={settings.page_size}
+              onChange={e => setSettings(s => ({ ...s, page_size: parseInt(e.target.value) }))}
+              className="w-full px-3 py-2 bg-panel-card border border-panel-border rounded-lg text-sm text-panel-text focus:outline-none focus:border-panel-accent"
+            >
+              {[10, 20, 30, 40, 50].map(n => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+            <p className="text-xs text-panel-muted mt-1">{t('settings.pageSizeHint')}</p>
+          </div>
           <div>
             <label className="text-sm text-panel-text block mb-1">{t('settings.language')}</label>
             <select

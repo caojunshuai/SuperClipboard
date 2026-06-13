@@ -11,9 +11,7 @@ interface Props {
   onClose: () => void;
 }
 
-const PAGE_SIZE = 50;
-
-function buildQuery(q: HistoryQuery, offset: number): HistoryQuery {
+function buildQuery(q: HistoryQuery, offset: number, pageSize: number): HistoryQuery {
   const df = q.date_from;
   const KNOWN_FILTERS = ['all', 'today', '3days', '7days'];
   if (!df || KNOWN_FILTERS.includes(df)) {
@@ -24,7 +22,7 @@ function buildQuery(q: HistoryQuery, offset: number): HistoryQuery {
       date_from: from,
       date_to: to,
       tab: q.tab,
-      limit: PAGE_SIZE,
+      limit: pageSize,
       offset,
     };
   }
@@ -36,7 +34,7 @@ function buildQuery(q: HistoryQuery, offset: number): HistoryQuery {
     date_from: q.date_from,
     date_to: dt ? `${dt} 23:59:59` : null,
     tab: q.tab,
-    limit: PAGE_SIZE,
+    limit: pageSize,
     offset,
   };
 }
@@ -57,17 +55,15 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
   const tRef = useRef(t);
   tRef.current = t;
   const fetchGenRef = useRef(0);
+  const pageSizeRef = useRef(50);
 
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-
-  useEffect(() => {
-    getSettings().then(s => setAutoPasteEnabled(s.auto_paste)).catch(() => {});
-  }, []);
+  const totalPages = Math.max(1, Math.ceil(total / pageSizeRef.current));
 
   const fetchPage = useCallback(async (pageNum: number) => {
     const gen = ++fetchGenRef.current;
-    const offset = (pageNum - 1) * PAGE_SIZE;
-    const fetchQuery = buildQuery(queryRef.current, offset);
+    const ps = pageSizeRef.current;
+    const offset = (pageNum - 1) * ps;
+    const fetchQuery = buildQuery(queryRef.current, offset, ps);
 
     setLoading(true);
     try {
@@ -83,11 +79,21 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
     }
   }, []);
 
+  // Load settings on mount + panel shown, then fetch
+  useEffect(() => {
+    getSettings().then(s => {
+      setAutoPasteEnabled(s.auto_paste);
+      pageSizeRef.current = s.page_size || 50;
+      setPage(1);
+      fetchPage(1);
+    }).catch(() => {});
+  }, [refreshKey]);
+
   // When filters/tabs change, reset to page 1
   useEffect(() => {
     setPage(1);
     fetchPage(1);
-  }, [query.keyword, query.item_type, query.date_from, query.date_to, query.tab, refreshKey]);
+  }, [query.keyword, query.item_type, query.date_from, query.date_to, query.tab]);
 
   // When page changes, fetch that page
   useEffect(() => {

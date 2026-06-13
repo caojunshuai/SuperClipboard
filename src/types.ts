@@ -41,6 +41,7 @@ export interface AppSettings {
   auto_start: boolean;
   language: string;
   always_on_top: boolean;
+  page_size: number;
 }
 
 export interface BuildInfo {

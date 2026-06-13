@@ -63,7 +63,9 @@
     "errorImagesMax": "上限为 500",
     "language": "界面语言",
     "alwaysOnTop": "窗口置顶",
-    "alwaysOnTopHint": "主窗口始终显示在最前"
+    "alwaysOnTopHint": "主窗口始终显示在最前",
+    "pageSize": "每页卡片数量",
+    "pageSizeHint": "每页显示的剪贴板记录数"
   },
   "export": {
     "title": "导出",

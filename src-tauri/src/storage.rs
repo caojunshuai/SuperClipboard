@@ -438,6 +438,7 @@ pub fn get_all_settings() -> SqliteResult<AppSettings> {
     if let Some(v) = get_setting("auto_start")? { settings.auto_start = v == "true"; }
     if let Some(v) = get_setting("language")? { settings.language = v; }
     if let Some(v) = get_setting("always_on_top")? { settings.always_on_top = v != "false"; }
+    if let Some(v) = get_setting("page_size")? { settings.page_size = v.parse().unwrap_or(50); }
     Ok(settings)
 }
 
@@ -449,5 +450,6 @@ pub fn save_all_settings(settings: &AppSettings) -> SqliteResult<()> {
     set_setting("auto_start", if settings.auto_start { "true" } else { "false" })?;
     set_setting("language", &settings.language)?;
     set_setting("always_on_top", if settings.always_on_top { "true" } else { "false" })?;
+    set_setting("page_size", &settings.page_size.to_string())?;
     Ok(())
 }

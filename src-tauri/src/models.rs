@@ -77,6 +77,8 @@ pub struct AppSettings {
     pub language: String,
     #[serde(default = "default_true")]
     pub always_on_top: bool,
+    #[serde(default = "default_page_size")]
+    pub page_size: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -94,6 +96,10 @@ fn default_true() -> bool {
     true
 }
 
+fn default_page_size() -> i64 {
+    50
+}
+
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
@@ -104,6 +110,7 @@ impl Default for AppSettings {
             auto_start: false,
             language: default_language(),
             always_on_top: true,
+            page_size: 50,
         }
     }
 }

@@ -65,7 +65,9 @@
     "errorImagesMax": "Maximum is 500",
     "language": "Language",
     "alwaysOnTop": "Always on Top",
-    "alwaysOnTopHint": "Keep the main window always on top"
+    "alwaysOnTopHint": "Keep the main window always on top",
+    "pageSize": "Cards per Page",
+    "pageSizeHint": "Number of clips shown on each page"
   },
   "export": {
     "title": "Export",
