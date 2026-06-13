@@ -54,6 +54,8 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
 
   const queryRef = useRef(query);
   queryRef.current = query;
+  const tRef = useRef(t);
+  tRef.current = t;
   const fetchGenRef = useRef(0);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -105,13 +107,13 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
       if (autoPasteEnabled) {
         await autoPaste();
       }
-      setToast({ message: t('list.copied'), type: 'success' });
+      setToast({ message: tRef.current('list.copied'), type: 'success' });
       setTimeout(() => {
         setToast(null);
         onClose();
       }, 600);
     } catch (err) {
-      const msg = typeof err === 'string' ? err : t('list.error');
+      const msg = typeof err === 'string' ? err : tRef.current('list.error');
       setToast({ message: msg, type: 'error' });
       setTimeout(() => setToast(null), 4000);
     }
