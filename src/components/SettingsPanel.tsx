@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { getSettings, updateSettings as saveSettings } from '../api';
 import { SUPPORTED_LOCALES, type Locale, detectSystemLocale } from '../locales';
 import i18n from '../locales';
+import { applyTheme, type Theme } from '../theme';
 import type { AppSettings } from '../types';
 
 interface Props {
@@ -20,6 +21,7 @@ export default function SettingsPanel({ onClose }: Props) {
     language: 'en-US',
     always_on_top: true,
     page_size: 50,
+    theme: 'dark',
   });
   const [original, setOriginal] = useState<AppSettings | null>(null);
   const [saving, setSaving] = useState(false);
@@ -41,6 +43,7 @@ export default function SettingsPanel({ onClose }: Props) {
         // DB has a saved language that differs from i18n → sync
         i18n.changeLanguage(s.language);
       }
+      if (s.theme) applyTheme(s.theme as Theme);
       setSettings(s);
       setOriginal(s);
       setMaxItemsStr(s.max_items.toString());
@@ -54,6 +57,7 @@ export default function SettingsPanel({ onClose }: Props) {
     settings.auto_start !== original.auto_start ||
     settings.always_on_top !== original.always_on_top ||
     settings.page_size !== original.page_size ||
+    settings.theme !== original.theme ||
     settings.language !== original.language ||
     maxItemsStr !== original.max_items.toString() ||
     maxImagesStr !== original.max_images.toString()
@@ -236,6 +240,22 @@ export default function SettingsPanel({ onClose }: Props) {
             >
               {SUPPORTED_LOCALES.map(loc => (
                 <option key={loc} value={loc}>{t('lang.' + loc)}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-sm text-panel-text block mb-1">{t('settings.theme')}</label>
+            <select
+              value={settings.theme}
+              onChange={e => {
+                const thm = e.target.value as Theme;
+                setSettings(s => ({ ...s, theme: thm }));
+                applyTheme(thm);
+              }}
+              className="w-full px-3 py-2 bg-panel-card border border-panel-border rounded-lg text-sm text-panel-text focus:outline-none focus:border-panel-accent"
+            >
+              {(['dark', 'light', 'system'] as Theme[]).map(thm => (
+                <option key={thm} value={thm}>{t('settings.theme' + thm.charAt(0).toUpperCase() + thm.slice(1))}</option>
               ))}
             </select>
           </div>

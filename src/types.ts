@@ -42,6 +42,7 @@ export interface AppSettings {
   language: string;
   always_on_top: boolean;
   page_size: number;
+  theme: string;
 }
 
 export interface BuildInfo {

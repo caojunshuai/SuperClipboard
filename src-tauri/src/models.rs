@@ -79,6 +79,8 @@ pub struct AppSettings {
     pub always_on_top: bool,
     #[serde(default = "default_page_size")]
     pub page_size: i64,
+    #[serde(default = "default_theme")]
+    pub theme: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -100,6 +102,10 @@ fn default_page_size() -> i64 {
     50
 }
 
+fn default_theme() -> String {
+    "dark".to_string()
+}
+
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
@@ -111,6 +117,7 @@ impl Default for AppSettings {
             language: default_language(),
             always_on_top: true,
             page_size: 50,
+            theme: default_theme(),
         }
     }
 }

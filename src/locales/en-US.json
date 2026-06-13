@@ -67,7 +67,11 @@
     "alwaysOnTop": "Always on Top",
     "alwaysOnTopHint": "Keep the main window always on top",
     "pageSize": "Cards per Page",
-    "pageSizeHint": "Number of clips shown on each page"
+    "pageSizeHint": "Number of clips shown on each page",
+    "theme": "Theme",
+    "themeDark": "Dark",
+    "themeLight": "Light",
+    "themeSystem": "Follow System"
   },
   "export": {
     "title": "Export",

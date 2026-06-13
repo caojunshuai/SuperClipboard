@@ -5,13 +5,13 @@ export default {
     extend: {
       colors: {
         panel: {
-          bg: '#1e1e2e',
-          card: '#2a2a3c',
-          border: '#3a3a4c',
-          hover: '#32324a',
-          text: '#e0e0e0',
-          muted: '#8888a0',
-          accent: '#7c8cf8',
+          bg: 'var(--panel-bg)',
+          card: 'var(--panel-card)',
+          border: 'var(--panel-border)',
+          hover: 'var(--panel-hover)',
+          text: 'var(--panel-text)',
+          muted: 'var(--panel-muted)',
+          accent: 'var(--panel-accent)',
         }
       },
       animation: {

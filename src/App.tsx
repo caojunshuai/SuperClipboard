@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { onPanelShown, onClipboardChanged, hideWindow, startDrag } from './api';
+import { onPanelShown, onClipboardChanged, hideWindow, startDrag, getSettings } from './api';
 import ClipboardPanel from './components/ClipboardPanel';
 import ExportDialog from './components/ExportDialog';
 import BackupDialog from './components/BackupDialog';
 import SettingsPanel from './components/SettingsPanel';
 import AboutDialog from './components/AboutDialog';
+import { applyTheme } from './theme';
 
 type DialogType = 'none' | 'export' | 'backup' | 'settings' | 'about';
 
@@ -22,6 +23,12 @@ function App() {
       p1.then(fn => fn());
       p2.then(fn => fn());
     };
+  }, []);
+
+  useEffect(() => {
+    getSettings().then(s => {
+      applyTheme(s.theme === 'light' || s.theme === 'system' ? s.theme : 'dark');
+    }).catch(() => {});
   }, []);
 
   // Drag via native mousedown listener.
