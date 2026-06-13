@@ -97,7 +97,6 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
 
   // When page changes, fetch that page
   useEffect(() => {
-    if (page === 1) return; // Already fetched by the filter-change effect
     fetchPage(page);
   }, [page]);
 
