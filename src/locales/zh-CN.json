@@ -84,7 +84,7 @@
     "imageExport": "导出图片",
     "imageExportDesc": "导出为原始 PNG/JPG 文件",
     "cancel": "取消",
-    "exportBtn": "选择位置并导出",
+    "exportBtn": "导出",
     "exporting": "导出中...",
     "error": "导出失败: {{error}}",
     "textSuccess": "已导出 {{count}} 条文本",

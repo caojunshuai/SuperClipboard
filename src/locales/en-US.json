@@ -86,7 +86,7 @@
     "imageExport": "Export Images",
     "imageExportDesc": "Export as original PNG/JPG files",
     "cancel": "Cancel",
-    "exportBtn": "Choose Location & Export",
+    "exportBtn": "Export",
     "exporting": "Exporting...",
     "error": "Export failed: {{error}}",
     "textSuccess": "Exported {{count}} text items",

@@ -5,15 +5,26 @@ use tauri::{
     image::Image,
 };
 
+fn tray_labels(lang: &str) -> (&'static str, &'static str) {
+    if lang.starts_with("zh") {
+        ("打开面板", "退出")
+    } else {
+        ("Show Panel", "Quit")
+    }
+}
+
 pub fn setup(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+    let settings = crate::storage::get_all_settings().unwrap_or_default();
+    let (show_label, quit_label) = tray_labels(&settings.language);
+
     // Embed and decode icon PNG at compile time
     let icon_bytes = include_bytes!("../icons/icon.png");
     let img = image::load_from_memory(icon_bytes)?.into_rgba8();
     let (w, h) = img.dimensions();
     let icon = Image::new_owned(img.into_raw(), w, h);
-    let show_item = MenuItemBuilder::with_id("show", "打开剪切板面板").build(app)?;
+    let show_item = MenuItemBuilder::with_id("show", show_label).build(app)?;
     let separator = tauri::menu::PredefinedMenuItem::separator(app)?;
-    let quit_item = MenuItemBuilder::with_id("quit", "退出").build(app)?;
+    let quit_item = MenuItemBuilder::with_id("quit", quit_label).build(app)?;
 
     let menu = MenuBuilder::new(app)
         .item(&show_item)
