@@ -13,6 +13,19 @@ fn tray_labels(lang: &str) -> (&'static str, &'static str) {
     }
 }
 
+const TRAY_ID: &str = "main-tray";
+
+fn build_menu(app: &tauri::AppHandle, show_label: &str, quit_label: &str) -> Result<tauri::menu::Menu<tauri::Wry>, Box<dyn std::error::Error>> {
+    let show_item = MenuItemBuilder::with_id("show", show_label).build(app)?;
+    let separator = tauri::menu::PredefinedMenuItem::separator(app)?;
+    let quit_item = MenuItemBuilder::with_id("quit", quit_label).build(app)?;
+    Ok(MenuBuilder::new(app)
+        .item(&show_item)
+        .item(&separator)
+        .item(&quit_item)
+        .build()?)
+}
+
 pub fn setup(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let settings = crate::storage::get_all_settings().unwrap_or_default();
     let (show_label, quit_label) = tray_labels(&settings.language);
@@ -22,17 +35,10 @@ pub fn setup(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let img = image::load_from_memory(icon_bytes)?.into_rgba8();
     let (w, h) = img.dimensions();
     let icon = Image::new_owned(img.into_raw(), w, h);
-    let show_item = MenuItemBuilder::with_id("show", show_label).build(app)?;
-    let separator = tauri::menu::PredefinedMenuItem::separator(app)?;
-    let quit_item = MenuItemBuilder::with_id("quit", quit_label).build(app)?;
 
-    let menu = MenuBuilder::new(app)
-        .item(&show_item)
-        .item(&separator)
-        .item(&quit_item)
-        .build()?;
+    let menu = build_menu(app, show_label, quit_label)?;
 
-    let _tray = TrayIconBuilder::new()
+    let _tray = TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon)
         .menu(&menu)
         .tooltip("SuperClipboard")
@@ -54,6 +60,19 @@ pub fn setup(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
         })
         .build(app)?;
 
+    Ok(())
+}
+
+/// Rebuild the tray menu with current language labels.
+/// Called after settings are saved with a different language.
+pub fn update_labels(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+    let settings = crate::storage::get_all_settings().unwrap_or_default();
+    let (show_label, quit_label) = tray_labels(&settings.language);
+
+    if let Some(tray) = app.tray_by_id(TRAY_ID) {
+        let menu = build_menu(app, show_label, quit_label)?;
+        tray.set_menu(Some(menu))?;
+    }
     Ok(())
 }
 

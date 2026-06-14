@@ -192,6 +192,7 @@ pub fn update_settings(app: tauri::AppHandle, settings: AppSettings) -> Result<(
         window.set_always_on_top(always_on_top).ok();
         window.set_skip_taskbar(always_on_top).ok();
     }
+    crate::tray::update_labels(&app).ok();
     Ok(())
 }
 
