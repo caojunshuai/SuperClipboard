@@ -8,6 +8,13 @@ import SettingsPanel from './components/SettingsPanel';
 import AboutDialog from './components/AboutDialog';
 import { applyTheme } from './theme';
 import i18n from './locales';
+import SvgIcon from './components/SvgIcon';
+
+import exportSvg from './assets/icons/export.svg?raw';
+import backupSvg from './assets/icons/backup.svg?raw';
+import settingsSvg from './assets/icons/settings.svg?raw';
+import infoSvg from './assets/icons/info.svg?raw';
+import closeSvg from './assets/icons/close.svg?raw';
 
 type DialogType = 'none' | 'export' | 'backup' | 'settings' | 'about';
 
@@ -117,16 +124,16 @@ function App() {
       >
         <span className="text-sm font-medium text-panel-text">SuperClipboard</span>
         <div className="flex gap-1">
-          <button onClick={() => setDialog('export')} className="p-1 text-sm text-panel-muted hover:text-panel-text"
-                  title={t('export.title')}>📤</button>
-          <button onClick={() => setDialog('backup')} className="p-1 text-sm text-panel-muted hover:text-panel-text"
-                  title={t('backup.title')}>💾</button>
-          <button onClick={() => setDialog('settings')} className="p-1 text-sm text-panel-muted hover:text-panel-text"
-                  title={t('settings.title')}>⚙</button>
-          <button onClick={() => setDialog('about')} className="p-1 text-sm text-panel-muted hover:text-panel-text"
-                  title={t('about.title')}>ℹ️</button>
-          <button onClick={handleClose} className="p-1 text-sm text-panel-muted hover:text-red-400"
-                  title={t('about.close')}>✕</button>
+          <button onClick={() => setDialog('export')} className="p-1 text-panel-muted hover:text-panel-text transition-colors"
+                  title={t('export.title')}><SvgIcon raw={exportSvg} className="w-4 h-4 block" /></button>
+          <button onClick={() => setDialog('backup')} className="p-1 text-panel-muted hover:text-panel-text transition-colors"
+                  title={t('backup.title')}><SvgIcon raw={backupSvg} className="w-4 h-4 block" /></button>
+          <button onClick={() => setDialog('settings')} className="p-1 text-panel-muted hover:text-panel-text transition-colors"
+                  title={t('settings.title')}><SvgIcon raw={settingsSvg} className="w-4 h-4 block" /></button>
+          <button onClick={() => setDialog('about')} className="p-1 text-panel-muted hover:text-panel-text transition-colors"
+                  title={t('about.title')}><SvgIcon raw={infoSvg} className="w-4 h-4 block" /></button>
+          <button onClick={handleClose} className="p-1 text-panel-muted hover:text-red-400 transition-colors"
+                  title={t('about.close')}><SvgIcon raw={closeSvg} className="w-4 h-4 block" /></button>
         </div>
       </div>
 

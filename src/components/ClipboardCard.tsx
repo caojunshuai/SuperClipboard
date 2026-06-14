@@ -4,8 +4,16 @@ import type { ClipboardItem } from '../types';
 import TextCard from './cards/TextCard';
 import ImageCard from './cards/ImageCard';
 import FileCard from './cards/FileCard';
+import SvgIcon from './SvgIcon';
 import { truncateText, parseFilePaths } from '../utils/format';
 import { openImagePreview, updateNote } from '../api';
+
+import editSvg from '../assets/icons/edit.svg?raw';
+import pinLineSvg from '../assets/icons/pin-line.svg?raw';
+import pinFillSvg from '../assets/icons/pin-fill.svg?raw';
+import favoriteFillSvg from '../assets/icons/favorite-fill.svg?raw';
+import favoriteLineSvg from '../assets/icons/favorite-line.svg?raw';
+import deleteSvg from '../assets/icons/delete.svg?raw';
 
 interface Props {
   item: ClipboardItem;
@@ -244,26 +252,32 @@ export default function ClipboardCard({ item, deleting, onCopy, onTogglePin, onT
           <div className={`items-center gap-0.5 shrink-0 ${editingNote ? 'flex' : 'hidden group-hover:flex'}`}>
             <button
               onClick={e => { e.stopPropagation(); setEditingNote(!editingNote); }}
-              className={`p-0.5 rounded text-xs shrink-0 leading-6 transition-colors ${editingNote ? 'text-panel-accent' : 'text-panel-muted hover:text-panel-text'}`}
+              className={`p-0.5 rounded shrink-0 leading-6 transition-colors ${editingNote ? 'text-panel-accent' : 'text-panel-muted hover:text-panel-text'}`}
               title={t('card.noteTitle')}
             >
-              ✏️
+              <SvgIcon raw={editSvg} className="w-3.5 h-3.5 block" />
             </button>
             <button
               onClick={e => { e.stopPropagation(); onTogglePin(item.id); }}
-              className={`p-0.5 rounded text-xs shrink-0 leading-6 transition-all duration-200 active:scale-125 ${item.is_pinned ? 'text-panel-accent' : 'text-panel-muted hover:text-panel-text'}`}
+              className={`p-0.5 rounded shrink-0 leading-6 transition-all duration-200 active:scale-125 ${item.is_pinned ? 'text-panel-accent' : 'text-panel-muted hover:text-panel-text'}`}
               title={item.is_pinned ? t('card.unpin') : t('card.pin')}
-            >{item.is_pinned ? '📍' : '📌'}</button>
+            >
+              <SvgIcon raw={item.is_pinned ? pinFillSvg : pinLineSvg} className={`w-3.5 h-3.5 block${item.is_pinned ? ' -rotate-45' : ''}`} />
+            </button>
             <button
               onClick={e => { e.stopPropagation(); onToggleFavorite(item.id); }}
-              className={`p-0.5 rounded text-xs shrink-0 leading-6 transition-all duration-200 active:scale-125 ${item.is_favorite ? 'text-yellow-400' : 'text-panel-muted hover:text-panel-text'}`}
+              className={`p-0.5 rounded shrink-0 leading-6 transition-all duration-200 active:scale-125 ${item.is_favorite ? 'text-yellow-400' : 'text-panel-muted hover:text-panel-text'}`}
               title={item.is_favorite ? t('card.unfavorite') : t('card.favorite')}
-            >{item.is_favorite ? '⭐' : '☆'}</button>
+            >
+              <SvgIcon raw={item.is_favorite ? favoriteFillSvg : favoriteLineSvg} className="w-3.5 h-3.5 block" />
+            </button>
             <button
               onClick={e => { e.stopPropagation(); onDelete(item.id); }}
-              className="p-0.5 rounded text-xs shrink-0 leading-6 text-panel-muted hover:text-red-400 transition-all duration-200 active:scale-125"
+              className="p-0.5 rounded shrink-0 leading-6 text-panel-muted hover:text-red-400 transition-all duration-200 active:scale-125"
               title={t('card.delete')}
-            >🗑</button>
+            >
+              <SvgIcon raw={deleteSvg} className="w-3.5 h-3.5 block" />
+            </button>
           </div>
         </div>
 

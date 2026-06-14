@@ -198,9 +198,9 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
     }
   }, [totalPages, page]);
 
-  const footer = (
+  const footer = total > 0 && (
     <div className="shrink-0 px-3 py-1 border-t border-panel-border">
-      {totalPages > 1 && !loading && (
+      {totalPages > 1 ? (
         <div className="flex items-center justify-between text-xs">
           <span className="text-panel-muted">
             {t('list.total', { count: total })}
@@ -208,7 +208,7 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
           <div className="flex items-center gap-1">
             <button
               onClick={() => goToPage(page - 1)}
-              disabled={page <= 1}
+              disabled={page <= 1 || loading}
               className="px-2 py-0.5 rounded text-panel-muted hover:text-panel-text hover:bg-panel-card disabled:opacity-30 disabled:cursor-default transition-colors"
             >
               ← {t('list.pagePrev')}
@@ -218,22 +218,16 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
             </span>
             <button
               onClick={() => goToPage(page + 1)}
-              disabled={page >= totalPages}
+              disabled={page >= totalPages || loading}
               className="px-2 py-0.5 rounded text-panel-muted hover:text-panel-text hover:bg-panel-card disabled:opacity-30 disabled:cursor-default transition-colors"
             >
               {t('list.pageNext')} →
             </button>
           </div>
         </div>
-      )}
-      {totalPages <= 1 && total > 0 && !loading && (
+      ) : (
         <div className="text-center text-xs text-panel-muted">
           {t('list.total', { count: total })}
-        </div>
-      )}
-      {loading && (
-        <div className="flex justify-center py-1">
-          <div className="w-4 h-4 border-2 border-panel-accent border-t-transparent rounded-full animate-spin" />
         </div>
       )}
     </div>
