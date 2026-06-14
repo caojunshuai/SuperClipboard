@@ -62,18 +62,18 @@ body {
 
 /* Subtle scrollbar */
 .scrollbar-thin::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 .scrollbar-thin::-webkit-scrollbar-track {
   background: transparent;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: rgba(128, 128, 128, 0.25);
-  border-radius: 3px;
+  background: rgba(139, 139, 139, 0.60);
+  border-radius: 6px;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: rgba(128, 128, 128, 0.4);
+  background: rgba(139, 139, 139, 0.85);
 }
 .scrollbar-thin::-webkit-scrollbar-corner {
   background: transparent;
