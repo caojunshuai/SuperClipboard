@@ -5,12 +5,16 @@ import starSvg from '../assets/icons/favorite-fill.svg';
 interface Props {
   tab: TabType;
   onTabChange: (tab: TabType) => void;
+  sourceApp: string;
+  onSourceAppChange: (v: string) => void;
+  sourceApps: string[];
+  showSourceFilter: boolean;
 }
 
-export default function TabBar({ tab, onTabChange }: Props) {
+export default function TabBar({ tab, onTabChange, sourceApp, onSourceAppChange, sourceApps, showSourceFilter }: Props) {
   const { t } = useTranslation();
   return (
-    <div className="flex border-b border-panel-border px-3">
+    <div className="flex items-center border-b border-panel-border px-3">
       <button
         onClick={() => onTabChange('all')}
         className={`px-4 py-2 text-sm border-b-2 transition-colors ${
@@ -32,6 +36,21 @@ export default function TabBar({ tab, onTabChange }: Props) {
         <img src={starSvg} className="w-4 h-4 block" alt="" />
         {t('tab.favorites')}
       </button>
+      {showSourceFilter && sourceApps.length > 0 && (
+        <div className="flex items-center gap-1.5 ml-auto pr-1">
+          <div className="w-px h-4 bg-panel-border" />
+          <select
+            value={sourceApp}
+            onChange={e => onSourceAppChange(e.target.value)}
+            className="bg-transparent border border-panel-border rounded-md text-xs text-panel-text px-2 py-1 focus:outline-none focus:border-panel-accent max-w-[130px] truncate"
+          >
+            <option value="all">{t('search.typeAll')}</option>
+            {sourceApps.map(app => (
+              <option key={app} value={app}>{app.replace(/\.exe$/i, '')}</option>
+            ))}
+          </select>
+        </div>
+      )}
     </div>
   );
 }

@@ -52,11 +52,15 @@ export default function ClipboardPanel({ refreshKey, onClose }: Props) {
         onCustomDateFromChange={handleFromChange}
         customDateTo={customDateTo}
         onCustomDateToChange={handleToChange}
+      />
+      <TabBar
+        tab={tab}
+        onTabChange={setTab}
         sourceApp={sourceApp}
         onSourceAppChange={setSourceApp}
         sourceApps={sourceApps}
+        showSourceFilter={typeFilter === 'text'}
       />
-      <TabBar tab={tab} onTabChange={setTab} />
       <CardList
         query={{
           keyword: keyword || null,

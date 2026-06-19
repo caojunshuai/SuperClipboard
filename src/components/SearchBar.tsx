@@ -25,9 +25,6 @@ interface Props {
   onCustomDateFromChange: (v: string) => void;
   customDateTo: string;
   onCustomDateToChange: (v: string) => void;
-  sourceApp: string;
-  onSourceAppChange: (v: string) => void;
-  sourceApps: string[];
 }
 
 export default function SearchBar({
@@ -36,7 +33,6 @@ export default function SearchBar({
   dateFilter, onDateFilterChange,
   customDateFrom, onCustomDateFromChange,
   customDateTo, onCustomDateToChange,
-  sourceApp, onSourceAppChange, sourceApps,
 }: Props) {
   const { t } = useTranslation();
 
@@ -95,21 +91,6 @@ export default function SearchBar({
             <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
           ))}
         </select>
-        {sourceApps.length > 0 && (
-          <>
-            <div className="w-px bg-panel-border" />
-            <select
-              value={sourceApp}
-              onChange={e => onSourceAppChange(e.target.value)}
-              className="bg-panel-card border border-panel-border rounded-md text-xs text-panel-text px-2 py-1 focus:outline-none focus:border-panel-accent max-w-[120px] truncate"
-            >
-              <option value="all">{t('search.typeAll')}</option>
-              {sourceApps.map(app => (
-                <option key={app} value={app}>{app.replace(/\.exe$/i, '')}</option>
-              ))}
-            </select>
-          </>
-        )}
       </div>
       {dateFilter === 'custom' && (
         <div className="flex items-center gap-1.5">
