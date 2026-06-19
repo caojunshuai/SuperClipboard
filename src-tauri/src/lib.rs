@@ -90,6 +90,7 @@ pub fn run() {
             commands::auto_paste,
             commands::toggle_pin,
             commands::toggle_favorite,
+            commands::update_content,
             commands::update_note,
             commands::delete_clipboard_item,
             commands::delete_clipboard_items,

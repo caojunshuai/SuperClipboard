@@ -21,7 +21,11 @@
     "loading": "Loading...",
     "imageFallback": "🖼 Image",
     "notePlaceholder": "Add note...",
-    "noteTitle": "Edit note"
+    "noteTitle": "Edit note",
+    "editContent": "Edit",
+    "copyContent": "Copy",
+    "saveEdit": "Save",
+    "cancelEdit": "Cancel"
   },
   "tab": {
     "all": "All",

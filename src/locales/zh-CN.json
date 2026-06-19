@@ -19,7 +19,11 @@
     "loading": "加载中...",
     "imageFallback": "🖼 图片",
     "notePlaceholder": "添加备注...",
-    "noteTitle": "编辑备注"
+    "noteTitle": "编辑备注",
+    "editContent": "编辑",
+    "copyContent": "复制",
+    "saveEdit": "保存",
+    "cancelEdit": "取消"
   },
   "tab": {
     "all": "全部",

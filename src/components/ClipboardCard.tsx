@@ -6,7 +6,7 @@ import ImageCard from './cards/ImageCard';
 import FileCard from './cards/FileCard';
 import SvgIcon from './SvgIcon';
 import { truncateText, parseFilePaths } from '../utils/format';
-import { openImagePreview, updateNote } from '../api';
+import { openImagePreview, updateNote, updateContent } from '../api';
 
 import editSvg from '../assets/icons/edit.svg?raw';
 import pinLineSvg from '../assets/icons/pin-line.svg?raw';
@@ -44,6 +44,15 @@ export default function ClipboardCard({ item, deleting, focused, onCopy, onToggl
   const [noteDraft, setNoteDraft] = useState('');
   const noteInputRef = useRef<HTMLInputElement>(null);
 
+  // Content editing (text items only)
+  const [editingContent, setEditingContent] = useState(false);
+  const [editDraft, setEditDraft] = useState('');
+  const [displayContent, setDisplayContent] = useState(item.content || '');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Card context menu
+  const [cardCtxMenu, setCardCtxMenu] = useState<{x: number; y: number} | null>(null);
+
   // Sync note when item changes
   useEffect(() => {
     setNote(item.note || '');
@@ -55,6 +64,31 @@ export default function ClipboardCard({ item, deleting, focused, onCopy, onToggl
       noteInputRef.current?.focus();
     }
   }, [editingNote]);
+
+  // Sync content when item changes
+  useEffect(() => {
+    setDisplayContent(item.content || '');
+  }, [item.content]);
+
+  // Focus textarea when entering edit mode
+  useEffect(() => {
+    if (editingContent) {
+      setEditDraft(displayContent);
+      setTimeout(() => textareaRef.current?.focus(), 0);
+    }
+  }, [editingContent]);
+
+  // Dismiss card context menu on outside click
+  useEffect(() => {
+    if (!cardCtxMenu) return;
+    const dismiss = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('.card-ctx-menu-item')) return;
+      setCardCtxMenu(null);
+    };
+    window.addEventListener('mousedown', dismiss);
+    return () => window.removeEventListener('mousedown', dismiss);
+  }, [cardCtxMenu]);
 
   const handleSaveNote = async () => {
     const trimmed = noteDraft.trim();
@@ -76,6 +110,61 @@ export default function ClipboardCard({ item, deleting, focused, onCopy, onToggl
     } else if (e.key === 'Escape') {
       setEditingNote(false);
     }
+  };
+
+  // ---- Content editing handlers ----
+
+  const handleCardContextMenu = (e: React.MouseEvent) => {
+    if (item.item_type !== 'text') return;
+    e.preventDefault();
+    e.stopPropagation();
+    const EST_W = 90;
+    const EST_H = 100;
+    const x = e.clientX + EST_W > window.innerWidth ? e.clientX - EST_W : e.clientX;
+    const y = e.clientY + EST_H > window.innerHeight ? e.clientY - EST_H : e.clientY;
+    setCardCtxMenu({ x, y });
+  };
+
+  const handleSaveContent = async () => {
+    setDisplayContent(editDraft);
+    setEditingContent(false);
+    try {
+      await updateContent(item.id, editDraft);
+    } catch {
+      setDisplayContent(item.content || '');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingContent(false);
+  };
+
+  const handleTextareaKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && e.ctrlKey) {
+      e.preventDefault();
+      handleSaveContent();
+    } else if (e.key === 'Escape') {
+      handleCancelEdit();
+    }
+  };
+
+  const handleMenuEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCardCtxMenu(null);
+    setEditingContent(true);
+    setExpanded(true);
+  };
+
+  const handleMenuCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCardCtxMenu(null);
+    onCopy(item);
+  };
+
+  const handleMenuDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCardCtxMenu(null);
+    onDelete(item.id);
   };
 
   // ---- Metadata string ----
@@ -201,7 +290,35 @@ export default function ClipboardCard({ item, deleting, focused, onCopy, onToggl
   // ---- Content rendering ----
   const renderContent = () => {
     switch (item.item_type) {
-      case 'text': return <TextCard item={item} expanded={expanded} />;
+      case 'text':
+        if (editingContent) {
+          return (
+            <div className="space-y-2" onClick={e => e.stopPropagation()}>
+              <textarea
+                ref={textareaRef}
+                value={editDraft}
+                onChange={e => setEditDraft(e.target.value)}
+                onKeyDown={handleTextareaKeyDown}
+                className="w-full min-h-[6rem] p-2 bg-panel-bg border border-panel-border rounded text-sm text-panel-text font-mono resize-y focus:outline-none focus:border-panel-accent"
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={handleCancelEdit}
+                  className="px-3 py-1 text-xs text-panel-muted hover:text-panel-text bg-panel-bg border border-panel-border rounded transition-colors"
+                >
+                  {t('card.cancelEdit')}
+                </button>
+                <button
+                  onClick={handleSaveContent}
+                  className="px-3 py-1 text-xs text-white bg-panel-accent hover:bg-panel-accent/80 rounded transition-colors"
+                >
+                  {t('card.saveEdit')}
+                </button>
+              </div>
+            </div>
+          );
+        }
+        return <TextCard item={item} expanded={expanded} displayContent={displayContent} />;
       case 'image': return <ImageCard item={item} />;
       case 'file': return <FileCard item={item} expanded={expanded} />;
       default: return null;
@@ -219,7 +336,11 @@ export default function ClipboardCard({ item, deleting, focused, onCopy, onToggl
         } ${
           !focused && item.is_pinned ? 'ring-1 ring-panel-accent/50' : ''
         }`}
-        onClick={() => onCopy(item)}
+        onContextMenu={handleCardContextMenu}
+        onClick={() => {
+          if (editingContent) return;
+          onCopy(item);
+        }}
       >
         {/* ---- Top bar: fixed height so show/hide icons doesn't change card height ---- */}
         <div className="flex items-center gap-1.5 mb-2 min-w-0 h-6">
@@ -331,6 +452,33 @@ export default function ClipboardCard({ item, deleting, focused, onCopy, onToggl
         >
           {t('card.collapse')} <span className="text-[10px]">▲</span>
         </button>
+      )}
+
+      {/* Card context menu (text items only) */}
+      {cardCtxMenu && (
+        <div
+          className="fixed z-50 bg-panel-card border border-panel-border rounded-lg py-1 shadow-xl min-w-[80px]"
+          style={{ left: cardCtxMenu.x, top: cardCtxMenu.y }}
+        >
+          <button
+            onClick={handleMenuEdit}
+            className="card-ctx-menu-item w-full text-left px-3 py-1.5 text-xs text-panel-text hover:bg-panel-hover rounded"
+          >
+            {t('card.editContent')}
+          </button>
+          <button
+            onClick={handleMenuCopy}
+            className="card-ctx-menu-item w-full text-left px-3 py-1.5 text-xs text-panel-text hover:bg-panel-hover rounded"
+          >
+            {t('card.copyContent')}
+          </button>
+          <button
+            onClick={handleMenuDelete}
+            className="card-ctx-menu-item w-full text-left px-3 py-1.5 text-xs text-red-400 hover:bg-panel-hover rounded"
+          >
+            {t('card.delete')}
+          </button>
+        </div>
       )}
     </>
   );

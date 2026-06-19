@@ -254,6 +254,16 @@ pub fn toggle_favorite(id: i64) -> SqliteResult<bool> {
     Ok(val != 0)
 }
 
+pub fn update_content(id: i64, content: String) -> SqliteResult<()> {
+    let conn = get_conn().lock().unwrap();
+    let char_count = content.chars().count() as i64;
+    conn.execute(
+        "UPDATE clipboard_items SET content = ?1, char_count = ?2, updated_at = datetime('now', 'localtime') WHERE id = ?3",
+        params![content, char_count, id],
+    )?;
+    Ok(())
+}
+
 pub fn update_note(id: i64, note: Option<String>) -> SqliteResult<()> {
     let conn = get_conn().lock().unwrap();
     conn.execute(
