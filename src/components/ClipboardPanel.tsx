@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import SearchBar from './SearchBar';
 import TabBar from './TabBar';
 import CardList from './CardList';
+import TemplateList from './TemplateList';
 import type { FilterType, DateFilter, TabType } from '../types';
 import { getSourceApps } from '../api';
 
@@ -41,18 +42,20 @@ export default function ClipboardPanel({ refreshKey, onClose }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      <SearchBar
-        keyword={keyword}
-        onKeywordChange={setKeyword}
-        typeFilter={typeFilter}
-        onTypeFilterChange={setTypeFilter}
-        dateFilter={dateFilter}
-        onDateFilterChange={setDateFilter}
-        customDateFrom={customDateFrom}
-        onCustomDateFromChange={handleFromChange}
-        customDateTo={customDateTo}
-        onCustomDateToChange={handleToChange}
-      />
+      {tab !== 'templates' && (
+        <SearchBar
+          keyword={keyword}
+          onKeywordChange={setKeyword}
+          typeFilter={typeFilter}
+          onTypeFilterChange={setTypeFilter}
+          dateFilter={dateFilter}
+          onDateFilterChange={setDateFilter}
+          customDateFrom={customDateFrom}
+          onCustomDateFromChange={handleFromChange}
+          customDateTo={customDateTo}
+          onCustomDateToChange={handleToChange}
+        />
+      )}
       <TabBar
         tab={tab}
         onTabChange={setTab}
@@ -61,20 +64,24 @@ export default function ClipboardPanel({ refreshKey, onClose }: Props) {
         sourceApps={sourceApps}
         showSourceFilter={typeFilter === 'text'}
       />
-      <CardList
-        query={{
-          keyword: keyword || null,
-          item_type: typeFilter,
-          tab,
-          date_from: dateFilter === 'custom' ? customDateFrom : dateFilter,
-          date_to: dateFilter === 'custom' ? customDateTo : null,
-          source_app: sourceApp === 'all' ? null : sourceApp,
-          offset: 0,
-          limit: 100,
-        }}
-        refreshKey={refreshKey}
-        onClose={onClose}
-      />
+      {tab === 'templates' ? (
+        <TemplateList />
+      ) : (
+        <CardList
+          query={{
+            keyword: keyword || null,
+            item_type: typeFilter,
+            tab,
+            date_from: dateFilter === 'custom' ? customDateFrom : dateFilter,
+            date_to: dateFilter === 'custom' ? customDateTo : null,
+            source_app: sourceApp === 'all' ? null : sourceApp,
+            offset: 0,
+            limit: 100,
+          }}
+          refreshKey={refreshKey}
+          onClose={onClose}
+        />
+      )}
     </div>
   );
 }

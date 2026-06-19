@@ -129,6 +129,21 @@ pub struct RestoreResult {
     pub max_images: i64,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Template {
+    pub id: i64,
+    pub title: String,
+    pub content: String,
+    pub sort_order: i64,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TemplateListResult {
+    pub templates: Vec<Template>,
+}
+
 fn default_language() -> String {
     // Empty = not set yet; frontend will detect system locale on first launch
     String::new()

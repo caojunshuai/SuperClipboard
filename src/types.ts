@@ -72,6 +72,19 @@ export interface RestoreResult {
   max_images: number;
 }
 
-export type TabType = 'all' | 'favorites';
+export interface Template {
+  id: number;
+  title: string;
+  content: string;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TemplateListResult {
+  templates: Template[];
+}
+
+export type TabType = 'all' | 'favorites' | 'templates';
 export type FilterType = 'all' | 'text' | 'image' | 'file';
 export type DateFilter = 'all' | 'today' | '3days' | '7days' | 'custom';

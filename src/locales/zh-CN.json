@@ -27,7 +27,8 @@
   },
   "tab": {
     "all": "全部",
-    "favorites": "收藏"
+    "favorites": "收藏",
+    "templates": "模板"
   },
   "search": {
     "placeholder": "搜索文本内容或备注...",
@@ -147,6 +148,15 @@
     "yesterday": "昨天 {{time}}",
     "charCount": "{{count}} 字",
     "charCountK": "{{count}}k 字"
+  },
+  "template": {
+    "title": "固定模板",
+    "newTemplate": "新建模板",
+    "editTitle": "模板标题",
+    "editContent": "模板内容",
+    "noTitle": "无标题",
+    "emptyTitle": "暂无模板",
+    "emptyHint": "点击「新建模板」创建第一个模板"
   },
   "about": {
     "title": "关于",

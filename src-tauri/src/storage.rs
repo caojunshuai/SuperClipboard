@@ -68,6 +68,36 @@ pub fn init_db(app_data_dir: &std::path::Path) -> SqliteResult<()> {
     // Migration: add note column
     conn.execute("ALTER TABLE clipboard_items ADD COLUMN note TEXT", []).ok();
 
+    // Templates table
+    conn.execute_batch("
+        CREATE TABLE IF NOT EXISTS templates (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            title      TEXT NOT NULL DEFAULT '',
+            content    TEXT NOT NULL DEFAULT '',
+            sort_order INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT (datetime('now', 'localtime')),
+            updated_at TEXT DEFAULT (datetime('now', 'localtime'))
+        );
+    ")?;
+
+    // Seed preset templates only if table is empty
+    let count: i64 = conn.query_row("SELECT COUNT(*) FROM templates", [], |row| row.get(0))?;
+    if count == 0 {
+        let presets = vec![
+            ("邮件签名", "祝好，\n{date}\n张三"),
+            ("常用问候", "您好，我是张三。很高兴认识您！"),
+            ("函数模板", "function name(params) {\n  // TODO\n}"),
+            ("表格模板", "| 列A | 列B |\n|----|----|\n|  |  |"),
+            ("快递地址", "收货人：张三\n电话：138xxxx\n地址："),
+        ];
+        for (i, (title, content)) in presets.iter().enumerate() {
+            conn.execute(
+                "INSERT INTO templates (title, content, sort_order) VALUES (?1, ?2, ?3)",
+                params![title, content, i as i64],
+            )?;
+        }
+    }
+
     DB.set(Mutex::new(conn)).map_err(|_| {
         rusqlite::Error::InvalidParameterName("DB already initialized".into())
     })?;
@@ -567,4 +597,61 @@ pub fn clear_all_data() -> Result<usize, String> {
     }
 
     Ok(count)
+}
+
+// ---- Template CRUD ----
+
+pub fn get_all_templates() -> SqliteResult<Vec<Template>> {
+    let conn = get_conn().lock().unwrap();
+    let mut stmt = conn.prepare(
+        "SELECT id, title, content, sort_order, created_at, updated_at FROM templates ORDER BY sort_order, id"
+    )?;
+    let items = stmt.query_map([], |row| {
+        Ok(Template {
+            id: row.get(0)?,
+            title: row.get(1)?,
+            content: row.get(2)?,
+            sort_order: row.get(3)?,
+            created_at: row.get(4)?,
+            updated_at: row.get(5)?,
+        })
+    })?.filter_map(|r| r.ok()).collect();
+    Ok(items)
+}
+
+pub fn add_template(title: String, content: String) -> SqliteResult<Template> {
+    let conn = get_conn().lock().unwrap();
+    conn.execute(
+        "INSERT INTO templates (title, content) VALUES (?1, ?2)",
+        params![title, content],
+    )?;
+    let id = conn.last_insert_rowid();
+    let mut stmt = conn.prepare(
+        "SELECT id, title, content, sort_order, created_at, updated_at FROM templates WHERE id = ?1"
+    )?;
+    stmt.query_row(params![id], |row| {
+        Ok(Template {
+            id: row.get(0)?,
+            title: row.get(1)?,
+            content: row.get(2)?,
+            sort_order: row.get(3)?,
+            created_at: row.get(4)?,
+            updated_at: row.get(5)?,
+        })
+    })
+}
+
+pub fn update_template(id: i64, title: String, content: String) -> SqliteResult<()> {
+    let conn = get_conn().lock().unwrap();
+    conn.execute(
+        "UPDATE templates SET title = ?1, content = ?2, updated_at = datetime('now', 'localtime') WHERE id = ?3",
+        params![title, content, id],
+    )?;
+    Ok(())
+}
+
+pub fn delete_template(id: i64) -> SqliteResult<()> {
+    let conn = get_conn().lock().unwrap();
+    conn.execute("DELETE FROM templates WHERE id = ?1", params![id])?;
+    Ok(())
 }

@@ -129,6 +129,29 @@ pub fn update_note(id: i64, note: Option<String>) -> Result<(), String> {
     storage::update_note(id, note).map_err(|e| e.to_string())
 }
 
+// ---- Template commands ----
+
+#[tauri::command]
+pub fn get_templates() -> Result<TemplateListResult, String> {
+    let templates = storage::get_all_templates().map_err(|e| e.to_string())?;
+    Ok(TemplateListResult { templates })
+}
+
+#[tauri::command]
+pub fn add_template(title: String, content: String) -> Result<Template, String> {
+    storage::add_template(title, content).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn update_template(id: i64, title: String, content: String) -> Result<(), String> {
+    storage::update_template(id, title, content).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn delete_template(id: i64) -> Result<(), String> {
+    storage::delete_template(id).map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 pub fn delete_clipboard_item(id: i64) -> Result<(), String> {
     if let Ok(Some(item)) = storage::get_item(id) {

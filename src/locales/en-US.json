@@ -29,7 +29,8 @@
   },
   "tab": {
     "all": "All",
-    "favorites": "Favorites"
+    "favorites": "Favorites",
+    "templates": "Templates"
   },
   "search": {
     "placeholder": "Search text content or notes...",
@@ -155,6 +156,15 @@
     "yesterday": "Yesterday {{time}}",
     "charCount": "{{count}} chars",
     "charCountK": "{{count}}k chars"
+  },
+  "template": {
+    "title": "Templates",
+    "newTemplate": "New Template",
+    "editTitle": "Template title",
+    "editContent": "Template content",
+    "noTitle": "Untitled",
+    "emptyTitle": "No templates",
+    "emptyHint": "Click \"New Template\" to create your first template"
   },
   "about": {
     "title": "About",
