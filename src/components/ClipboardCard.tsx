@@ -18,6 +18,7 @@ import deleteSvg from '../assets/icons/delete.svg?raw';
 interface Props {
   item: ClipboardItem;
   deleting?: boolean;
+  focused?: boolean;
   onCopy: (item: ClipboardItem) => void;
   onTogglePin: (id: number) => void;
   onToggleFavorite: (id: number) => void;
@@ -31,7 +32,7 @@ const TYPE_STYLES: Record<string, string> = {
   file: 'bg-orange-500/20 text-orange-400',
 };
 
-export default function ClipboardCard({ item, deleting, onCopy, onTogglePin, onToggleFavorite, onDelete, onImageMissing }: Props) {
+export default function ClipboardCard({ item, deleting, focused, onCopy, onTogglePin, onToggleFavorite, onDelete, onImageMissing }: Props) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [floatingCollapse, setFloatingCollapse] = useState(false);
@@ -104,6 +105,13 @@ export default function ClipboardCard({ item, deleting, onCopy, onTogglePin, onT
     file: 'card.fileType',
   }[item.item_type];
   const typeStyle = TYPE_STYLES[item.item_type] || TYPE_STYLES.text;
+
+  // ---- Scroll into view when keyboard-focused ----
+  useEffect(() => {
+    if (focused && cardRef.current) {
+      cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [focused]);
 
   // ---- Scroll-aware expand/collapse ----
   useEffect(() => {
@@ -204,10 +212,12 @@ export default function ClipboardCard({ item, deleting, onCopy, onTogglePin, onT
     <>
       <div
         ref={cardRef}
-        className={`group relative bg-panel-card border border-panel-border rounded-lg p-3 cursor-pointer hover:bg-panel-hover transition-all duration-200 ${
+        className={`group relative bg-panel-card border rounded-lg p-3 cursor-pointer hover:bg-panel-hover transition-all duration-200 ${
           deleting ? 'opacity-0 scale-95 pointer-events-none' : ''
         } ${
-          item.is_pinned ? 'ring-1 ring-panel-accent/50' : ''
+          focused ? 'border-panel-accent ring-2 ring-panel-accent/40' : 'border-panel-border'
+        } ${
+          !focused && item.is_pinned ? 'ring-1 ring-panel-accent/50' : ''
         }`}
         onClick={() => onCopy(item)}
       >

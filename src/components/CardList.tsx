@@ -48,6 +48,7 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
   const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
   const [page, setPage] = useState(1);
+  const [focusIndex, setFocusIndex] = useState(-1);
   const listRef = useRef<HTMLDivElement>(null);
 
   const queryRef = useRef(query);
@@ -94,6 +95,23 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
     setPage(1);
     fetchPage(1);
   }, [query.keyword, query.item_type, query.date_from, query.date_to, query.tab]);
+
+  // Reset focus when page or filters change
+  useEffect(() => {
+    setFocusIndex(-1);
+  }, [page, query.keyword, query.item_type, query.date_from, query.date_to, query.tab]);
+
+  // Clamp focusIndex when items shrink (e.g. after delete)
+  useEffect(() => {
+    if (focusIndex >= items.length) {
+      setFocusIndex(items.length > 0 ? items.length - 1 : -1);
+    }
+  }, [items.length, focusIndex]);
+
+  // Auto-focus list when panel opens so keyboard nav works immediately
+  useEffect(() => {
+    listRef.current?.focus();
+  }, [refreshKey]);
 
   // When page changes, fetch that page
   useEffect(() => {
@@ -184,6 +202,70 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
     }
   }, [page, fetchPage]);
 
+  // ---- Keyboard navigation ----
+  const handleListKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (items.length === 0) return;
+
+    // Number keys 1-9: quick-select and copy
+    if (e.key >= '1' && e.key <= '9' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      e.preventDefault();
+      const idx = parseInt(e.key) - 1;
+      if (idx < items.length) {
+        handleCopy(items[idx]);
+        setFocusIndex(idx);
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setFocusIndex(prev => {
+          if (prev >= items.length - 1) return 0;
+          return prev + 1;
+        });
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setFocusIndex(prev => {
+          if (prev <= 0) return items.length - 1;
+          return prev - 1;
+        });
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (focusIndex >= 0 && focusIndex < items.length) {
+          handleCopy(items[focusIndex]);
+        }
+        break;
+      case 'Delete':
+        e.preventDefault();
+        if (focusIndex >= 0 && focusIndex < items.length) {
+          handleDelete(items[focusIndex].id);
+        }
+        break;
+      case 'Escape':
+        onClose();
+        break;
+      case 'Home':
+        e.preventDefault();
+        setFocusIndex(0);
+        break;
+      case 'End':
+        e.preventDefault();
+        setFocusIndex(items.length - 1);
+        break;
+      case 'PageDown':
+        e.preventDefault();
+        if (page < totalPages) goToPage(page + 1);
+        break;
+      case 'PageUp':
+        e.preventDefault();
+        if (page > 1) goToPage(page - 1);
+        break;
+    }
+  }, [items, focusIndex, handleCopy, handleDelete, onClose, page, totalPages, goToPage]);
+
   // If current page becomes empty after delete, go to previous page
   useEffect(() => {
     if (items.length === 0 && total > 0 && page > 1) {
@@ -235,7 +317,12 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
 
   return (
     <>
-      <div ref={listRef} className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin">
+      <div
+        ref={listRef}
+        tabIndex={0}
+        onKeyDown={handleListKeyDown}
+        className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin outline-none focus-visible:outline-none"
+      >
         {toast && (
           <div className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg text-sm shadow-lg transition-all ${
             toast.type === 'error' ? 'bg-red-500/90 text-white' : 'bg-green-500 text-white'
@@ -254,11 +341,12 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
           </div>
         )}
 
-        {items.map(item => (
+        {items.map((item, index) => (
           <ClipboardCard
             key={item.id}
             item={item}
             deleting={deletingIds.has(item.id)}
+            focused={index === focusIndex}
             onCopy={handleCopy}
             onTogglePin={handleTogglePin}
             onToggleFavorite={handleToggleFavorite}
