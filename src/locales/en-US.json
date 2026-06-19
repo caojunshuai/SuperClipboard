@@ -28,7 +28,7 @@
     "favorites": "Favorites"
   },
   "search": {
-    "placeholder": "Search clipboard history...",
+    "placeholder": "Search text content or notes...",
     "typeAll": "All",
     "typeText": "Text",
     "typeImage": "Image",
