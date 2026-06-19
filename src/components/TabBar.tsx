@@ -44,7 +44,7 @@ export default function TabBar({ tab, onTabChange, sourceApp, onSourceAppChange,
             onChange={e => onSourceAppChange(e.target.value)}
             className="bg-panel-card border border-panel-border rounded-md text-xs text-panel-text px-2 py-1 focus:outline-none focus:border-panel-accent max-w-[130px] truncate"
           >
-            <option value="all">{t('search.typeAll')}</option>
+            <option value="all">{t('search.sourceAll')}</option>
             {sourceApps.map(app => (
               <option key={app} value={app}>{app.replace(/\.exe$/i, '')}</option>
             ))}
