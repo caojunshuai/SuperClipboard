@@ -297,7 +297,10 @@ pub fn run_monitor(
             last_seq = seq;
         }
 
-        let source_app = win::get_foreground_app_name();
+        // Filter out our own exe so we don't record "SuperClipboard.exe"
+        // when the panel is the foreground window during a clipboard change.
+        let source_app = win::get_foreground_app_name()
+            .filter(|app| !app.eq_ignore_ascii_case("SuperClipboard.exe"));
 
         let item = if let Some((img_path, thumb_path, size)) =
             win::get_clipboard_image(&images_dir, &thumbs_dir)
