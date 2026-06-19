@@ -27,6 +27,26 @@ fn app_data_dir() -> PathBuf {
     dir
 }
 
+/// Create or remove the Windows registry auto-start entry so the app
+/// launches at login when the user enables the setting.
+#[cfg(target_os = "windows")]
+pub fn set_auto_start(enabled: bool) {
+    use winreg::enums::*;
+    use winreg::RegKey;
+
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    let path = r"Software\Microsoft\Windows\CurrentVersion\Run";
+    if let Ok(run_key) = hkcu.open_subkey_with_flags(path, KEY_WRITE) {
+        if enabled {
+            if let Ok(exe_path) = std::env::current_exe() {
+                let _ = run_key.set_value("SuperClipboard", &exe_path.to_string_lossy().to_string());
+            }
+        } else {
+            let _ = run_key.delete_value("SuperClipboard");
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -39,12 +59,14 @@ pub fn run() {
             APP_DATA_DIR.set(dir.clone()).ok();
             storage::init_db(&dir).expect("Failed to initialize database");
 
-            // Apply always-on-top setting from DB
+            // Apply settings from DB that require system-level changes
             if let Ok(settings) = storage::get_all_settings() {
                 if let Some(window) = app.get_webview_window("main") {
                     window.set_always_on_top(settings.always_on_top).ok();
                     window.set_skip_taskbar(settings.always_on_top).ok();
                 }
+                #[cfg(target_os = "windows")]
+                set_auto_start(settings.auto_start);
             }
 
             let handle = app.handle().clone();
