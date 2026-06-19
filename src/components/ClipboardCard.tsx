@@ -297,7 +297,7 @@ export default function ClipboardCard({ item, deleting, focused, onCopy, onToggl
         {/* ---- Bottom bar: time (left) + source app + action link (right) ---- */}
         <div className="flex items-center mt-2 text-xs">
           <span className="text-panel-muted">{formatTime(item.created_at, t)}</span>
-          {item.source_app && (
+          {item.item_type === 'text' && item.source_app && (
             <>
               <span className="text-panel-muted mx-1.5">·</span>
               <span className="text-panel-muted" title={item.source_app}>
