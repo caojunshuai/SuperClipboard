@@ -6,7 +6,7 @@ use crate::storage;
 
 /// FNV-1a 64-bit hash — deterministic, no dependencies, fast.
 /// Used for content deduplication across sessions.
-fn fnv1a_64(data: &[u8]) -> i64 {
+pub(crate) fn fnv1a_64(data: &[u8]) -> i64 {
     let mut hash: u64 = 0xcbf29ce484222325;
     for &byte in data {
         hash ^= byte as u64;

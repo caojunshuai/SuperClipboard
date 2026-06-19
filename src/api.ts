@@ -84,7 +84,7 @@ export async function openImagePreview(path: string): Promise<void> {
   return invoke('open_image_preview', { path });
 }
 
-export async function updateContent(id: number, content: string): Promise<void> {
+export async function updateContent(id: number, content: string): Promise<string> {
   return invoke('update_content', { id, content });
 }
 

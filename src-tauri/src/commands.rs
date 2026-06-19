@@ -120,7 +120,7 @@ pub fn toggle_favorite(id: i64) -> Result<bool, String> {
 }
 
 #[tauri::command]
-pub fn update_content(id: i64, content: String) -> Result<(), String> {
+pub fn update_content(id: i64, content: String) -> Result<String, String> {
     storage::update_content(id, content).map_err(|e| e.to_string())
 }
 

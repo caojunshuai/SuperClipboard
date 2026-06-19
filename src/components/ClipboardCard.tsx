@@ -48,6 +48,7 @@ export default function ClipboardCard({ item, deleting, focused, onCopy, onToggl
   const [editingContent, setEditingContent] = useState(false);
   const [editDraft, setEditDraft] = useState('');
   const [displayContent, setDisplayContent] = useState(item.content || '');
+  const [displayCreatedAt, setDisplayCreatedAt] = useState(item.created_at);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Card context menu
@@ -69,6 +70,11 @@ export default function ClipboardCard({ item, deleting, focused, onCopy, onToggl
   useEffect(() => {
     setDisplayContent(item.content || '');
   }, [item.content]);
+
+  // Sync created_at when item changes
+  useEffect(() => {
+    setDisplayCreatedAt(item.created_at);
+  }, [item.created_at]);
 
   // Focus textarea when entering edit mode
   useEffect(() => {
@@ -126,10 +132,17 @@ export default function ClipboardCard({ item, deleting, focused, onCopy, onToggl
   };
 
   const handleSaveContent = async () => {
-    setDisplayContent(editDraft);
     setEditingContent(false);
     try {
-      await updateContent(item.id, editDraft);
+      const newCreatedAt = await updateContent(item.id, editDraft);
+      if (newCreatedAt) {
+        // Normal update — refresh local display
+        setDisplayContent(editDraft);
+        setDisplayCreatedAt(newCreatedAt);
+      } else {
+        // Merged into an existing duplicate — remove this card
+        onDelete(item.id);
+      }
     } catch {
       setDisplayContent(item.content || '');
     }
@@ -417,7 +430,7 @@ export default function ClipboardCard({ item, deleting, focused, onCopy, onToggl
 
         {/* ---- Bottom bar: time (left) + source app + action link (right) ---- */}
         <div className="flex items-center mt-2 text-xs">
-          <span className="text-panel-muted">{formatTime(item.created_at, t)}</span>
+          <span className="text-panel-muted">{formatTime(displayCreatedAt, t)}</span>
           {item.item_type === 'text' && item.source_app && (
             <>
               <span className="text-panel-muted mx-1.5">·</span>

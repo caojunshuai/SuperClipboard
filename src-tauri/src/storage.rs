@@ -254,14 +254,39 @@ pub fn toggle_favorite(id: i64) -> SqliteResult<bool> {
     Ok(val != 0)
 }
 
-pub fn update_content(id: i64, content: String) -> SqliteResult<()> {
+pub fn update_content(id: i64, content: String) -> SqliteResult<String> {
     let conn = get_conn().lock().unwrap();
     let char_count = content.chars().count() as i64;
-    conn.execute(
-        "UPDATE clipboard_items SET content = ?1, char_count = ?2, updated_at = datetime('now', 'localtime') WHERE id = ?3",
-        params![content, char_count, id],
-    )?;
-    Ok(())
+    let content_hash = crate::clipboard::fnv1a_64(content.as_bytes());
+
+    // Check if another text item already has this content (cross-row dedup)
+    let existing: Option<i64> = conn.query_row(
+        "SELECT id FROM clipboard_items WHERE type = 'text' AND content_hash = ?1 AND id != ?2 LIMIT 1",
+        params![content_hash, id],
+        |row| row.get(0),
+    ).optional()?;
+
+    if let Some(existing_id) = existing {
+        // Merge: bump the existing item's timestamp, delete the edited item
+        conn.execute(
+            "UPDATE clipboard_items SET created_at = datetime('now', 'localtime'), updated_at = datetime('now', 'localtime') WHERE id = ?1",
+            params![existing_id],
+        )?;
+        conn.execute("DELETE FROM clipboard_items WHERE id = ?1", params![id])?;
+        // Return empty string to signal "merged" to frontend
+        Ok(String::new())
+    } else {
+        conn.execute(
+            "UPDATE clipboard_items SET content = ?1, char_count = ?2, content_hash = ?3, created_at = datetime('now', 'localtime'), updated_at = datetime('now', 'localtime') WHERE id = ?4",
+            params![content, char_count, content_hash, id],
+        )?;
+        let new_created_at: String = conn.query_row(
+            "SELECT created_at FROM clipboard_items WHERE id = ?1",
+            params![id],
+            |row| row.get(0),
+        )?;
+        Ok(new_created_at)
+    }
 }
 
 pub fn update_note(id: i64, note: Option<String>) -> SqliteResult<()> {
