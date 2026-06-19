@@ -294,9 +294,17 @@ export default function ClipboardCard({ item, deleting, focused, onCopy, onToggl
         {/* ---- Content area ---- */}
         {renderContent()}
 
-        {/* ---- Bottom bar: time (left) + action link (right) ---- */}
+        {/* ---- Bottom bar: time (left) + source app + action link (right) ---- */}
         <div className="flex items-center mt-2 text-xs">
           <span className="text-panel-muted">{formatTime(item.created_at, t)}</span>
+          {item.source_app && (
+            <>
+              <span className="text-panel-muted mx-1.5">·</span>
+              <span className="text-panel-muted" title={item.source_app}>
+                {item.source_app.replace(/\.exe$/i, '')}
+              </span>
+            </>
+          )}
           {actionLink && (
             <>
               <span className="text-panel-muted mx-1.5">·</span>

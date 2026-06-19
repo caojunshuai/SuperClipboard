@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import SearchBar from './SearchBar';
 import TabBar from './TabBar';
 import CardList from './CardList';
 import type { FilterType, DateFilter, TabType } from '../types';
+import { getSourceApps } from '../api';
 
 function todayStr(): string {
   const d = new Date();
@@ -21,6 +22,12 @@ export default function ClipboardPanel({ refreshKey, onClose }: Props) {
   const [tab, setTab] = useState<TabType>('all');
   const [customDateFrom, setCustomDateFrom] = useState(todayStr());
   const [customDateTo, setCustomDateTo] = useState(todayStr());
+  const [sourceApp, setSourceApp] = useState('all');
+  const [sourceApps, setSourceApps] = useState<string[]>([]);
+
+  useEffect(() => {
+    getSourceApps().then(setSourceApps).catch(() => {});
+  }, [refreshKey]);
 
   const handleFromChange = useCallback((v: string) => {
     setCustomDateFrom(v);
@@ -45,6 +52,9 @@ export default function ClipboardPanel({ refreshKey, onClose }: Props) {
         onCustomDateFromChange={handleFromChange}
         customDateTo={customDateTo}
         onCustomDateToChange={handleToChange}
+        sourceApp={sourceApp}
+        onSourceAppChange={setSourceApp}
+        sourceApps={sourceApps}
       />
       <TabBar tab={tab} onTabChange={setTab} />
       <CardList
@@ -54,6 +64,7 @@ export default function ClipboardPanel({ refreshKey, onClose }: Props) {
           tab,
           date_from: dateFilter === 'custom' ? customDateFrom : dateFilter,
           date_to: dateFilter === 'custom' ? customDateTo : null,
+          source_app: sourceApp === 'all' ? null : sourceApp,
           offset: 0,
           limit: 100,
         }}

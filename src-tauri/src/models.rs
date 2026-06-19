@@ -60,6 +60,7 @@ pub struct HistoryQuery {
     pub date_from: Option<String>,
     pub date_to: Option<String>,
     pub tab: Option<String>,
+    pub source_app: Option<String>,
     pub offset: i64,
     pub limit: i64,
 }

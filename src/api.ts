@@ -58,6 +58,10 @@ export async function getItemCount(): Promise<number> {
   return invoke('get_item_count');
 }
 
+export async function getSourceApps(): Promise<string[]> {
+  return invoke('get_source_apps');
+}
+
 export function onClipboardChanged(callback: (item: ClipboardItem) => void): Promise<UnlistenFn> {
   return listen<ClipboardItem>('clipboard-changed', (event) => {
     callback(event.payload);

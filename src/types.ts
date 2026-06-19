@@ -25,6 +25,7 @@ export interface HistoryQuery {
   date_from: string | null;
   date_to: string | null;
   tab: string | null;
+  source_app: string | null;
   offset: number;
   limit: number;
 }

@@ -22,6 +22,7 @@ function buildQuery(q: HistoryQuery, offset: number, pageSize: number): HistoryQ
       date_from: from,
       date_to: to,
       tab: q.tab,
+      source_app: q.source_app,
       limit: pageSize,
       offset,
     };
@@ -34,6 +35,7 @@ function buildQuery(q: HistoryQuery, offset: number, pageSize: number): HistoryQ
     date_from: q.date_from,
     date_to: dt ? `${dt} 23:59:59` : null,
     tab: q.tab,
+    source_app: q.source_app,
     limit: pageSize,
     offset,
   };
@@ -94,7 +96,7 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
   useEffect(() => {
     setPage(1);
     fetchPage(1);
-  }, [query.keyword, query.item_type, query.date_from, query.date_to, query.tab]);
+  }, [query.keyword, query.item_type, query.date_from, query.date_to, query.tab, query.source_app]);
 
   // Reset focus when page or filters change
   useEffect(() => {

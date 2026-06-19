@@ -148,6 +148,12 @@ pub fn query_history(query: &HistoryQuery) -> SqliteResult<HistoryResult> {
         }
     }
 
+    if let Some(ref app) = query.source_app {
+        let idx = bind_values.len() + 1;
+        where_clauses.push(format!("source_app = ?{}", idx));
+        bind_values.push(Box::new(app.clone()));
+    }
+
     if let Some(ref from) = query.date_from {
         let idx = bind_values.len() + 1;
         where_clauses.push(format!("created_at >= ?{}", idx));
@@ -477,6 +483,18 @@ pub fn save_all_settings(settings: &AppSettings) -> SqliteResult<()> {
     set_setting("page_size", &settings.page_size.to_string())?;
     set_setting("theme", &settings.theme)?;
     Ok(())
+}
+
+/// Get a sorted list of distinct source app names from the clipboard history.
+pub fn get_source_apps() -> Result<Vec<String>, rusqlite::Error> {
+    let conn = DB.get().unwrap().lock().unwrap();
+    let mut stmt = conn.prepare(
+        "SELECT DISTINCT source_app FROM clipboard_items WHERE source_app IS NOT NULL AND source_app != '' ORDER BY source_app"
+    )?;
+    let apps = stmt.query_map([], |row| row.get::<_, String>(0))?
+        .filter_map(|r| r.ok())
+        .collect();
+    Ok(apps)
 }
 
 /// Delete all clipboard items and their image/thumbnail files.

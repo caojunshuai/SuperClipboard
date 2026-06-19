@@ -207,10 +207,16 @@ pub fn get_item_count() -> Result<i64, String> {
         date_from: None,
         date_to: None,
         tab: None,
+        source_app: None,
         offset: 0,
         limit: 1,
     }).map_err(|e| e.to_string())?;
     Ok(result.total)
+}
+
+#[tauri::command]
+pub fn get_source_apps() -> Result<Vec<String>, String> {
+    storage::get_source_apps().map_err(|e| e.to_string())
 }
 
 #[cfg(target_os = "windows")]

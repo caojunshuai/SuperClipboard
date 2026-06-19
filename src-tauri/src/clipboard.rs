@@ -244,6 +244,38 @@ mod win {
             else { Some(serde_json::to_string(&paths).unwrap_or_default()) }
         }
     }
+
+    /// Get the filename of the foreground window's process, e.g. "chrome.exe".
+    pub fn get_foreground_app_name() -> Option<String> {
+        unsafe {
+            use windows_sys::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId};
+            use windows_sys::Win32::System::Threading::{OpenProcess, QueryFullProcessImageNameW, PROCESS_QUERY_LIMITED_INFORMATION};
+            use windows_sys::Win32::Foundation::CloseHandle;
+
+            let hwnd = GetForegroundWindow();
+            if hwnd == 0 { return None; }
+
+            let mut pid: u32 = 0;
+            GetWindowThreadProcessId(hwnd, &mut pid);
+            if pid == 0 { return None; }
+
+            let handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
+            if handle == 0 { return None; }
+
+            let mut exe_buf = [0u16; 260];
+            let mut len = exe_buf.len() as u32;
+            let result = QueryFullProcessImageNameW(handle, 0, exe_buf.as_mut_ptr(), &mut len);
+            CloseHandle(handle);
+
+            if result == 0 { return None; }
+
+            let path = String::from_utf16_lossy(&exe_buf[..len as usize]);
+            std::path::Path::new(&path)
+                .file_name()
+                .and_then(|n| n.to_str())
+                .map(|s| s.to_string())
+        }
+    }
 }
 
 pub fn run_monitor(
@@ -265,6 +297,8 @@ pub fn run_monitor(
             last_seq = seq;
         }
 
+        let source_app = win::get_foreground_app_name();
+
         let item = if let Some((img_path, thumb_path, size)) =
             win::get_clipboard_image(&images_dir, &thumbs_dir)
         {
@@ -275,7 +309,7 @@ pub fn run_monitor(
                 image_path: Some(img_path),
                 thumbnail_path: Some(thumb_path),
                 file_paths: None,
-                source_app: None,
+                source_app: source_app.clone(),
                 char_count: None,
                 image_size: Some(size),
                 is_pinned: false,
@@ -295,7 +329,7 @@ pub fn run_monitor(
                 image_path: None,
                 thumbnail_path: None,
                 file_paths: Some(paths),
-                source_app: None,
+                source_app: source_app.clone(),
                 char_count: None,
                 image_size: None,
                 is_pinned: false,
@@ -319,7 +353,7 @@ pub fn run_monitor(
                     image_path: None,
                     thumbnail_path: None,
                     file_paths: None,
-                    source_app: None,
+                    source_app: source_app.clone(),
                     char_count: Some(char_count),
                     image_size: None,
                     is_pinned: false,
