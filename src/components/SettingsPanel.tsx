@@ -5,6 +5,7 @@ import { SUPPORTED_LOCALES, type Locale, detectSystemLocale } from '../locales';
 import i18n from '../locales';
 import { applyTheme, type Theme } from '../theme';
 import type { AppSettings } from '../types';
+import HotkeyInput from './HotkeyInput';
 
 interface Props {
   onClose: () => void;
@@ -338,11 +339,9 @@ export default function SettingsPanel({ onClose }: Props) {
             <div className="space-y-3">
               <div>
                 <label className="text-sm text-panel-text block mb-1">{t('settings.hotkey')}</label>
-                <input
-                  type="text"
+                <HotkeyInput
                   value={settings.hotkey}
-                  readOnly
-                  className="w-full px-3 py-2 bg-panel-card border border-panel-border rounded-lg text-sm text-panel-muted"
+                  onChange={(v) => setSettings(s => ({ ...s, hotkey: v }))}
                 />
                 <p className="text-xs text-panel-muted mt-1">{t('settings.hotkeyHint')}</p>
               </div>

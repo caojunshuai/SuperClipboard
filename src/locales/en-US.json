@@ -44,7 +44,9 @@
   "settings": {
     "title": "Settings",
     "hotkey": "Global Hotkey",
-    "hotkeyHint": "Default Alt+V (customization not supported in this version)",
+    "hotkeyHint": "Press a key combination to capture",
+    "hotkeyPlaceholder": "Press key combination...",
+    "hotkeyClear": "Clear hotkey",
     "historyLimit": "History Limit",
     "historyRange": "Range 100 - 5000",
     "imageLimit": "Image Limit",

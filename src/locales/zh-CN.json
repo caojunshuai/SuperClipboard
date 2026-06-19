@@ -42,7 +42,9 @@
   "settings": {
     "title": "设置",
     "hotkey": "全局快捷键",
-    "hotkeyHint": "默认 Alt+V（当前版本不支持自定义）",
+    "hotkeyHint": "按下组合键进行捕获",
+    "hotkeyPlaceholder": "请按下组合键…",
+    "hotkeyClear": "清除快捷键",
     "historyLimit": "历史记录上限",
     "historyRange": "范围 100 - 5000",
     "imageLimit": "图片保留上限",

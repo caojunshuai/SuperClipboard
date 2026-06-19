@@ -1,7 +1,7 @@
 mod models;
 mod storage;
 pub mod clipboard;
-mod hotkey;
+pub mod hotkey;
 mod tray;
 mod commands;
 mod export;
@@ -67,6 +67,9 @@ pub fn run() {
                 }
                 #[cfg(target_os = "windows")]
                 set_auto_start(settings.auto_start);
+
+                let handle = app.handle().clone();
+                hotkey::register(&handle, &settings.hotkey);
             }
 
             let handle = app.handle().clone();
@@ -78,9 +81,6 @@ pub fn run() {
 
             let handle = app.handle().clone();
             tray::setup(&handle)?;
-
-            let handle = app.handle().clone();
-            hotkey::register(&handle)?;
 
             Ok(())
         })
