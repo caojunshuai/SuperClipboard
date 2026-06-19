@@ -53,17 +53,19 @@ export default function ClipboardPanel({ refreshKey, onClose }: Props) {
         onCustomDateFromChange={handleFromChange}
         customDateTo={customDateTo}
         onCustomDateToChange={handleToChange}
-        disabled={tab === 'templates'}
+        disabled={typeFilter === 'template'}
       />
-      <TabBar
-        tab={tab}
-        onTabChange={setTab}
-        sourceApp={sourceApp}
-        onSourceAppChange={setSourceApp}
-        sourceApps={sourceApps}
-        showSourceFilter={typeFilter === 'text'}
-      />
-      {tab === 'templates' ? (
+      {typeFilter !== 'template' && (
+        <TabBar
+          tab={tab}
+          onTabChange={setTab}
+          sourceApp={sourceApp}
+          onSourceAppChange={setSourceApp}
+          sourceApps={sourceApps}
+          showSourceFilter={typeFilter === 'text'}
+        />
+      )}
+      {typeFilter === 'template' ? (
         <TemplateList onClose={onClose} />
       ) : (
         <CardList
@@ -73,7 +75,7 @@ export default function ClipboardPanel({ refreshKey, onClose }: Props) {
             tab,
             date_from: dateFilter === 'custom' ? customDateFrom : dateFilter,
             date_to: dateFilter === 'custom' ? customDateTo : null,
-            source_app: sourceApp === 'all' ? null : sourceApp,
+            source_app: typeFilter === 'text' && sourceApp !== 'all' ? sourceApp : null,
             offset: 0,
             limit: 100,
           }}

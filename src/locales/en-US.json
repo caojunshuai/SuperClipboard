@@ -29,8 +29,7 @@
   },
   "tab": {
     "all": "All",
-    "favorites": "Favorites",
-    "templates": "Templates"
+    "favorites": "Favorites"
   },
   "search": {
     "placeholder": "Search text content or notes...",
@@ -38,6 +37,7 @@
     "typeText": "Text",
     "typeImage": "Image",
     "typeFile": "File",
+    "typeTemplate": "Template",
     "dateAll": "Any",
     "sourceAll": "All Sources",
     "dateToday": "Today",
@@ -164,7 +164,8 @@
     "editContent": "Template content",
     "noTitle": "Untitled",
     "emptyTitle": "No templates",
-    "emptyHint": "Click \"New Template\" to create your first template"
+    "emptyHint": "Click \"New Template\" to create your first template",
+    "noContent": "Right-click to edit"
   },
   "about": {
     "title": "About",

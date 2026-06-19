@@ -14,8 +14,6 @@ interface Props {
 export default function TabBar({ tab, onTabChange, sourceApp, onSourceAppChange, sourceApps, showSourceFilter }: Props) {
   const { t } = useTranslation();
 
-  const isTemplates = tab === 'templates';
-
   return (
     <div className="flex items-center border-b border-panel-border px-3">
       <button
@@ -39,17 +37,7 @@ export default function TabBar({ tab, onTabChange, sourceApp, onSourceAppChange,
         <img src={starSvg} className="w-4 h-4 block" alt="" />
         {t('tab.favorites')}
       </button>
-      <button
-        onClick={() => onTabChange('templates')}
-        className={`px-4 py-2 text-sm border-b-2 transition-colors ${
-          tab === 'templates'
-            ? 'border-panel-accent text-panel-accent'
-            : 'border-transparent text-panel-muted hover:text-panel-text'
-        }`}
-      >
-        {t('tab.templates')}
-      </button>
-      {!isTemplates && showSourceFilter && sourceApps.length > 0 && (
+      {showSourceFilter && sourceApps.length > 0 && (
         <div className="flex items-center gap-2">
           <div className="w-px h-4 bg-panel-border" />
           <select

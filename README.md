@@ -2,7 +2,7 @@
 
 [中文文档](README_zh.md)
 
-A fast, lightweight clipboard manager for Windows. Press **Alt+V** to summon a floating panel that shows your clipboard history — text, images, and files. Pin frequently used clips, star favorites, and export your history.
+A fast, lightweight clipboard manager for Windows. Press a customizable global hotkey to summon a floating panel that shows your clipboard history — text, images, and files. Edit text inline, use fixed templates, filter by source app, pin frequently used clips, star favorites, and export your history.
 
 Built with **Tauri 2 + React + TypeScript + Tailwind CSS**.
 
@@ -16,17 +16,23 @@ Built with **Tauri 2 + React + TypeScript + Tailwind CSS**.
 
 ### Search & Browse
 - **Full-text search** — supports both English and Chinese/Japanese/Korean (CJK)
-- **Filter by type** — text / image / file
+- **Filter by type** — text / image / file / template
+- **Source app filter** — filter text clips by source application (auto-collected from foreground window)
 - **Date filters** — today / 3 days / 7 days / custom range with date picker
+- **Keyboard navigation** — ↑↓ to move, Enter to copy, Delete to remove, 1-9 quick select, Esc to close
 - **Page navigation** — ← Prev | 1/20 | Next → pagination, configurable page size (10/20/30/40/50), supports thousands of records
 - **Favorites tab** — quick access to starred items
+
+### Edit & Templates
+- **Inline text editor** — right-click a text card → Edit to modify content; Ctrl+Enter to save; auto-dedup on save
+- **Fixed templates** — 5 preset templates (email, greeting, code, table, address) + custom; click to copy with {date}/{time} placeholder substitution
 
 ### Organize
 - **Notes** — add personal notes to any clip (✏️), inline editing, auto-save, truncated with hover tooltip
 - **Pin** items to keep them at the top (📌↔📍)
 - **Favorite** items for quick recall (☆↔⭐)
 - **Delete** with a smooth fade-out animation
-- **Settings** — configure history limit, image limit, language, theme, auto-paste, always-on-top, page size, and more
+- **Settings** — configure hotkey, history limit, image limit, language, theme, auto-paste, auto-start, always-on-top, page size, and more
 
 ### Export & Backup
 - **Export text** — merge all text clips into a `.txt` file with timestamps
@@ -123,9 +129,15 @@ SuperClipboard/
 │   └── components/
 │       ├── ClipboardPanel.tsx    # Main panel: search, tabs, card list
 │       ├── ClipboardCard.tsx     # Card with expand, preview, floating collapse
-│       ├── CardList.tsx          # Scrollable card list with animations
-│       ├── SearchBar.tsx         # Search input & filters
-│       ├── TabBar.tsx            # All / Favorites tabs
+│       ├── CardList.tsx          # Scrollable card list with keyboard nav
+│       ├── SearchBar.tsx         # Search input & type/date filters
+│       ├── DatePicker.tsx        # Custom calendar dropdown
+│       ├── TabBar.tsx            # All / Favorites tabs + source filter
+│       ├── HotkeyInput.tsx       # Key-capture input for settings
+│       ├── TemplateList.tsx      # Template list with add/edit/delete
+│       ├── TemplateCard.tsx      # Template card with inline edit
+│       ├── CopyToast.tsx         # Shared toast notification
+│       ├── ScrollArea.tsx        # Shared scroll container
 │       ├── SettingsPanel.tsx     # Settings form with validation
 │       ├── ExportDialog.tsx      # Export text/images dialog
 │       ├── BackupDialog.tsx      # Backup & restore dialog
@@ -164,8 +176,8 @@ lib.rs  ── App startup, DB init, clipboard monitor spawn
   │                    (CF_UNICODETEXT / CF_DIB / CF_HDROP)
   ├── hotkey.rs     ── Global Alt+V hotkey registration
   ├── tray.rs       ── System tray icon and context menu
-  ├── storage.rs    ── SQLite CRUD, FTS, dedup, settings
-  ├── models.rs     ── ClipboardItem, ItemType, HistoryQuery
+  ├── storage.rs    ── SQLite CRUD, FTS, dedup, settings, templates
+  ├── models.rs     ── ClipboardItem, ItemType, HistoryQuery, Template, settings structs
   ├── commands.rs   ── Tauri IPC command handlers
   └── export.rs     ── Text/image export, backup/restore
 ```

@@ -43,6 +43,7 @@ export default function SearchBar({
     { value: 'text', labelKey: 'search.typeText' },
     { value: 'image', labelKey: 'search.typeImage' },
     { value: 'file', labelKey: 'search.typeFile' },
+    { value: 'template', labelKey: 'search.typeTemplate' },
   ];
 
   const DATE_OPTIONS: { value: DateFilter; labelKey: string }[] = [
@@ -74,12 +75,11 @@ export default function SearchBar({
             <button
               key={opt.value}
               onClick={() => onTypeFilterChange(opt.value)}
-              disabled={disabled}
               className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
                 typeFilter === opt.value
                   ? 'bg-panel-accent text-white'
                   : 'bg-panel-card text-panel-muted hover:text-panel-text'
-              } ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+              }`}
             >
               {t(opt.labelKey)}
             </button>

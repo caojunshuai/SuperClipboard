@@ -27,8 +27,7 @@
   },
   "tab": {
     "all": "全部",
-    "favorites": "收藏",
-    "templates": "模板"
+    "favorites": "收藏"
   },
   "search": {
     "placeholder": "搜索文本内容或备注...",
@@ -36,6 +35,7 @@
     "typeText": "文本",
     "typeImage": "图片",
     "typeFile": "文件",
+    "typeTemplate": "模板",
     "dateAll": "不限",
     "sourceAll": "所有来源",
     "dateToday": "今天",
@@ -156,7 +156,8 @@
     "editContent": "模板内容",
     "noTitle": "无标题",
     "emptyTitle": "暂无模板",
-    "emptyHint": "点击「新建模板」创建第一个模板"
+    "emptyHint": "点击「新建模板」创建第一个模板",
+    "noContent": "右键编辑内容"
   },
   "about": {
     "title": "关于",

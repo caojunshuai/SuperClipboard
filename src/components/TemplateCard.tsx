@@ -127,11 +127,11 @@ export default function TemplateCard({ template, onCopy, onUpdate, onDelete }: P
           </div>
         ) : (
           <>
-            <h3 className="text-sm font-medium text-panel-text mb-1 truncate">
-              {displayTitle}
+            <h3 className={`text-sm font-medium mb-1 truncate text-panel-text ${!displayTitle && 'italic'}`}>
+              {displayTitle || t('template.noTitle')}
             </h3>
-            <p className="text-sm text-panel-muted whitespace-pre-wrap break-words leading-relaxed line-clamp-3">
-              {displayText}
+            <p className={`text-sm whitespace-pre-wrap break-words leading-relaxed line-clamp-3 text-panel-muted ${!displayContent && 'italic'}`}>
+              {displayContent ? displayText : t('template.noContent')}
             </p>
           </>
         )}

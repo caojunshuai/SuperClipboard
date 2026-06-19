@@ -36,16 +36,21 @@ src/                          # React frontend
   types.ts                    # TS types (ClipboardItem, ExportResult, etc.)
   theme.ts                    # applyTheme(), Theme type (dark/light/system)
   components/
-    ClipboardPanel.tsx        # Main panel: search + tabs + card list
-    ClipboardCard.tsx         # Card: expand/collapse, preview, floating collapse button
-    CardList.tsx              # Page-based list, toast notifications, gen counter for race safety
-    SearchBar.tsx             # Search input, type/date filters
+    ClipboardPanel.tsx        # Main panel: search + tabs + card list + template list
+    ClipboardCard.tsx         # Card: expand/collapse, preview, right-click context menu, inline edit
+    CardList.tsx              # Page-based list, toast, gen counter, keyboard nav (↑↓ Enter Delete)
+    SearchBar.tsx             # Search input, type/date filters (incl. template type)
     DatePicker.tsx            # Custom calendar dropdown (replaces native date inputs)
-    TabBar.tsx                # All / Favorites tabs
+    TabBar.tsx                # All / Favorites tabs + source app filter
+    HotkeyInput.tsx           # Key-capture component for settings (formatHotkey helper)
     SettingsPanel.tsx         # Settings form with validation, dirty detection, clear data
     ExportDialog.tsx          # Export text or images
     BackupDialog.tsx          # Backup to zip / Restore from zip with structured summary
     AboutDialog.tsx           # Version info + feedback link
+    TemplateList.tsx          # Template list: add, edit, delete, copy with placeholder substitution
+    TemplateCard.tsx          # Template card: inline edit (title+content), right-click context menu
+    CopyToast.tsx             # Shared toast notification (success/error, fixed bottom-center)
+    ScrollArea.tsx            # Shared scroll container (scrollbar-thin, outline-none)
     cards/
       TextCard.tsx            # Text content (expandable: line-clamp-3 → full)
       ImageCard.tsx           # Image thumbnail (object-contain) + preview button
@@ -138,9 +143,43 @@ src-tauri/src/                # Rust backend
 - **DatePicker:** custom dropdown calendar widget, i18n-aware month/day labels, popup alignment, year 2000–2100 range
 - `buildQuery()` (CardList.tsx) appends ` 23:59:59` to `date_to` for same-day capture
 
-### Context Menu (App.tsx)
-- Intercepts native `contextmenu` event, shows custom "Copy" button for selected text via `navigator.clipboard.writeText`
-- Auto-positions with flip detection (avoids overflow on right/bottom edges). Dismisses on outside click
+### Context Menu (App.tsx + ClipboardCard.tsx + TemplateCard.tsx)
+- **Global (App.tsx):** Intercepts native `contextmenu` event on selected text → "Copy" via `navigator.clipboard.writeText`
+- **Card-level (ClipboardCard):** Right-click text cards → Edit / Copy / Delete menu. Click "Edit" enters inline textarea mode
+- **Template-level (TemplateCard):** Similar right-click menu for template cards
+- All context menus auto-position with flip detection, dismiss on outside click
+
+### Text Editor (ClipboardCard.tsx)
+- Right-click text card → "Edit" → inline `<textarea>` replaces content area
+- Title input + content textarea for templates; textarea only for clipboard text
+- `Ctrl+Enter` save, `Escape` cancel; auto-focus on enter
+- `update_content` Rust command: updates content, char_count, content_hash, created_at
+- Cross-row dedup: if edited content matches another item → merge (delete current, bump existing timestamp)
+- Edit does NOT change `source_app` display; FTS5 index auto-syncs via SQLite trigger
+
+### Fixed Templates (TemplateList.tsx + TemplateCard.tsx)
+- Stored in independent `templates` table (not affected by clipboard history limits)
+- 5 preset templates on first DB init (email signature, greeting, function template, markdown table, address)
+- Appears as type filter button (全部/文本/图片/文件/模板); TemplateList replaces CardList
+- Copy replaces placeholders: `{date}` → 2026-06-20, `{time}` → 15:30:00, `{datetime}` → combined
+- New templates show italic placeholder text ("无标题" / "右键编辑内容")
+- Same copy → toast → close window pattern as clipboard cards (via shared CopyToast)
+
+### Source App Filtering (clipboard.rs + TabBar.tsx)
+- Captures foreground window process name via `GetForegroundWindow` → `GetWindowThreadProcessId` → `OpenProcess` → `QueryFullProcessImageNameW`
+- Filters out `SuperClipboard.exe` itself; only displayed on text cards
+- Dropdown in TabBar (right of Favorites tab), only visible when type filter is "text"
+- Source app filter only applied to query when type is text
+
+### Keyboard Navigation (CardList.tsx)
+- `tabIndex={0}` on list container + `handleListKeyDown` keydown handler
+- ↑↓ navigate items, Enter copy, Delete remove, Esc close, 1-9 quick select
+- `focusIndex` state tracks selection; `scrollIntoView` keeps focused card visible
+- Disabled during inline editing (textarea captures keyboard events)
+
+### Shared Components
+- **CopyToast:** Fixed bottom-center notification (green success / red error), 600ms auto-dismiss then close window
+- **ScrollArea:** `forwardRef` container with `scrollbar-thin outline-none`, supports keyboard nav via `onKeyDown`
 
 ### Clear All Data (storage.rs + commands.rs + SettingsPanel.tsx)
 - `clear_all_data()` in storage.rs: collects image/thumbnail paths, DELETEs all rows from clipboard_items (triggers FTS5 delete), optimizes FTS5, removes files
@@ -165,9 +204,16 @@ src-tauri/src/                # Rust backend
 - DIB: top-down has negative `biHeight`, row 0 = top
 - CF_HDROP: 20-byte `DROPFILES` header + wide-char NUL-terminated paths, double-NUL end
 
+### Adding a template-related feature
+1. Template struct in `models.rs`, CRUD in `storage.rs` (templates table)
+2. Commands in `commands.rs`, register in `lib.rs`
+3. API wrappers in `api.ts`, type in `types.ts`
+4. UI in `TemplateList.tsx` / `TemplateCard.tsx`
+
 ### Database schema changes
 - `ALTER TABLE` in `init_db()` migration section, `.ok()` to ignore idempotency errors
 - FTS5 triggers must be re-created if content schema changes
+- Template table uses separate `templates` table, seeded with presets on first init
 
 ## Debugging Rules
 

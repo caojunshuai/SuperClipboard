@@ -85,6 +85,6 @@ export interface TemplateListResult {
   templates: Template[];
 }
 
-export type TabType = 'all' | 'favorites' | 'templates';
-export type FilterType = 'all' | 'text' | 'image' | 'file';
+export type TabType = 'all' | 'favorites';
+export type FilterType = 'all' | 'text' | 'image' | 'file' | 'template';
 export type DateFilter = 'all' | 'today' | '3days' | '7days' | 'custom';
