@@ -37,7 +37,7 @@ export default function TabBar({ tab, onTabChange, sourceApp, onSourceAppChange,
         {t('tab.favorites')}
       </button>
       {showSourceFilter && sourceApps.length > 0 && (
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-2">
           <div className="w-px h-4 bg-panel-border" />
           <select
             value={sourceApp}
