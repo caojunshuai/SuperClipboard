@@ -133,9 +133,6 @@ export default function TemplateCard({ template, onCopy, onUpdate, onDelete }: P
             <p className="text-sm text-panel-muted whitespace-pre-wrap break-words leading-relaxed line-clamp-3">
               {displayText}
             </p>
-            <div className="flex items-center mt-2 text-xs text-panel-muted">
-              <span>{formatTime(template.updated_at, t)}</span>
-            </div>
           </>
         )}
       </div>
@@ -168,31 +165,4 @@ export default function TemplateCard({ template, onCopy, onUpdate, onDelete }: P
       )}
     </>
   );
-}
-
-function formatTime(dateStr: string, t: (key: string, opts?: Record<string, unknown>) => string): string {
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const targetDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-
-    const hh = String(d.getHours()).padStart(2, '0');
-    const mm = String(d.getMinutes()).padStart(2, '0');
-    const ss = String(d.getSeconds()).padStart(2, '0');
-    const timeStr = `${hh}:${mm}:${ss}`;
-
-    if (targetDay.getTime() === today.getTime()) {
-      return t('time.today', { time: timeStr });
-    } else {
-      const y = d.getFullYear();
-      const mo = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${y}-${mo}-${day} ${timeStr}`;
-    }
-  } catch {
-    return dateStr;
-  }
 }

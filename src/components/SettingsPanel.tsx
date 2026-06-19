@@ -6,6 +6,7 @@ import i18n from '../locales';
 import { applyTheme, type Theme } from '../theme';
 import type { AppSettings } from '../types';
 import HotkeyInput from './HotkeyInput';
+import ScrollArea from './ScrollArea';
 
 interface Props {
   onClose: () => void;
@@ -171,7 +172,7 @@ export default function SettingsPanel({ onClose }: Props) {
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={handleClose}>
       <div className="bg-panel-bg border border-panel-border rounded-xl p-6 w-96 shadow-2xl max-h-[95vh] flex flex-col relative" onClick={e => e.stopPropagation()}>
         <h2 className="text-lg font-semibold text-panel-text mb-4 shrink-0">{t('settings.title')}</h2>
-        <div className="space-y-4 overflow-y-auto flex-1 pr-1 scrollbar-thin">
+        <ScrollArea className="space-y-4 pr-1">
           {/* ====== Appearance ====== */}
           <div>
             <h3 className="text-xs font-semibold text-panel-muted uppercase tracking-wide border-b border-panel-border pb-1 mb-3">{t('settings.categoryAppearance')}</h3>
@@ -347,7 +348,7 @@ export default function SettingsPanel({ onClose }: Props) {
               </div>
             </div>
           </div>
-        </div>
+        </ScrollArea>
         <div className="flex justify-end gap-3 mt-4 shrink-0">
           <button onClick={handleClose} className="px-4 py-2 text-sm text-panel-muted hover:text-panel-text">
             {dirty ? t('settings.cancel') : t('settings.close')}

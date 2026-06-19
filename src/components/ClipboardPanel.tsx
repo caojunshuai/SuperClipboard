@@ -42,20 +42,19 @@ export default function ClipboardPanel({ refreshKey, onClose }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      {tab !== 'templates' && (
-        <SearchBar
-          keyword={keyword}
-          onKeywordChange={setKeyword}
-          typeFilter={typeFilter}
-          onTypeFilterChange={setTypeFilter}
-          dateFilter={dateFilter}
-          onDateFilterChange={setDateFilter}
-          customDateFrom={customDateFrom}
-          onCustomDateFromChange={handleFromChange}
-          customDateTo={customDateTo}
-          onCustomDateToChange={handleToChange}
-        />
-      )}
+      <SearchBar
+        keyword={keyword}
+        onKeywordChange={setKeyword}
+        typeFilter={typeFilter}
+        onTypeFilterChange={setTypeFilter}
+        dateFilter={dateFilter}
+        onDateFilterChange={setDateFilter}
+        customDateFrom={customDateFrom}
+        onCustomDateFromChange={handleFromChange}
+        customDateTo={customDateTo}
+        onCustomDateToChange={handleToChange}
+        disabled={tab === 'templates'}
+      />
       <TabBar
         tab={tab}
         onTabChange={setTab}
@@ -65,7 +64,7 @@ export default function ClipboardPanel({ refreshKey, onClose }: Props) {
         showSourceFilter={typeFilter === 'text'}
       />
       {tab === 'templates' ? (
-        <TemplateList />
+        <TemplateList onClose={onClose} />
       ) : (
         <CardList
           query={{

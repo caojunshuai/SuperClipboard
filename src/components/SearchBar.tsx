@@ -25,6 +25,7 @@ interface Props {
   onCustomDateFromChange: (v: string) => void;
   customDateTo: string;
   onCustomDateToChange: (v: string) => void;
+  disabled?: boolean;
 }
 
 export default function SearchBar({
@@ -33,6 +34,7 @@ export default function SearchBar({
   dateFilter, onDateFilterChange,
   customDateFrom, onCustomDateFromChange,
   customDateTo, onCustomDateToChange,
+  disabled = false,
 }: Props) {
   const { t } = useTranslation();
 
@@ -62,7 +64,8 @@ export default function SearchBar({
           value={keyword}
           onChange={e => onKeywordChange(e.target.value)}
           placeholder={t('search.placeholder')}
-          className="w-full pl-9 pr-3 py-2 bg-panel-card border border-panel-border rounded-lg text-sm text-panel-text placeholder-panel-muted focus:outline-none focus:border-panel-accent"
+          disabled={disabled}
+          className={`w-full pl-9 pr-3 py-2 bg-panel-card border border-panel-border rounded-lg text-sm text-panel-text placeholder-panel-muted focus:outline-none focus:border-panel-accent ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
         />
       </div>
       <div className="flex gap-2">
@@ -71,11 +74,12 @@ export default function SearchBar({
             <button
               key={opt.value}
               onClick={() => onTypeFilterChange(opt.value)}
+              disabled={disabled}
               className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
                 typeFilter === opt.value
                   ? 'bg-panel-accent text-white'
                   : 'bg-panel-card text-panel-muted hover:text-panel-text'
-              }`}
+              } ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
             >
               {t(opt.labelKey)}
             </button>
@@ -85,7 +89,8 @@ export default function SearchBar({
         <select
           value={dateFilter}
           onChange={e => onDateFilterChange(e.target.value as DateFilter)}
-          className="bg-panel-card border border-panel-border rounded-md text-xs text-panel-text px-2 py-1 focus:outline-none focus:border-panel-accent"
+          disabled={disabled}
+          className={`bg-panel-card border border-panel-border rounded-md text-xs text-panel-text px-2 py-1 focus:outline-none focus:border-panel-accent ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
         >
           {DATE_OPTIONS.map(opt => (
             <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>

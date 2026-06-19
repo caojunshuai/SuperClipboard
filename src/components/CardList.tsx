@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getClipboardHistory, copyToClipboard, autoPaste, togglePin, toggleFavorite, deleteClipboardItem, getSettings } from '../api';
 import ClipboardCard from './ClipboardCard';
+import CopyToast from './CopyToast';
+import ScrollArea from './ScrollArea';
 import type { ClipboardItem, HistoryQuery } from '../types';
 import { getDateRange } from '../utils/format';
 
@@ -319,19 +321,8 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
 
   return (
     <>
-      <div
-        ref={listRef}
-        tabIndex={0}
-        onKeyDown={handleListKeyDown}
-        className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin outline-none focus-visible:outline-none"
-      >
-        {toast && (
-          <div className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg text-sm shadow-lg transition-all ${
-            toast.type === 'error' ? 'bg-red-500/90 text-white' : 'bg-green-500 text-white'
-          }`}>
-            {toast.message}
-          </div>
-        )}
+      <ScrollArea ref={listRef} onKeyDown={handleListKeyDown}>
+        {toast && <CopyToast message={toast.message} type={toast.type} />}
 
         {items.length === 0 && !loading && (
           <div className="flex flex-col items-center justify-center py-16 text-panel-muted">
@@ -363,7 +354,7 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
             }}
           />
         ))}
-      </div>
+      </ScrollArea>
       {footer}
     </>
   );

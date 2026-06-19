@@ -1,13 +1,22 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Template } from '../types';
 import { getTemplates, addTemplate, updateTemplate, deleteTemplate } from '../api';
 import TemplateCard from './TemplateCard';
+import CopyToast from './CopyToast';
+import ScrollArea from './ScrollArea';
 
-export default function TemplateList() {
+interface Props {
+  onClose: () => void;
+}
+
+export default function TemplateList({ onClose }: Props) {
   const { t } = useTranslation();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const tRef = useRef(t);
+  tRef.current = t;
 
   const fetchTemplates = useCallback(async () => {
     try {
@@ -34,7 +43,16 @@ export default function TemplateList() {
       .replace(/\{time\}/g, timeStr)
       .replace(/\{datetime\}/g, `${dateStr} ${timeStr}`);
 
-    navigator.clipboard.writeText(text).catch(() => {
+    // Same copy → toast → close pattern as CardList
+    const done = () => {
+      setToast({ message: tRef.current('list.copied'), type: 'success' });
+      setTimeout(() => {
+        setToast(null);
+        onClose();
+      }, 600);
+    };
+
+    navigator.clipboard.writeText(text).then(done).catch(() => {
       // fallback for older browsers
       const ta = document.createElement('textarea');
       ta.value = text;
@@ -42,13 +60,14 @@ export default function TemplateList() {
       ta.select();
       document.execCommand('copy');
       document.body.removeChild(ta);
+      done();
     });
-  }, []);
+  }, [onClose]);
 
   const handleAdd = useCallback(async () => {
     try {
       const tmpl = await addTemplate('', '');
-      setTemplates(prev => [...prev, tmpl]);
+      setTemplates(prev => [tmpl, ...prev]);
     } catch {
       // ignore
     }
@@ -79,7 +98,7 @@ export default function TemplateList() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-3 space-y-2">
+    <ScrollArea>
       {/* New template button */}
       <button
         onClick={handleAdd}
@@ -104,6 +123,8 @@ export default function TemplateList() {
           />
         ))
       )}
-    </div>
+
+      {toast && <CopyToast message={toast.message} type={toast.type} />}
+    </ScrollArea>
   );
 }
