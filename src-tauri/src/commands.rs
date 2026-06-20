@@ -17,6 +17,8 @@ pub fn copy_to_clipboard(id: i64) -> Result<(), String> {
         ItemType::Text => {
             if let Some(ref text) = item.content {
                 set_clipboard_text(text)?;
+                // Increment copy count for this text item
+                let _ = storage::increment_copy_count(id);
             }
         }
         ItemType::Image => {

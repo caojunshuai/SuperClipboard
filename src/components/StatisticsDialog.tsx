@@ -187,6 +187,30 @@ export default function StatisticsDialog({ onClose }: Props) {
                 )}
               </div>
 
+              {/* ── Top copied ────────────────────────────── */}
+              <div>
+                <h3 className="text-sm font-semibold text-panel-text mb-3">{t('statistics.topCopied')}</h3>
+                {stats.top_copied && stats.top_copied.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {stats.top_copied.map((item, i) => (
+                      <div key={i} className="flex items-center gap-2 bg-panel-card rounded-lg px-3 py-2">
+                        <span className="text-xs font-medium text-panel-muted w-5 shrink-0">
+                          {i + 1}
+                        </span>
+                        <span className="text-xs text-panel-text flex-1 truncate" title={item.preview}>
+                          {item.preview}
+                        </span>
+                        <span className="text-xs text-blue-400 font-medium shrink-0">
+                          ×{item.copy_count}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-panel-muted">{t('statistics.emptyData')}</p>
+                )}
+              </div>
+
               {/* ── Storage ────────────────────────────────── */}
               <div className="pb-2">
                 <h3 className="text-sm font-semibold text-panel-text mb-3">{t('statistics.storageTitle')}</h3>

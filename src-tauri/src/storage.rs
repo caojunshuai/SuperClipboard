@@ -67,6 +67,8 @@ pub fn init_db(app_data_dir: &std::path::Path) -> SqliteResult<()> {
     conn.execute("CREATE INDEX IF NOT EXISTS idx_dedup ON clipboard_items(type, content_hash)", []).ok();
     // Migration: add note column
     conn.execute("ALTER TABLE clipboard_items ADD COLUMN note TEXT", []).ok();
+    // Migration: add copy_count column
+    conn.execute("ALTER TABLE clipboard_items ADD COLUMN copy_count INTEGER DEFAULT 0", []).ok();
 
     // Templates table
     conn.execute_batch("
@@ -122,9 +124,9 @@ pub fn upsert_item(item: &ClipboardItem) -> SqliteResult<(i64, bool)> {
             params![item.item_type.as_str(), hash],
             |row| row.get(0),
         ).optional()? {
-            // Duplicate found — just bump timestamps to bring it to the top
+            // Duplicate found — bump timestamps and increment copy count
             conn.execute(
-                "UPDATE clipboard_items SET updated_at = datetime('now', 'localtime'), created_at = datetime('now', 'localtime') WHERE id = ?1",
+                "UPDATE clipboard_items SET updated_at = datetime('now', 'localtime'), created_at = datetime('now', 'localtime'), copy_count = copy_count + 1 WHERE id = ?1",
                 params![existing_id],
             )?;
             return Ok((existing_id, false));
@@ -215,7 +217,7 @@ pub fn query_history(query: &HistoryQuery) -> SqliteResult<HistoryResult> {
     let limit_idx = bind_values.len() + 1;
     let offset_idx = bind_values.len() + 2;
     let query_sql = format!(
-        "SELECT id, type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, is_pinned, is_favorite, metadata, content_hash, note, created_at, updated_at
+        "SELECT id, type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, is_pinned, is_favorite, metadata, content_hash, note, created_at, updated_at, copy_count
          FROM clipboard_items {}
          ORDER BY is_pinned DESC, created_at DESC
          LIMIT ?{} OFFSET ?{}",
@@ -247,6 +249,7 @@ pub fn query_history(query: &HistoryQuery) -> SqliteResult<HistoryResult> {
             created_at: row.get(14)?,
             updated_at: row.get(15)?,
             image_exists: true,
+            copy_count: row.get(16)?,
         })
     })?.filter_map(|r| r.ok()).collect();
 
@@ -331,7 +334,7 @@ pub fn update_note(id: i64, note: Option<String>) -> SqliteResult<()> {
 pub fn get_item(id: i64) -> SqliteResult<Option<ClipboardItem>> {
     let conn = get_conn().lock().unwrap();
     let mut stmt = conn.prepare(
-        "SELECT id, type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, is_pinned, is_favorite, metadata, content_hash, note, created_at, updated_at
+        "SELECT id, type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, is_pinned, is_favorite, metadata, content_hash, note, created_at, updated_at, copy_count
          FROM clipboard_items WHERE id = ?1"
     )?;
     let mut rows = stmt.query_map(params![id], |row| {
@@ -353,9 +356,21 @@ pub fn get_item(id: i64) -> SqliteResult<Option<ClipboardItem>> {
             created_at: row.get(14)?,
             updated_at: row.get(15)?,
             image_exists: true,
+            copy_count: row.get(16)?,
         })
     })?;
     Ok(rows.next().transpose()?)
+}
+
+/// Increment the copy_count for a clipboard item.
+/// Used when the user explicitly copies an item from the panel.
+pub fn increment_copy_count(id: i64) -> SqliteResult<()> {
+    let conn = get_conn().lock().unwrap();
+    conn.execute(
+        "UPDATE clipboard_items SET copy_count = copy_count + 1, updated_at = datetime('now', 'localtime') WHERE id = ?1",
+        params![id],
+    )?;
+    Ok(())
 }
 
 pub fn delete_item(id: i64) -> SqliteResult<()> {
@@ -422,7 +437,7 @@ pub fn cleanup_old_items(max_items: i64, max_images: i64) -> SqliteResult<(usize
 pub fn get_all_items_for_backup() -> SqliteResult<Vec<ClipboardItem>> {
     let conn = get_conn().lock().unwrap();
     let mut stmt = conn.prepare(
-        "SELECT id, type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, is_pinned, is_favorite, metadata, content_hash, note, created_at, updated_at
+        "SELECT id, type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, is_pinned, is_favorite, metadata, content_hash, note, created_at, updated_at, copy_count
          FROM clipboard_items ORDER BY id"
     )?;
     let items = stmt.query_map([], |row| {
@@ -444,6 +459,7 @@ pub fn get_all_items_for_backup() -> SqliteResult<Vec<ClipboardItem>> {
             created_at: row.get(14)?,
             updated_at: row.get(15)?,
             image_exists: true,
+            copy_count: row.get(16)?,
         })
     })?.filter_map(|r| r.ok()).collect();
     Ok(items)
@@ -676,6 +692,25 @@ pub fn get_statistics(app_data_dir: &std::path::Path) -> Result<Statistics, Stri
         std::fs::metadata(&db_path).map(|m| m.len()).unwrap_or(0)
     };
 
+    // Top copied text items (top 10)
+    let top_copied: Vec<TopCopiedItem> = {
+        let mut stmt = conn.prepare(
+            "SELECT SUBSTR(content, 1, 50) AS preview, copy_count
+             FROM clipboard_items
+             WHERE type = 'text' AND copy_count > 0
+             ORDER BY copy_count DESC
+             LIMIT 10"
+        ).map_err(|e| e.to_string())?;
+        let result: Vec<TopCopiedItem> = stmt.query_map([], |row| {
+            Ok(TopCopiedItem {
+                preview: row.get::<_, String>(0)?,
+                copy_count: row.get::<_, i64>(1)?,
+            })
+        }).map_err(|e| e.to_string())?
+        .filter_map(|r| r.ok()).collect();
+        result
+    };
+
     Ok(Statistics {
         total_items,
         today_hourly,
@@ -685,6 +720,7 @@ pub fn get_statistics(app_data_dir: &std::path::Path) -> Result<Statistics, Stri
         storage_text_bytes,
         storage_image_bytes,
         storage_db_bytes,
+        top_copied,
     })
 }
 

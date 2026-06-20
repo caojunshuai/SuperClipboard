@@ -323,6 +323,7 @@ pub fn run_monitor(
                 created_at: String::new(),
                 updated_at: String::new(),
                 image_exists: true,
+                copy_count: 0,
             })
         } else if let Some(paths) = win::get_clipboard_file_list() {
             Some(ClipboardItem {
@@ -343,6 +344,7 @@ pub fn run_monitor(
                 created_at: String::new(),
                 updated_at: String::new(),
                 image_exists: true,
+                copy_count: 0,
             })
         } else if let Some(text) = win::get_clipboard_text() {
             if text.trim().is_empty() {
@@ -367,6 +369,7 @@ pub fn run_monitor(
                     created_at: String::new(),
                     updated_at: String::new(),
                     image_exists: true,
+                    copy_count: 0,
                 })
             }
         } else {

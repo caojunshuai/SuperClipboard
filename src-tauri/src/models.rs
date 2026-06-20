@@ -51,6 +51,9 @@ pub struct ClipboardItem {
     /// Not persisted to DB — computed at query time.
     #[serde(default = "default_true")]
     pub image_exists: bool,
+    /// How many times this text item has been copied (via panel or clipboard monitor dedup).
+    #[serde(default)]
+    pub copy_count: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -162,6 +165,8 @@ pub struct Statistics {
     pub storage_image_bytes: u64,
     /// Database file size in bytes.
     pub storage_db_bytes: u64,
+    /// Top 10 most-copied text items.
+    pub top_copied: Vec<TopCopiedItem>,
 }
 
 /// Per-source-app count for statistics.
@@ -169,6 +174,14 @@ pub struct Statistics {
 pub struct SourceCount {
     pub app: String,
     pub count: i64,
+}
+
+/// Top copied text item for statistics.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TopCopiedItem {
+    /// Truncated content preview (first ~50 chars).
+    pub preview: String,
+    pub copy_count: i64,
 }
 
 fn default_language() -> String {

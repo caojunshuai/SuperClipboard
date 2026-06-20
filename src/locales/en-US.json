@@ -191,6 +191,7 @@
     "storageText": "Text",
     "storageImage": "Images",
     "storageDb": "Database",
+    "topCopied": "Top 10 Most Copied",
     "emptyData": "No statistics available",
     "loading": "Loading...",
     "close": "Close"

@@ -15,6 +15,7 @@ export interface ClipboardItem {
   metadata: string | null;
   note: string | null;
   image_exists: boolean;
+  copy_count: number;
   created_at: string;
   updated_at: string;
 }
@@ -94,13 +95,19 @@ export interface SourceCount {
   count: number;
 }
 
+export interface TopCopiedItem {
+  preview: string;
+  copy_count: number;
+}
+
 export interface Statistics {
   total_items: number;
-  today_hourly: number[];         // length 24, index = hour
-  week_daily: [string, number][];  // (date_label, count)
+  today_hourly: number[];
+  week_daily: [string, number][];
   month_daily: [string, number][];
   source_stats: SourceCount[];
   storage_text_bytes: number;
   storage_image_bytes: number;
   storage_db_bytes: number;
+  top_copied: TopCopiedItem[];
 }
