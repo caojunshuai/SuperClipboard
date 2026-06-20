@@ -167,6 +167,26 @@
     "close": "关闭",
     "feedback": "💬 意见反馈"
   },
+  "statistics": {
+    "title": "数据统计",
+    "overviewTotal": "总条目",
+    "overviewToday": "今日",
+    "overviewWeek": "本周",
+    "overviewMonth": "本月",
+    "trendTitle": "复制趋势",
+    "trendTabToday": "今日",
+    "trendTabWeek": "本周",
+    "trendTabMonth": "本月",
+    "sourceTitle": "来源应用占比",
+    "sourceOther": "其他",
+    "storageTitle": "存储空间",
+    "storageText": "文本",
+    "storageImage": "图片",
+    "storageDb": "数据库",
+    "emptyData": "暂无统计数据",
+    "loading": "加载中...",
+    "close": "关闭"
+  },
   "lang": {
     "zh-CN": "中文",
     "en-US": "English"

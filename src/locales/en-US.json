@@ -175,6 +175,26 @@
     "close": "Close",
     "feedback": "💬 Feedback"
   },
+  "statistics": {
+    "title": "Statistics",
+    "overviewTotal": "Total Items",
+    "overviewToday": "Today",
+    "overviewWeek": "This Week",
+    "overviewMonth": "This Month",
+    "trendTitle": "Copy Trends",
+    "trendTabToday": "Today",
+    "trendTabWeek": "This Week",
+    "trendTabMonth": "This Month",
+    "sourceTitle": "Source Apps",
+    "sourceOther": "Others",
+    "storageTitle": "Storage",
+    "storageText": "Text",
+    "storageImage": "Images",
+    "storageDb": "Database",
+    "emptyData": "No statistics available",
+    "loading": "Loading...",
+    "close": "Close"
+  },
   "lang": {
     "zh-CN": "中文",
     "en-US": "English"
