@@ -1,3 +1,41 @@
+## 🎉 v0.9.0 — Statistics, Templates, Text Editor & More
+
+> Released 2026-06-20 · 50+ commits since v0.3.0
+
+### ✨ New Features
+
+- **Statistics Panel** — Overview cards, copy trend charts (recharts), source app breakdown, top 10 most-copied, storage usage. 📊 in title bar.
+- **Copy Count Tracking** — Each item tracks how many times it's been copied. Top 10 in statistics.
+- **Fixed Templates** — 5 presets + custom templates with `{date}`/`{time}`/`{datetime}` placeholders.
+- **Inline Text Editor** — Right-click text → Edit, Ctrl+Enter save, auto cross-row dedup.
+- **Source App Filter** — Filter clips by source application (Chrome, VS Code, WeChat, etc.).
+- **Keyboard Navigation** — ↑↓ move, Enter copy, Delete remove, 1-9 quick select.
+- **Customizable Hotkey** — Capture any key combination in Settings.
+- **Theme Switching** — Dark / Light / Follow System.
+- **Single-Instance Detection** — Second launch activates existing window.
+- **Granular Clear Data** — Per-type clearing (Text/Image/File/Template) with confirmation.
+- **Custom DatePicker** — Calendar dropdown replacing native date inputs.
+- **Thumbnail Quality** — Lanczos3 resampling, full aspect ratio.
+
+### 🔧 Improvements
+
+- Type filter changed from buttons to dropdown, with label prefixes (类型：/ 时间：).
+- Settings reorganized into categorized sections.
+- SVG icons replacing emoji for consistent rendering.
+- Card action icons hidden until hover.
+- Tray menu labels update with language changes.
+- Copy count now starts at 1 for new items (was 0).
+
+### 🐛 Fixes
+
+- Type filter no longer disabled in template view.
+- Page refresh after filter change and delete operations.
+- Language/theme correctly reverted on settings discard.
+- Own exe filtered from source app list.
+- Various pagination and backup dialog refresh fixes.
+
+---
+
 ## 🎉 v0.3.0 — Pagination, Date Filters & Settings
 
 > Released 2026-06-12 · 6 commits since v0.2.0
