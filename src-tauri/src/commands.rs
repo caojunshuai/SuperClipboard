@@ -247,6 +247,12 @@ pub fn get_source_apps() -> Result<Vec<String>, String> {
     storage::get_source_apps().map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+pub fn get_statistics() -> Result<Statistics, String> {
+    let dir = crate::APP_DATA_DIR.get().ok_or("app data dir not initialized")?;
+    storage::get_statistics(dir)
+}
+
 #[cfg(target_os = "windows")]
 fn set_clipboard_text(text: &str) -> Result<(), String> {
     use std::ffi::OsStr;

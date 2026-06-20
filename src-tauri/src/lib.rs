@@ -115,6 +115,7 @@ pub fn run() {
             commands::update_settings,
             commands::get_item_count,
             commands::get_source_apps,
+            commands::get_statistics,
             commands::hide_window,
             commands::start_drag,
             commands::read_image_base64,
