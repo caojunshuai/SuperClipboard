@@ -69,7 +69,8 @@ export default function SearchBar({
           className={`w-full pl-9 pr-3 py-2 bg-panel-card border border-panel-border rounded-lg text-sm text-panel-text placeholder-panel-muted focus:outline-none focus:border-panel-accent ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
         />
       </div>
-      <div className="flex gap-2">
+      <div className="flex items-center gap-2">
+        <label className="text-xs text-panel-muted shrink-0">{t('search.typeLabel')}</label>
         <select
           value={typeFilter}
           onChange={e => onTypeFilterChange(e.target.value as FilterType)}
@@ -80,7 +81,8 @@ export default function SearchBar({
             <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
           ))}
         </select>
-        <div className="w-px bg-panel-border" />
+        <div className="w-px h-4 bg-panel-border" />
+        <label className="text-xs text-panel-muted shrink-0">{t('search.dateLabel')}</label>
         <select
           value={dateFilter}
           onChange={e => onDateFilterChange(e.target.value as DateFilter)}
