@@ -74,8 +74,7 @@ export default function SearchBar({
         <select
           value={typeFilter}
           onChange={e => onTypeFilterChange(e.target.value as FilterType)}
-          disabled={disabled}
-          className={`bg-panel-card border border-panel-border rounded-md text-xs text-panel-text px-2 py-1 focus:outline-none focus:border-panel-accent ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+          className="bg-panel-card border border-panel-border rounded-md text-xs text-panel-text px-2 py-1 focus:outline-none focus:border-panel-accent"
         >
           {TYPE_OPTIONS.map(opt => (
             <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
