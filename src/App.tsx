@@ -132,10 +132,10 @@ function App() {
                   title={t('backup.title')}><SvgIcon raw={backupSvg} className="w-4 h-4 block" /></button>
           <button onClick={() => setDialog('settings')} className="p-1 text-panel-muted hover:text-panel-text transition-colors"
                   title={t('settings.title')}><SvgIcon raw={settingsSvg} className="w-4 h-4 block" /></button>
-          <button onClick={() => setDialog('about')} className="p-1 text-panel-muted hover:text-panel-text transition-colors"
-                  title={t('about.title')}><SvgIcon raw={infoSvg} className="w-4 h-4 block" /></button>
           <button onClick={() => setDialog('statistics')} className="p-1 text-panel-muted hover:text-panel-text transition-colors"
                   title={t('statistics.title')}><SvgIcon raw={chartSvg} className="w-4 h-4 block" /></button>
+          <button onClick={() => setDialog('about')} className="p-1 text-panel-muted hover:text-panel-text transition-colors"
+                  title={t('about.title')}><SvgIcon raw={infoSvg} className="w-4 h-4 block" /></button>
           <button onClick={handleClose} className="p-1 text-panel-muted hover:text-red-400 transition-colors"
                   title={t('about.close')}><SvgIcon raw={closeSvg} className="w-4 h-4 block" /></button>
         </div>
