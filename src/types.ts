@@ -88,3 +88,19 @@ export interface TemplateListResult {
 export type TabType = 'all' | 'favorites';
 export type FilterType = 'all' | 'text' | 'image' | 'file' | 'template';
 export type DateFilter = 'all' | 'today' | '3days' | '7days' | 'custom';
+
+export interface SourceCount {
+  app: string;
+  count: number;
+}
+
+export interface Statistics {
+  total_items: number;
+  today_hourly: number[];         // length 24, index = hour
+  week_daily: [string, number][];  // (date_label, count)
+  month_daily: [string, number][];
+  source_stats: SourceCount[];
+  storage_text_bytes: number;
+  storage_image_bytes: number;
+  storage_db_bytes: number;
+}
