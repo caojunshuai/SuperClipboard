@@ -98,7 +98,7 @@ export default function StatisticsDialog({ onClose }: Props) {
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
       <div
-        className="bg-panel-bg border border-panel-border rounded-xl p-6 w-[680px] max-h-[90vh] shadow-2xl flex flex-col"
+        className="bg-panel-bg border border-panel-border rounded-xl p-6 w-[calc(100%-2rem)] max-w-[680px] max-h-[90vh] shadow-2xl flex flex-col"
         onClick={e => e.stopPropagation()}
       >
         {/* Title */}
@@ -112,7 +112,7 @@ export default function StatisticsDialog({ onClose }: Props) {
           ) : (
             <>
               {/* ── Overview cards ─────────────────────────── */}
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 min-[480px]:grid-cols-4 gap-3">
                 {[
                   { label: t('statistics.overviewTotal'), value: stats.total_items },
                   { label: t('statistics.overviewToday'), value: todayTotal },
@@ -162,31 +162,6 @@ export default function StatisticsDialog({ onClose }: Props) {
                 )}
               </div>
 
-              {/* ── Source apps ────────────────────────────── */}
-              <div>
-                <h3 className="text-sm font-semibold text-panel-text mb-3">{t('statistics.sourceTitle')}</h3>
-                {sourceData.length > 0 ? (
-                  <div className="space-y-2">
-                    {sourceData.map(s => (
-                      <div key={s.name} className="flex items-center gap-3">
-                        <span className="text-xs text-panel-text w-28 truncate text-right shrink-0" title={s.name}>{s.name}</span>
-                        <div className="flex-1 bg-panel-card rounded-full h-5 overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-blue-500/60 transition-all"
-                            style={{ width: `${s.pct}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-panel-muted w-12 shrink-0">
-                          {s.count}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-panel-muted">{t('statistics.emptyData')}</p>
-                )}
-              </div>
-
               {/* ── Top copied ────────────────────────────── */}
               <div>
                 <h3 className="text-sm font-semibold text-panel-text mb-3">{t('statistics.topCopied')}</h3>
@@ -202,6 +177,31 @@ export default function StatisticsDialog({ onClose }: Props) {
                         </span>
                         <span className="text-xs text-blue-400 font-medium shrink-0">
                           ×{item.copy_count}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-panel-muted">{t('statistics.emptyData')}</p>
+                )}
+              </div>
+
+              {/* ── Source apps ────────────────────────────── */}
+              <div>
+                <h3 className="text-sm font-semibold text-panel-text mb-3">{t('statistics.sourceTitle')}</h3>
+                {sourceData.length > 0 ? (
+                  <div className="space-y-2">
+                    {sourceData.map(s => (
+                      <div key={s.name} className="flex items-center gap-2">
+                        <span className="text-xs text-panel-text w-20 min-[480px]:w-28 truncate text-right shrink-0" title={s.name}>{s.name}</span>
+                        <div className="flex-1 bg-panel-card rounded-full h-5 overflow-hidden min-w-0">
+                          <div
+                            className="h-full rounded-full bg-blue-500/60 transition-all"
+                            style={{ width: `${s.pct}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-panel-muted w-9 min-[480px]:w-12 shrink-0 text-right">
+                          {s.count}
                         </span>
                       </div>
                     ))}
