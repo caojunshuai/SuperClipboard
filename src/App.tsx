@@ -6,6 +6,7 @@ import ExportDialog from './components/ExportDialog';
 import BackupDialog from './components/BackupDialog';
 import SettingsPanel from './components/SettingsPanel';
 import AboutDialog from './components/AboutDialog';
+import StatisticsDialog from './components/StatisticsDialog';
 import { applyTheme } from './theme';
 import i18n from './locales';
 import SvgIcon from './components/SvgIcon';
@@ -15,8 +16,9 @@ import backupSvg from './assets/icons/backup.svg?raw';
 import settingsSvg from './assets/icons/settings.svg?raw';
 import infoSvg from './assets/icons/info.svg?raw';
 import closeSvg from './assets/icons/close.svg?raw';
+import chartSvg from './assets/icons/chart.svg?raw';
 
-type DialogType = 'none' | 'export' | 'backup' | 'settings' | 'about';
+type DialogType = 'none' | 'export' | 'backup' | 'settings' | 'about' | 'statistics';
 
 interface ContextMenuState {
   left: number;
@@ -132,6 +134,8 @@ function App() {
                   title={t('settings.title')}><SvgIcon raw={settingsSvg} className="w-4 h-4 block" /></button>
           <button onClick={() => setDialog('about')} className="p-1 text-panel-muted hover:text-panel-text transition-colors"
                   title={t('about.title')}><SvgIcon raw={infoSvg} className="w-4 h-4 block" /></button>
+          <button onClick={() => setDialog('statistics')} className="p-1 text-panel-muted hover:text-panel-text transition-colors"
+                  title={t('statistics.title')}><SvgIcon raw={chartSvg} className="w-4 h-4 block" /></button>
           <button onClick={handleClose} className="p-1 text-panel-muted hover:text-red-400 transition-colors"
                   title={t('about.close')}><SvgIcon raw={closeSvg} className="w-4 h-4 block" /></button>
         </div>
@@ -147,6 +151,7 @@ function App() {
       {dialog === 'backup' && <BackupDialog onClose={() => { setDialog('none'); setRefreshKey(k => k + 1); }} />}
       {dialog === 'settings' && <SettingsPanel onClose={() => { setDialog('none'); setRefreshKey(k => k + 1); }} />}
       {dialog === 'about' && <AboutDialog onClose={() => setDialog('none')} />}
+      {dialog === 'statistics' && <StatisticsDialog onClose={() => setDialog('none')} />}
 
       {/* Custom context menu — Copy only */}
       {contextMenu && (
