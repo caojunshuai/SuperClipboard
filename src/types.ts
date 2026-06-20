@@ -108,6 +108,11 @@ export interface TypeCounts {
   total: number;
 }
 
+export interface TabCounts {
+  all: number;
+  favorites: number;
+}
+
 export interface Statistics {
   total_items: number;
   today_hourly: number[];

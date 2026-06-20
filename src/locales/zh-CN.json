@@ -39,6 +39,7 @@
     "typeTemplate": "模板",
     "dateLabel": "时间：",
     "dateAll": "所有时间",
+    "sourceLabel": "来源：",
     "sourceAll": "所有来源",
     "dateToday": "今天",
     "date3Days": "近3天",

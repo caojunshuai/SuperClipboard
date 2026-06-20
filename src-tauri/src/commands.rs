@@ -220,6 +220,11 @@ pub fn get_item_counts() -> Result<TypeCounts, String> {
 }
 
 #[tauri::command]
+pub fn get_tab_counts(query: HistoryQuery) -> Result<TabCounts, String> {
+    storage::get_tab_counts(&query)
+}
+
+#[tauri::command]
 pub fn get_settings() -> Result<AppSettings, String> {
     storage::get_all_settings().map_err(|e| e.to_string())
 }

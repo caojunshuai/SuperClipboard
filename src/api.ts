@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import type { HistoryQuery, HistoryResult, ClipboardItem, AppSettings, BuildInfo, ExportResult, BackupResult, RestoreResult, Template, TemplateListResult, Statistics, TypeCounts } from './types';
+import type { HistoryQuery, HistoryResult, ClipboardItem, AppSettings, BuildInfo, ExportResult, BackupResult, RestoreResult, Template, TemplateListResult, Statistics, TypeCounts, TabCounts } from './types';
 
 export async function getClipboardHistory(query: HistoryQuery): Promise<HistoryResult> {
   return invoke('get_clipboard_history', { query });
@@ -64,6 +64,16 @@ export async function getSourceApps(): Promise<string[]> {
 
 export async function getItemCounts(): Promise<TypeCounts> {
   return invoke('get_item_counts');
+}
+
+export async function getTabCounts(query: {
+  keyword: string | null;
+  item_type: string;
+  date_from: string | null;
+  date_to: string | null;
+  source_app: string | null;
+}): Promise<TabCounts> {
+  return invoke('get_tab_counts', { query });
 }
 
 export async function getStatistics(): Promise<Statistics> {
