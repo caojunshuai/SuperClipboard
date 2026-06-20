@@ -144,6 +144,33 @@ pub struct TemplateListResult {
     pub templates: Vec<Template>,
 }
 
+/// Statistics for the statistics panel.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Statistics {
+    pub total_items: i64,
+    /// Copy count per hour for today (index 0 = hour 0).
+    pub today_hourly: Vec<i64>,
+    /// (date_label, count) for this week.
+    pub week_daily: Vec<(String, i64)>,
+    /// (date_label, count) for this month.
+    pub month_daily: Vec<(String, i64)>,
+    /// Source app stats, ordered by count descending.
+    pub source_stats: Vec<SourceCount>,
+    /// Text content storage in bytes.
+    pub storage_text_bytes: u64,
+    /// Image + thumbnail file storage in bytes.
+    pub storage_image_bytes: u64,
+    /// Database file size in bytes.
+    pub storage_db_bytes: u64,
+}
+
+/// Per-source-app count for statistics.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SourceCount {
+    pub app: String,
+    pub count: i64,
+}
+
 fn default_language() -> String {
     // Empty = not set yet; frontend will detect system locale on first launch
     String::new()
