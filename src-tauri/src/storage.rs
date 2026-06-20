@@ -695,7 +695,7 @@ pub fn get_statistics(app_data_dir: &std::path::Path) -> Result<Statistics, Stri
     // Top copied text items (top 10)
     let top_copied: Vec<TopCopiedItem> = {
         let mut stmt = conn.prepare(
-            "SELECT SUBSTR(content, 1, 50) AS preview, copy_count
+            "SELECT content, copy_count
              FROM clipboard_items
              WHERE type = 'text' AND copy_count > 0
              ORDER BY copy_count DESC
