@@ -104,7 +104,7 @@ export default function StatisticsDialog({ onClose }: Props) {
         {/* Title */}
         <h2 className="text-lg font-semibold text-panel-text mb-4">{t('statistics.title')}</h2>
 
-        <ScrollArea className="pr-0.5 -mr-3 space-y-5">
+        <ScrollArea className="pr-6 space-y-5">
           {loading ? (
             <p className="text-sm text-panel-muted text-center py-8">{t('statistics.loading')}</p>
           ) : !stats ? (
