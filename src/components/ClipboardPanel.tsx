@@ -3,8 +3,8 @@ import SearchBar from './SearchBar';
 import TabBar from './TabBar';
 import CardList from './CardList';
 import TemplateList from './TemplateList';
-import type { FilterType, DateFilter, TabType, TabCounts } from '../types';
-import { getSourceApps, getTabCounts } from '../api';
+import type { FilterType, DateFilter, TabType } from '../types';
+import { getSourceApps } from '../api';
 
 function todayStr(): string {
   const d = new Date();
@@ -25,22 +25,10 @@ export default function ClipboardPanel({ refreshKey, onClose }: Props) {
   const [customDateTo, setCustomDateTo] = useState(todayStr());
   const [sourceApp, setSourceApp] = useState('all');
   const [sourceApps, setSourceApps] = useState<string[]>([]);
-  const [tabCounts, setTabCounts] = useState<TabCounts>({ all: 0, favorites: 0 });
 
   useEffect(() => {
     getSourceApps().then(setSourceApps).catch(() => {});
   }, [refreshKey]);
-
-  // Fetch tab counts whenever filters change
-  useEffect(() => {
-    getTabCounts({
-      keyword: keyword || null,
-      item_type: typeFilter,
-      date_from: dateFilter === 'custom' ? customDateFrom : dateFilter,
-      date_to: dateFilter === 'custom' ? customDateTo : null,
-      source_app: typeFilter === 'text' && sourceApp !== 'all' ? sourceApp : null,
-    }).then(setTabCounts).catch(() => {});
-  }, [keyword, typeFilter, dateFilter, customDateFrom, customDateTo, sourceApp]);
 
   const handleFromChange = useCallback((v: string) => {
     setCustomDateFrom(v);
@@ -75,7 +63,6 @@ export default function ClipboardPanel({ refreshKey, onClose }: Props) {
           onSourceAppChange={setSourceApp}
           sourceApps={sourceApps}
           showSourceFilter={typeFilter === 'text'}
-          tabCounts={tabCounts}
         />
       )}
       {typeFilter === 'template' ? (

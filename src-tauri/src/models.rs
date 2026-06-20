@@ -194,13 +194,6 @@ pub struct TypeCounts {
     pub total: i64,
 }
 
-/// Counts for the "All" and "Favorites" tabs, respecting current filters.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TabCounts {
-    pub all: i64,
-    pub favorites: i64,
-}
-
 fn default_language() -> String {
     // Empty = not set yet; frontend will detect system locale on first launch
     String::new()

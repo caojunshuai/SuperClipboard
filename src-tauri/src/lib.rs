@@ -117,7 +117,6 @@ pub fn run() {
             commands::get_item_count,
             commands::get_source_apps,
             commands::get_item_counts,
-            commands::get_tab_counts,
             commands::get_statistics,
             commands::hide_window,
             commands::start_drag,
