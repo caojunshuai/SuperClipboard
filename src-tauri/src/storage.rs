@@ -562,6 +562,132 @@ pub fn get_source_apps() -> Result<Vec<String>, rusqlite::Error> {
     Ok(apps)
 }
 
+/// Compute statistics for the statistics panel.
+/// Runs 7 SQL queries + filesystem size checks.
+pub fn get_statistics(app_data_dir: &std::path::Path) -> Result<Statistics, String> {
+    let conn = DB.get().ok_or("Database not initialized")?.lock().map_err(|e| e.to_string())?;
+
+    // Total items
+    let total_items: i64 = conn
+        .query_row("SELECT COUNT(*) FROM clipboard_items", [], |row| row.get(0))
+        .map_err(|e| e.to_string())?;
+
+    // Today hourly (0..23)
+    let today_hourly: Vec<i64> = {
+        let mut stmt = conn.prepare(
+            "SELECT CAST(strftime('%H', created_at) AS INTEGER) AS hour, COUNT(*) AS cnt
+             FROM clipboard_items
+             WHERE date(created_at) = date('now', 'localtime')
+             GROUP BY hour ORDER BY hour"
+        ).map_err(|e| e.to_string())?;
+        let rows: Vec<(i64, i64)> = stmt.query_map([], |row| {
+            Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?))
+        }).map_err(|e| e.to_string())?
+        .filter_map(|r| r.ok()).collect();
+
+        let mut hourly = vec![0i64; 24];
+        for (hour, cnt) in rows {
+            if hour >= 0 && hour < 24 {
+                hourly[hour as usize] = cnt;
+            }
+        }
+        hourly
+    };
+
+    // Week daily (last 7 days)
+    let week_daily: Vec<(String, i64)> = {
+        let mut stmt = conn.prepare(
+            "SELECT date(created_at) AS day, COUNT(*) AS cnt
+             FROM clipboard_items
+             WHERE created_at >= date('now', '-6 days', 'localtime')
+             GROUP BY day ORDER BY day"
+        ).map_err(|e| e.to_string())?;
+        let result = stmt.query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+        }).map_err(|e| e.to_string())?
+        .filter_map(|r| r.ok()).collect::<Vec<_>>();
+        result
+    };
+
+    // Month daily
+    let month_daily: Vec<(String, i64)> = {
+        let mut stmt = conn.prepare(
+            "SELECT date(created_at) AS day, COUNT(*) AS cnt
+             FROM clipboard_items
+             WHERE strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now', 'localtime')
+             GROUP BY day ORDER BY day"
+        ).map_err(|e| e.to_string())?;
+        let result = stmt.query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+        }).map_err(|e| e.to_string())?
+        .filter_map(|r| r.ok()).collect::<Vec<_>>();
+        result
+    };
+
+    // Source app stats (top apps by count)
+    let source_stats: Vec<SourceCount> = {
+        let mut stmt = conn.prepare(
+            "SELECT source_app, COUNT(*) AS cnt
+             FROM clipboard_items
+             WHERE source_app IS NOT NULL AND source_app != ''
+             GROUP BY source_app
+             ORDER BY cnt DESC"
+        ).map_err(|e| e.to_string())?;
+        let result = stmt.query_map([], |row| {
+            Ok(SourceCount {
+                app: row.get::<_, String>(0)?,
+                count: row.get::<_, i64>(1)?,
+            })
+        }).map_err(|e| e.to_string())?
+        .filter_map(|r| r.ok()).collect::<Vec<_>>();
+        result
+    };
+
+    // Storage: text content size
+    let storage_text_bytes: u64 = conn
+        .query_row(
+            "SELECT COALESCE(SUM(LENGTH(content)), 0) FROM clipboard_items WHERE type = 'text'",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .map_err(|e| e.to_string())? as u64;
+
+    // Storage: image + thumbnail files
+    let storage_image_bytes: u64 = {
+        let mut total: u64 = 0;
+        for dir_name in &["images", "thumbnails"] {
+            let dir = app_data_dir.join(dir_name);
+            if let Ok(entries) = std::fs::read_dir(&dir) {
+                for entry in entries.flatten() {
+                    if let Ok(meta) = entry.metadata() {
+                        if meta.is_file() {
+                            total += meta.len();
+                        }
+                    }
+                }
+            }
+        }
+        total
+    };
+
+    // Storage: database file
+    let storage_db_bytes: u64 = {
+        let db_path = app_data_dir.join("superclipboard.db");
+        std::fs::metadata(&db_path).map(|m| m.len()).unwrap_or(0)
+    };
+
+    Ok(Statistics {
+        total_items,
+        today_hourly,
+        week_daily,
+        month_daily,
+        source_stats,
+        storage_text_bytes,
+        storage_image_bytes,
+        storage_db_bytes,
+    })
+}
+
 /// Delete all clipboard items and their image/thumbnail files.
 /// Settings are preserved. Returns the number of deleted records.
 pub fn clear_all_data() -> Result<usize, String> {
