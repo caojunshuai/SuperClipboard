@@ -210,6 +210,16 @@ pub fn clear_all_data() -> Result<usize, String> {
 }
 
 #[tauri::command]
+pub fn clear_data_by_type(item_type: String) -> Result<usize, String> {
+    storage::clear_data_by_type(&item_type)
+}
+
+#[tauri::command]
+pub fn get_item_counts() -> Result<TypeCounts, String> {
+    storage::get_item_counts()
+}
+
+#[tauri::command]
 pub fn get_settings() -> Result<AppSettings, String> {
     storage::get_all_settings().map_err(|e| e.to_string())
 }

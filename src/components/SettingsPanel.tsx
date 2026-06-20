@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getSettings, updateSettings as saveSettings, clearAllData } from '../api';
+import { getSettings, updateSettings as saveSettings, clearDataByType, getItemCounts } from '../api';
+import type { TypeCounts } from '../types';
 import { SUPPORTED_LOCALES, type Locale, detectSystemLocale } from '../locales';
 import i18n from '../locales';
 import { applyTheme, type Theme } from '../theme';
@@ -31,7 +32,8 @@ export default function SettingsPanel({ onClose }: Props) {
   const [errors, setErrors] = useState<{ items?: string; images?: string }>({});
   const [clearStatus, setClearStatus] = useState<string | null>(null);
   const [clearError, setClearError] = useState(false);
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [clearTypeConfirm, setClearTypeConfirm] = useState<string | null>(null);
+  const [typeCounts, setTypeCounts] = useState<TypeCounts | null>(null);
 
   // Track number fields as strings so empty input doesn't auto-refill
   const [maxItemsStr, setMaxItemsStr] = useState('3000');
@@ -54,6 +56,7 @@ export default function SettingsPanel({ onClose }: Props) {
       setMaxItemsStr(s.max_items.toString());
       setMaxImagesStr(s.max_images.toString());
     }).catch(() => {});
+    getItemCounts().then(c => setTypeCounts(c)).catch(() => {});
   }, []);
 
   const dirty = original !== null && (
@@ -122,16 +125,25 @@ export default function SettingsPanel({ onClose }: Props) {
     }
   }, [dirty, onClose]);
 
-  const handleClearData = () => {
-    setShowClearConfirm(true);
+  const handleClearByType = (itemType: string) => {
+    setClearTypeConfirm(itemType);
   };
 
   const handleConfirmClear = async () => {
-    setShowClearConfirm(false);
+    if (!clearTypeConfirm) return;
+    const itemType = clearTypeConfirm;
+    setClearTypeConfirm(null);
     try {
       setClearError(false);
-      const count = await clearAllData();
-      setClearStatus(t('backup.clearDataSuccess', { count }));
+      const count = await clearDataByType(itemType);
+      // Refresh counts
+      getItemCounts().then(c => setTypeCounts(c)).catch(() => {});
+      const msgKey = itemType === 'all' ? 'backup.clearDataSuccess'
+        : itemType === 'text' ? 'backup.clearTextSuccess'
+        : itemType === 'image' ? 'backup.clearImageSuccess'
+        : itemType === 'file' ? 'backup.clearFileSuccess'
+        : 'backup.clearTemplateSuccess';
+      setClearStatus(t(msgKey, { count }));
     } catch (err: any) {
       setClearError(true);
       setClearStatus(String(err));
@@ -155,8 +167,8 @@ export default function SettingsPanel({ onClose }: Props) {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (showClearConfirm) {
-          setShowClearConfirm(false);
+        if (clearTypeConfirm) {
+          setClearTypeConfirm(null);
         } else if (showConfirm) {
           setShowConfirm(false);
         } else {
@@ -312,19 +324,38 @@ export default function SettingsPanel({ onClose }: Props) {
                 {errors.images && <p className="text-xs text-red-400 mt-1">{errors.images}</p>}
                 <p className="text-xs text-panel-muted mt-1">{t('settings.imageRange')}</p>
               </div>
-              <div className="pt-3 border-t border-panel-border">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm text-panel-text">{t('backup.clearDataTitle')}</div>
-                    <div className="text-xs text-panel-muted">{t('backup.clearDataDesc')}</div>
-                  </div>
-                  <button
-                    onClick={handleClearData}
-                    className="px-3 py-1.5 text-xs border border-red-500/40 text-red-400 rounded-lg hover:bg-red-500/10 shrink-0 ml-4"
-                  >
-                    {t('backup.clearDataBtn')}
-                  </button>
+              <div className="pt-3 border-t border-panel-border space-y-2">
+                <div>
+                  <div className="text-sm text-panel-text mb-2">{t('backup.clearDataTitle')}</div>
+                  <div className="text-xs text-panel-muted mb-2">{t('backup.clearDataDesc')}</div>
                 </div>
+                {/* Per-type clear rows */}
+                {[
+                  { type: 'text' as const, labelKey: 'backup.clearTextBtn', count: typeCounts?.text },
+                  { type: 'image' as const, labelKey: 'backup.clearImageBtn', count: typeCounts?.image },
+                  { type: 'file' as const, labelKey: 'backup.clearFileBtn', count: typeCounts?.file },
+                  { type: 'template' as const, labelKey: 'backup.clearTemplateBtn', count: typeCounts?.template },
+                  { type: 'all' as const, labelKey: 'backup.clearDataBtn', count: typeCounts?.total, danger: true },
+                ].map(row => (
+                  <div key={row.type} className="flex items-center justify-between py-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-panel-text">{t(row.labelKey as any)}</span>
+                      <span className="text-xs text-panel-muted">
+                        {typeCounts ? (row.count ?? 0).toLocaleString() : '...'}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleClearByType(row.type)}
+                      className={`px-2.5 py-1 text-xs border rounded-lg hover:bg-red-500/10 shrink-0 ml-4 ${
+                        row.danger
+                          ? 'border-red-500/40 text-red-400'
+                          : 'border-panel-border text-panel-muted hover:text-red-400 hover:border-red-500/40'
+                      }`}
+                    >
+                      {t(row.labelKey as any)}
+                    </button>
+                  </div>
+                ))}
                 {clearStatus && (
                   <p className={`text-xs mt-2 ${clearError ? 'text-red-400' : 'text-green-400'}`}>
                     {clearStatus}
@@ -376,12 +407,18 @@ export default function SettingsPanel({ onClose }: Props) {
         )}
 
         {/* Clear data confirmation */}
-        {showClearConfirm && (
-          <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-xl" onClick={() => setShowClearConfirm(false)}>
+        {clearTypeConfirm && (
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-xl" onClick={() => setClearTypeConfirm(null)}>
             <div className="bg-panel-bg border border-panel-border rounded-lg p-4 shadow-2xl mx-4" onClick={e => e.stopPropagation()}>
-              <p className="text-sm text-panel-text mb-3">{t('backup.clearDataConfirm')}</p>
+              <p className="text-sm text-panel-text mb-3">
+                {clearTypeConfirm === 'all' ? t('backup.clearDataConfirm')
+                  : clearTypeConfirm === 'text' ? t('backup.clearTextConfirm')
+                  : clearTypeConfirm === 'image' ? t('backup.clearImageConfirm')
+                  : clearTypeConfirm === 'file' ? t('backup.clearFileConfirm')
+                  : t('backup.clearTemplateConfirm')}
+              </p>
               <div className="flex justify-end gap-2">
-                <button onClick={() => setShowClearConfirm(false)} className="px-3 py-1.5 text-xs text-panel-muted hover:text-panel-text">{t('settings.cancel')}</button>
+                <button onClick={() => setClearTypeConfirm(null)} className="px-3 py-1.5 text-xs text-panel-muted hover:text-panel-text">{t('settings.cancel')}</button>
                 <button onClick={handleConfirmClear} className="px-3 py-1.5 text-xs bg-red-500 text-white rounded hover:bg-red-600">{t('backup.clearDataBtn')}</button>
               </div>
             </div>

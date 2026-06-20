@@ -100,6 +100,14 @@ export interface TopCopiedItem {
   copy_count: number;
 }
 
+export interface TypeCounts {
+  text: number;
+  image: number;
+  file: number;
+  template: number;
+  total: number;
+}
+
 export interface Statistics {
   total_items: number;
   today_hourly: number[];

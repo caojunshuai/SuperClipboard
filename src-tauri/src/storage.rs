@@ -133,10 +133,10 @@ pub fn upsert_item(item: &ClipboardItem) -> SqliteResult<(i64, bool)> {
         }
     }
 
-    // No duplicate — insert new row
+    // No duplicate — insert new row. copy_count starts at 1 (it was just copied once).
     conn.execute(
-        "INSERT INTO clipboard_items (type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, metadata, content_hash)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+        "INSERT INTO clipboard_items (type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, metadata, content_hash, copy_count)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 1)",
         params![
             item.item_type.as_str(),
             item.content,
@@ -485,8 +485,8 @@ pub fn try_restore_item(item: &ClipboardItem) -> SqliteResult<bool> {
 
     // Insert without id — let auto-increment assign a new one
     conn.execute(
-        "INSERT INTO clipboard_items (type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, is_pinned, is_favorite, metadata, content_hash, note, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
+        "INSERT INTO clipboard_items (type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, is_pinned, is_favorite, metadata, content_hash, note, copy_count, created_at, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
         params![
             item.item_type.as_str(),
             item.content,
@@ -501,6 +501,7 @@ pub fn try_restore_item(item: &ClipboardItem) -> SqliteResult<bool> {
             item.metadata,
             item.content_hash,
             item.note,
+            item.copy_count,
             item.created_at,
             item.updated_at,
         ],
@@ -759,6 +760,90 @@ pub fn clear_all_data() -> Result<usize, String> {
     }
 
     Ok(count)
+}
+
+/// Delete all items of a specific type, plus associated files for images.
+/// Settings are preserved. Returns the number of deleted records.
+pub fn clear_data_by_type(item_type: &str) -> Result<usize, String> {
+    let conn = get_conn().lock().map_err(|e| e.to_string())?;
+
+    match item_type {
+        "all" => {
+            // Delegate to existing full clear
+            drop(conn);
+            clear_all_data()
+        }
+        "image" => {
+            // Collect image paths before deleting
+            let mut paths: Vec<String> = Vec::new();
+            let mut stmt = conn
+                .prepare("SELECT image_path, thumbnail_path FROM clipboard_items WHERE type = 'image' AND image_path IS NOT NULL")
+                .map_err(|e| e.to_string())?;
+            let rows = stmt
+                .query_map([], |row| {
+                    Ok((row.get::<_, Option<String>>(0)?, row.get::<_, Option<String>>(1)?))
+                })
+                .map_err(|e| e.to_string())?;
+            for row in rows {
+                if let Ok((img, thumb)) = row {
+                    if let Some(p) = img { paths.push(p); }
+                    if let Some(p) = thumb { paths.push(p); }
+                }
+            }
+
+            let count = conn
+                .execute("DELETE FROM clipboard_items WHERE type = 'image'", [])
+                .map_err(|e| e.to_string())?;
+
+            conn.execute("INSERT INTO clipboard_fts(clipboard_fts) VALUES ('optimize')", []).ok();
+
+            for p in &paths {
+                std::fs::remove_file(p).ok();
+            }
+            Ok(count)
+        }
+        "text" | "file" => {
+            let count = conn
+                .execute(
+                    "DELETE FROM clipboard_items WHERE type = ?1",
+                    [item_type],
+                )
+                .map_err(|e| e.to_string())?;
+
+            conn.execute("INSERT INTO clipboard_fts(clipboard_fts) VALUES ('optimize')", []).ok();
+            Ok(count)
+        }
+        "template" => {
+            let count = conn
+                .execute("DELETE FROM templates", [])
+                .map_err(|e| e.to_string())?;
+            Ok(count)
+        }
+        _ => Err(format!("Unknown item type: {}", item_type)),
+    }
+}
+
+pub fn get_item_counts() -> Result<TypeCounts, String> {
+    let conn = get_conn().lock().map_err(|e| e.to_string())?;
+    let text: i64 = conn
+        .query_row("SELECT COUNT(*) FROM clipboard_items WHERE type = 'text'", [], |r| r.get(0))
+        .map_err(|e| e.to_string())?;
+    let image: i64 = conn
+        .query_row("SELECT COUNT(*) FROM clipboard_items WHERE type = 'image'", [], |r| r.get(0))
+        .map_err(|e| e.to_string())?;
+    let file: i64 = conn
+        .query_row("SELECT COUNT(*) FROM clipboard_items WHERE type = 'file'", [], |r| r.get(0))
+        .map_err(|e| e.to_string())?;
+    let template: i64 = conn
+        .query_row("SELECT COUNT(*) FROM templates", [], |r| r.get(0))
+        .map_err(|e| e.to_string())?;
+    Ok(TypeCounts {
+        text,
+        image,
+        file,
+        template,
+        total: text + image + file,
+    })
 }
 
 // ---- Template CRUD ----

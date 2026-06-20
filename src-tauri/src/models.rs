@@ -184,6 +184,16 @@ pub struct TopCopiedItem {
     pub copy_count: i64,
 }
 
+/// Counts of items by type, for the clear-data UI.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TypeCounts {
+    pub text: i64,
+    pub image: i64,
+    pub file: i64,
+    pub template: i64,
+    pub total: i64,
+}
+
 fn default_language() -> String {
     // Empty = not set yet; frontend will detect system locale on first launch
     String::new()
