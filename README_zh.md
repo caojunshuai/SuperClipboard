@@ -34,6 +34,15 @@ Windows 平台轻量级剪切板管理器。按自定义全局快捷键呼出悬
 - **删除** 附带淡出动效
 - **设置** — 快捷键、历史记录上限、图片保留上限、语言切换、主题、自动粘贴、开机自启、窗口置顶、每页数量等
 
+### 数据统计
+- **统计面板** — 标题栏 📊 按钮打开独立统计对话框
+- **概览** — 总条目 / 今日 / 本周 / 本月复制次数
+- **复制趋势** — recharts 柱状图，切换今日（按小时）/ 本周 / 本月
+- **来源占比** — 水平条形图，展示各应用复制次数（Top 20 + 其他）
+- **最常复制** — 排名展示前 10 个最常复制的文本内容及次数
+- **存储空间** — 文本 / 图片 / 数据库体积，自动单位（B/KB/MB/GB）
+- **隐私安全** — 所有计算在本地完成，数据绝不上传
+
 ### 导出备份
 - **导出文字** — 合并所有文字记录为 `.txt` 文件，带时间戳
 - **导出图片** — 保存所有图片为 PNG/JPG 原文件
@@ -74,6 +83,7 @@ Windows 平台轻量级剪切板管理器。按自定义全局快捷键呼出悬
 | 桌面框架 | [Tauri 2](https://v2.tauri.app/) |
 | 前端 | React 18 + TypeScript |
 | 样式 | Tailwind CSS 3 |
+| 图表 | recharts |
 | 国际化 | react-i18next / i18next |
 | 后端 | Rust |
 | 数据库 | SQLite（rusqlite，bundled 编译） |
@@ -138,6 +148,7 @@ SuperClipboard/
 │       ├── TemplateCard.tsx      # 模板卡片：内联编辑（标题+内容），右键菜单
 │       ├── CopyToast.tsx         # 公共通知组件（成功/错误）
 │       ├── ScrollArea.tsx        # 公共滚动容器（统一滚动条样式）
+│       ├── StatisticsDialog.tsx  # 数据统计面板（recharts 图表）
 │       ├── SettingsPanel.tsx     # 设置表单（校验、脏检测）
 │       ├── ExportDialog.tsx      # 导出文字/图片弹窗
 │       ├── BackupDialog.tsx      # 备份/恢复弹窗
@@ -160,6 +171,8 @@ SuperClipboard/
 │       ├── export.rs             # 文字/图片/备份导出逻辑
 │       ├── hotkey.rs             # 全局热键注册（Alt+V）
 │       └── tray.rs               # 系统托盘图标和菜单
+├── scripts/                      # 工具脚本
+│   └── generate-test-data.mjs     #   测试数据生成器
 ├── index.html                    # Vite 入口 HTML
 ├── package.json                  # npm 脚本和依赖
 ├── tsconfig.json                 # TypeScript 配置

@@ -34,6 +34,15 @@ Built with **Tauri 2 + React + TypeScript + Tailwind CSS**.
 - **Delete** with a smooth fade-out animation
 - **Settings** — configure hotkey, history limit, image limit, language, theme, auto-paste, auto-start, always-on-top, page size, and more
 
+### Statistics
+- **Dashboard** — click 📊 in title bar for a dedicated statistics dialog
+- **Overview** — total items / today / this-week / this-month copy counts
+- **Copy trends** — bar chart with hourly/daily breakdown, toggle between Today / This Week / This Month
+- **Source app breakdown** — horizontal bars showing which apps produce the most clips (top 20 + others)
+- **Top copied** — ranked list of 10 most-copied text items with copy counts
+- **Storage breakdown** — text / images / database size with auto unit (B/KB/MB/GB)
+- **Privacy** — all computation is local, no data ever leaves the machine
+
 ### Export & Backup
 - **Export text** — merge all text clips into a `.txt` file with timestamps
 - **Export images** — save all image clips as PNG/JPG files to a folder
@@ -74,6 +83,7 @@ Built with **Tauri 2 + React + TypeScript + Tailwind CSS**.
 | Desktop framework | [Tauri 2](https://v2.tauri.app/) |
 | Frontend | React 18 + TypeScript |
 | Styling | Tailwind CSS 3 |
+| Charts | recharts |
 | i18n | react-i18next / i18next |
 | Backend | Rust |
 | Database | SQLite (via rusqlite, bundled) |
@@ -138,6 +148,7 @@ SuperClipboard/
 │       ├── TemplateCard.tsx      # Template card with inline edit
 │       ├── CopyToast.tsx         # Shared toast notification
 │       ├── ScrollArea.tsx        # Shared scroll container
+│       ├── StatisticsDialog.tsx  # Statistics panel with recharts
 │       ├── SettingsPanel.tsx     # Settings form with validation
 │       ├── ExportDialog.tsx      # Export text/images dialog
 │       ├── BackupDialog.tsx      # Backup & restore dialog
@@ -160,6 +171,8 @@ SuperClipboard/
 │       ├── export.rs             # Text/image/backup export logic
 │       ├── hotkey.rs             # Global hotkey registration (Alt+V)
 │       └── tray.rs               # System tray icon & menu
+├── scripts/                      # Utility scripts
+│   └── generate-test-data.mjs     #   Generate test backup zip
 ├── index.html                    # Vite entry HTML
 ├── package.json                  # npm scripts & dependencies
 ├── tsconfig.json                 # TypeScript config

@@ -51,6 +51,7 @@ src/                          # React frontend
     TemplateCard.tsx          # Template card: inline edit (title+content), right-click context menu
     CopyToast.tsx             # Shared toast notification (success/error, fixed bottom-center)
     ScrollArea.tsx            # Shared scroll container (scrollbar-thin, outline-none)
+    StatisticsDialog.tsx      # Statistics panel: trend charts, source app bars, storage, top-copied
     cards/
       TextCard.tsx            # Text content (expandable: line-clamp-3 → full)
       ImageCard.tsx           # Image thumbnail (object-contain) + preview button
@@ -66,6 +67,9 @@ src-tauri/src/                # Rust backend
   export.rs                   # Text export, image export, zip backup/restore
   hotkey.rs                   # Global hotkey Alt+V via tauri-plugin-global-shortcut
   tray.rs                     # System tray icon & context menu
+
+scripts/
+  generate-test-data.mjs      # Test data generator (unique content, exponential time distribution)
 ```
 
 ## Architecture Notes
@@ -180,6 +184,26 @@ src-tauri/src/                # Rust backend
 ### Shared Components
 - **CopyToast:** Fixed bottom-center notification (green success / red error), 600ms auto-dismiss then close window
 - **ScrollArea:** `forwardRef` container with `scrollbar-thin outline-none`, supports keyboard nav via `onKeyDown`
+
+### Single Instance Detection (lib.rs)
+- `tauri-plugin-single-instance = "2"` registered first (before other plugins)
+- Second instance triggers callback in existing instance → `show()` + `set_focus()`
+- Plugin auto-kills the second process — no duplicate hotkey registration
+- When auto-start and manual launch collide, existing window comes to foreground
+
+### Statistics Panel (StatisticsDialog.tsx + storage.rs)
+- Entry: 📊 button in title bar → `StatisticsDialog` modal (responsive, max-w-[680px])
+- `get_statistics` Tauri command returns all stats in one IPC call (no caching)
+- **Overview cards:** total / today / this-week / this-month counts
+- **Trend chart:** recharts `BarChart`, tab-switchable (today=hourly / week=daily / month=daily)
+- **Source app bars:** CSS horizontal bars, top 20 + "others", weighted source app pool in test data
+- **Top copied:** 10 most-copied text items (preview with CSS truncation), ranked 1-10
+- **Storage bars:** text / images / database in bytes with auto unit (B/KB/MB/GB)
+- **copy_count column:** `clipboard_items.copy_count INTEGER DEFAULT 0`
+  - Monitor dedup (`upsert_item`): `copy_count = copy_count + 1`
+  - Panel copy (`copy_to_clipboard`): `storage::increment_copy_count(id)`
+- recharts added via `npm install recharts` (JS bundle ~+200KB)
+- Exponential time distribution in test data: more items in recent days (half-life ≈ 5 days)
 
 ### Clear All Data (storage.rs + commands.rs + SettingsPanel.tsx)
 - `clear_all_data()` in storage.rs: collects image/thumbnail paths, DELETEs all rows from clipboard_items (triggers FTS5 delete), optimizes FTS5, removes files
