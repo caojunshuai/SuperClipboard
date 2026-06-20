@@ -70,21 +70,16 @@ export default function SearchBar({
         />
       </div>
       <div className="flex gap-2">
-        <div className="flex gap-1">
+        <select
+          value={typeFilter}
+          onChange={e => onTypeFilterChange(e.target.value as FilterType)}
+          disabled={disabled}
+          className={`bg-panel-card border border-panel-border rounded-md text-xs text-panel-text px-2 py-1 focus:outline-none focus:border-panel-accent ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+        >
           {TYPE_OPTIONS.map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => onTypeFilterChange(opt.value)}
-              className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
-                typeFilter === opt.value
-                  ? 'bg-panel-accent text-white'
-                  : 'bg-panel-card text-panel-muted hover:text-panel-text'
-              }`}
-            >
-              {t(opt.labelKey)}
-            </button>
+            <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
           ))}
-        </div>
+        </select>
         <div className="w-px bg-panel-border" />
         <select
           value={dateFilter}
