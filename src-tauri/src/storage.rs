@@ -611,13 +611,55 @@ pub fn get_statistics(app_data_dir: &std::path::Path) -> Result<Statistics, Stri
         hourly
     };
 
-    // Week daily (last 7 days)
+    // Week daily (calendar week Mon-Sun, zero-filled)
     let week_daily: Vec<(String, i64)> = {
         let mut stmt = conn.prepare(
-            "SELECT date(created_at) AS day, COUNT(*) AS cnt
-             FROM clipboard_items
-             WHERE created_at >= date('now', '-6 days', 'localtime')
-             GROUP BY day ORDER BY day"
+            "WITH RECURSIVE dates(d) AS (
+                SELECT date('now', 'localtime',
+                    CASE CAST(strftime('%w', 'now', 'localtime') AS INTEGER)
+                        WHEN 0 THEN '-6 days'
+                        WHEN 1 THEN '0 days'
+                        WHEN 2 THEN '-1 days'
+                        WHEN 3 THEN '-2 days'
+                        WHEN 4 THEN '-3 days'
+                        WHEN 5 THEN '-4 days'
+                        WHEN 6 THEN '-5 days'
+                    END
+                )
+                UNION ALL
+                SELECT date(d, '+1 day')
+                FROM dates
+                WHERE d < date('now', 'localtime',
+                    CASE CAST(strftime('%w', 'now', 'localtime') AS INTEGER)
+                        WHEN 0 THEN '0 days'
+                        WHEN 1 THEN '6 days'
+                        WHEN 2 THEN '5 days'
+                        WHEN 3 THEN '4 days'
+                        WHEN 4 THEN '3 days'
+                        WHEN 5 THEN '2 days'
+                        WHEN 6 THEN '1 days'
+                    END
+                )
+            )
+            SELECT dates.d AS day, COALESCE(sub.cnt, 0) AS cnt
+            FROM dates
+            LEFT JOIN (
+                SELECT date(created_at) AS day, COUNT(*) AS cnt
+                FROM clipboard_items
+                WHERE created_at >= date('now', 'localtime',
+                    CASE CAST(strftime('%w', 'now', 'localtime') AS INTEGER)
+                        WHEN 0 THEN '-6 days'
+                        WHEN 1 THEN '0 days'
+                        WHEN 2 THEN '-1 days'
+                        WHEN 3 THEN '-2 days'
+                        WHEN 4 THEN '-3 days'
+                        WHEN 5 THEN '-4 days'
+                        WHEN 6 THEN '-5 days'
+                    END
+                )
+                GROUP BY day
+            ) sub ON dates.d = sub.day
+            ORDER BY dates.d"
         ).map_err(|e| e.to_string())?;
         let result = stmt.query_map([], |row| {
             Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))

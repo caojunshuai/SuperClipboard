@@ -208,6 +208,7 @@
     "topCopied": "Top 10 Most Copied",
     "emptyData": "No statistics available",
     "loading": "Loading...",
+    "copyCount": "copies",
     "close": "Close"
   },
   "lang": {

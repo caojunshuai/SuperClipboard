@@ -55,11 +55,13 @@ export default function StatisticsDialog({ onClose }: Props) {
         }));
       case 'week': {
         const labels = isZh ? WEEK_LABELS_ZH : WEEK_LABELS_EN;
-        const map = new Map(stats.week_daily);
-        return labels.map((l, i) => {
-          // match by position (Mon=0 ... Sun=6)
-          const key = stats.week_daily[i]?.[0] ?? '';
-          return { label: l, count: map.get(key) ?? 0 };
+        // week_daily has 7 entries (Mon-Sun of current week), zero-filled.
+        // Compute day-of-week label from each date string so labels always
+        // match the actual dates, regardless of which days have data.
+        return stats.week_daily.map(([dateStr, cnt]) => {
+          const dayOfWeek = new Date(dateStr + 'T00:00:00').getDay(); // 0=Sun..6=Sat
+          const labelIdx = dayOfWeek === 0 ? 6 : dayOfWeek - 1;       // 0=Mon..6=Sun
+          return { label: labels[labelIdx], count: cnt };
         });
       }
       case 'month':
@@ -154,7 +156,8 @@ export default function StatisticsDialog({ onClose }: Props) {
                       <Tooltip
                         contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px', fontSize: '12px' }}
                         labelStyle={{ color: '#9ca3af' }}
-                        formatter={((value: any) => [value ?? 0, t('statistics.overviewToday')]) as any}
+                        separator=""
+                        formatter={(value: any) => [`${value ?? 0}${i18n.language.startsWith('zh') ? '次' : ' copies'}`, '']}
                       />
                       <Bar dataKey="count" fill="#3b82f6" radius={[3, 3, 0, 0]} maxBarSize={32} />
                     </BarChart>
