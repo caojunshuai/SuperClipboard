@@ -4,7 +4,7 @@ import TabBar from './TabBar';
 import CardList from './CardList';
 import TemplateList from './TemplateList';
 import type { FilterType, DateFilter, TabType } from '../types';
-import { getSourceApps } from '../api';
+import { getSourceApps, getDailyCounts } from '../api';
 
 function todayStr(): string {
   const d = new Date();
@@ -25,6 +25,7 @@ export default function ClipboardPanel({ refreshKey, onClose }: Props) {
   const [customDateTo, setCustomDateTo] = useState(todayStr());
   const [sourceApp, setSourceApp] = useState('all');
   const [sourceApps, setSourceApps] = useState<string[]>([]);
+  const [activeDays, setActiveDays] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     getSourceApps().then(setSourceApps).catch(() => {});
@@ -40,6 +41,15 @@ export default function ClipboardPanel({ refreshKey, onClose }: Props) {
     if (v < customDateFrom) setCustomDateFrom(v);
   }, [customDateFrom]);
 
+  const handleViewMonthChange = useCallback(async (year: number, month: number) => {
+    try {
+      const counts = await getDailyCounts(year, month + 1);
+      setActiveDays(new Set(Object.keys(counts)));
+    } catch {
+      setActiveDays(new Set());
+    }
+  }, []);
+
   return (
     <div className="flex flex-col h-full">
       <SearchBar
@@ -54,6 +64,8 @@ export default function ClipboardPanel({ refreshKey, onClose }: Props) {
         customDateTo={customDateTo}
         onCustomDateToChange={handleToChange}
         disabled={typeFilter === 'template'}
+        activeDays={activeDays}
+        onViewMonthChange={handleViewMonthChange}
       />
       {typeFilter !== 'template' && (
         <TabBar

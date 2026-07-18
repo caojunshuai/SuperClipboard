@@ -575,3 +575,8 @@ pub fn get_preview_image_path(window: tauri::Window) -> Result<String, String> {
 pub fn close_preview_window(window: tauri::Window) -> Result<(), String> {
     window.close().map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub fn get_daily_counts(year: i32, month: i32) -> Result<Vec<(String, i64)>, String> {
+    storage::get_daily_counts(year, month)
+}

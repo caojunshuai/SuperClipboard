@@ -124,6 +124,7 @@ pub fn run() {
             commands::get_app_version,
             commands::get_build_info,
             commands::open_image_preview,
+            commands::get_daily_counts,
             commands::get_preview_image_path,
             commands::close_preview_window,
         ])

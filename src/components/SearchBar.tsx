@@ -15,6 +15,8 @@ function validDate(v: string): string {
 }
 
 interface Props {
+  activeDays?: Set<string>;
+  onViewMonthChange?: (year: number, month: number) => void;
   keyword: string;
   onKeywordChange: (v: string) => void;
   typeFilter: FilterType;
@@ -35,6 +37,7 @@ export default function SearchBar({
   customDateFrom, onCustomDateFromChange,
   customDateTo, onCustomDateToChange,
   disabled = false,
+  activeDays, onViewMonthChange,
 }: Props) {
   const { t } = useTranslation();
 
@@ -101,7 +104,7 @@ export default function SearchBar({
             onChange={v => onCustomDateFromChange(validDate(v))}
             min="2000-01-01"
             max="2100-12-31"
-            align="left"
+            align="left" activeDays={activeDays} onViewMonthChange={onViewMonthChange}
           />
           <span className="text-xs text-panel-muted shrink-0">{t('search.dateTo')}</span>
           <DatePicker
@@ -109,7 +112,7 @@ export default function SearchBar({
             onChange={v => onCustomDateToChange(validDate(v))}
             min="2000-01-01"
             max="2100-12-31"
-            align="right"
+            align="right" activeDays={activeDays} onViewMonthChange={onViewMonthChange}
           />
         </div>
       )}

@@ -137,3 +137,8 @@ export function onPanelShown(callback: () => void): Promise<UnlistenFn> {
     callback();
   });
 }
+
+export async function getDailyCounts(year: number, month: number): Promise<Record<string, number>> {
+  const rows: [string, number][] = await invoke('get_daily_counts', { year, month });
+  return Object.fromEntries(rows);
+}

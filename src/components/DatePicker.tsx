@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface Props {
+  activeDays?: Set<string>;
+  onViewMonthChange?: (year: number, month: number) => void;
   value: string; // YYYY-MM-DD
   onChange: (value: string) => void;
   min?: string;  // YYYY-MM-DD
@@ -15,7 +17,7 @@ const ZH_MONTHS = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月
 const EN_DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 const ZH_DAYS = ['日', '一', '二', '三', '四', '五', '六'];
 
-export default function DatePicker({ value, onChange, min, max, align = 'left', className }: Props) {
+export default function DatePicker({ value, onChange, min, max, align = 'left', className, activeDays, onViewMonthChange }: Props) {
   const { i18n } = useTranslation();
   const isZh = i18n.language.startsWith('zh');
   const MONTHS = isZh ? ZH_MONTHS : EN_MONTHS;
@@ -79,14 +81,21 @@ export default function DatePicker({ value, onChange, min, max, align = 'left', 
   const changeMonth = (delta: number) => {
     setViewDate(v => {
       const m = v.month + delta;
-      if (m < 0) return { ...v, year: v.year - 1, month: 11 };
-      if (m > 11) return { ...v, year: v.year + 1, month: 0 };
-      return { ...v, month: m };
+      let newView;
+      if (m < 0) newView = { ...v, year: v.year - 1, month: 11 };
+      else if (m > 11) newView = { ...v, year: v.year + 1, month: 0 };
+      else newView = { ...v, month: m };
+      onViewMonthChange?.(newView.year, newView.month);
+      return newView;
     });
   };
 
   const changeYear = (delta: number) => {
-    setViewDate(v => ({ ...v, year: v.year + delta }));
+    setViewDate(v => {
+      const newView = { ...v, year: v.year + delta };
+      onViewMonthChange?.(newView.year, newView.month);
+      return newView;
+    });
   };
 
   const selectDay = (day: number) => {
@@ -106,7 +115,7 @@ export default function DatePicker({ value, onChange, min, max, align = 'left', 
     <div ref={containerRef} className={`relative ${className || ''}`}>
       <button
         type="button"
-        onClick={() => setIsOpen(o => !o)}
+        onClick={() => { const next = !isOpen; setIsOpen(next); if (next) onViewMonthChange?.(viewDate.year, viewDate.month); }}
         className="flex items-center gap-1.5 bg-panel-card border border-panel-border rounded text-xs text-panel-text pl-2 pr-2 py-1 hover:border-panel-muted focus:outline-none focus:border-panel-accent min-w-[110px]"
       >
         <span className={value ? '' : 'text-panel-muted'}>
@@ -190,7 +199,7 @@ export default function DatePicker({ value, onChange, min, max, align = 'left', 
                   type="button"
                   disabled={disabled}
                   onClick={() => selectDay(day)}
-                  className={`w-8 h-8 text-xs rounded-full flex items-center justify-center transition-colors ${
+                  className={`w-8 h-8 text-xs rounded-full flex flex-col items-center justify-center transition-colors relative ${
                     isSelected
                       ? 'bg-panel-accent text-white'
                       : isToday
@@ -200,7 +209,10 @@ export default function DatePicker({ value, onChange, min, max, align = 'left', 
                       : 'text-panel-text hover:bg-panel-hover'
                   }`}
                 >
-                  {day}
+                  <span className="leading-none">{day}</span>
+                  {activeDays?.has(dateStr) && (
+                    <span className={`w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-panel-accent'}`} />
+                  )}
                 </button>
               );
             })}

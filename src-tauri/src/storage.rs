@@ -944,3 +944,20 @@ pub fn delete_template(id: i64) -> SqliteResult<()> {
     conn.execute("DELETE FROM templates WHERE id = ?1", params![id])?;
     Ok(())
 }
+
+// ---- Daily record counts for calendar indicator ----
+pub fn get_daily_counts(year: i32, month: i32) -> Result<Vec<(String, i64)>, String> {
+    let conn = get_conn().lock().map_err(|e| e.to_string())?;
+    let month_str = format!("{:04}-{:02}", year, month);
+    let mut stmt = conn.prepare(
+        "SELECT date(created_at) AS day, COUNT(*) AS cnt
+         FROM clipboard_items
+         WHERE strftime('%Y-%m', created_at) = ?1
+         GROUP BY day ORDER BY day"
+    ).map_err(|e| e.to_string())?;
+    let rows = stmt.query_map(params![month_str], |row| {
+        Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+    }).map_err(|e| e.to_string())?
+    .filter_map(|r| r.ok()).collect();
+    Ok(rows)
+}
