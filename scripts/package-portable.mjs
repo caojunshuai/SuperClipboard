@@ -25,18 +25,25 @@ if (!existsSync(join(releaseDir, exeName))) {
   process.exit(1);
 }
 
-// DLLs are toolchain-dependent and must be optional, not required:
-// - WebView2Loader.dll: statically linked since Tauri 2.11 (webview2-com static
-//   feature) — no DLL is produced for either toolchain
-// - liblzma-5.dll: only GNU (MinGW) builds link lzma dynamically; MSVC links it
-//   statically
+// DLLs are toolchain-dependent — check the exe's import table instead of guessing:
+// - MSVC builds are fully self-contained: WebView2Loader statically linked
+//   (Tauri >= 2.11), liblzma statically compiled (lzma-sys). Nothing to bundle.
+// - GNU (MinGW) builds link lzma dynamically (imports liblzma-5.dll) and older
+//   Tauri versions import WebView2Loader.dll — bundle whichever is imported.
 const files = [join(releaseDir, exeName)];
+const exeBuf = readFileSync(join(releaseDir, exeName));
+const imports = (name) => exeBuf.includes(Buffer.from(name, 'ascii'));
 for (const dll of [
   { path: join(releaseDir, dllName), label: dllName },
   { path: lzmaPath, label: 'liblzma-5.dll' },
 ]) {
-  if (existsSync(dll.path)) files.push(dll.path);
-  else console.log(`Note: ${dll.label} not found — skipping (static-linked, not needed)`);
+  if (!imports(dll.label)) {
+    console.log(`Note: ${dll.label} not imported by the exe — skipping`);
+  } else if (existsSync(dll.path)) {
+    files.push(dll.path);
+  } else {
+    console.warn(`WARN: ${dll.label} is imported by the exe but not found — target machines may fail to run`);
+  }
 }
 
 console.log(`Packaging SuperClipboard v${version} portable...`);
