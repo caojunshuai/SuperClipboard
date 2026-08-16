@@ -109,8 +109,8 @@ Or use the `x86_64-pc-windows-msvc` toolchain with Visual Studio Build Tools.
 
 ```bash
 # Clone
-git clone https://github.com/yourusername/superclipboard.git
-cd superclipboard
+git clone https://github.com/caojunshuai/SuperClipboard.git
+cd SuperClipboard
 
 # Install frontend dependencies
 npm install
@@ -136,9 +136,18 @@ SuperClipboard/
 │   ├── locales/                   # i18n translation files
 │   │   ├── zh-CN.json, en-US.json  # Chinese & English translations
 │   │   └── index.ts               # i18next initialization
+│   ├── hooks/                     # Shared state machines (extracted from components)
+│   │   ├── useModal.ts           # Modal: backdrop click / ESC close / stopPropagation
+│   │   ├── useContextMenu.ts     # Context menu: edge-flip positioning, outside-click dismiss
+│   │   ├── useSettings.ts        # Settings singleton (module cache + listener broadcast)
+│   │   ├── useNoteEdit.ts        # Card note editing flow
+│   │   ├── useContentEdit.ts     # Card inline text editing flow (dedup-merge)
+│   │   └── useCardExpand.ts      # Card scroll-aware expand/collapse
+│   ├── utils/
+│   │   └── format.ts             # Date/time/bytes formatting helpers
 │   └── components/
 │       ├── ClipboardPanel.tsx    # Main panel: search, tabs, card list
-│       ├── ClipboardCard.tsx     # Card with expand, preview, floating collapse
+│       ├── ClipboardCard.tsx     # Card: expand, preview, floating collapse
 │       ├── CardList.tsx          # Scrollable card list with keyboard nav
 │       ├── SearchBar.tsx         # Search input & type/date filters
 │       ├── DatePicker.tsx        # Custom calendar dropdown
@@ -152,6 +161,8 @@ SuperClipboard/
 │       ├── SettingsPanel.tsx     # Settings form with validation
 │       ├── ExportDialog.tsx      # Export text/images dialog
 │       ├── BackupDialog.tsx      # Backup & restore dialog
+│       ├── AboutDialog.tsx       # About dialog (version, build info)
+│       ├── SvgIcon.tsx           # Inline SVG icon renderer
 │       └── cards/
 │           ├── TextCard.tsx      # Text clip display
 │           ├── ImageCard.tsx     # Image thumbnail display
@@ -165,14 +176,16 @@ SuperClipboard/
 │       ├── main.rs               # Entry point
 │       ├── lib.rs                # Plugin setup, app initialization
 │       ├── clipboard.rs          # Windows clipboard monitor
-│       ├── storage.rs            # SQLite database layer
+│       ├── hash.rs               # FNV-1a 64-bit content hash (dedup key)
+│       ├── storage.rs            # SQLite: init, CRUD, FTS, settings, templates, clear
+│       ├── stats.rs              # Statistics aggregations (panel + calendar dots)
 │       ├── models.rs             # Data models & type definitions
 │       ├── commands.rs           # Tauri command handlers
 │       ├── export.rs             # Text/image/backup export logic
 │       ├── hotkey.rs             # Global hotkey registration (Alt+V)
 │       └── tray.rs               # System tray icon & menu
 ├── scripts/                      # Utility scripts
-│   └── generate-test-data.mjs     #   Generate test backup zip
+│   └── generate-test-data.mjs     #   Test data generator (exponential distribution)
 ├── index.html                    # Vite entry HTML
 ├── package.json                  # npm scripts & dependencies
 ├── tsconfig.json                 # TypeScript config
@@ -187,9 +200,11 @@ SuperClipboard/
 lib.rs  ── App startup, DB init, clipboard monitor spawn
   ├── clipboard.rs  ── Windows clipboard polling loop
   │                    (CF_UNICODETEXT / CF_DIB / CF_HDROP)
+  ├── hash.rs       ── FNV-1a 64-bit hash (dedup key, shared by clipboard + storage)
   ├── hotkey.rs     ── Global Alt+V hotkey registration
   ├── tray.rs       ── System tray icon and context menu
-  ├── storage.rs    ── SQLite CRUD, FTS, dedup, settings, templates
+  ├── storage.rs    ── SQLite CRUD, FTS, dedup, settings, templates, clear
+  ├── stats.rs      ── Statistics queries (panel aggregations, calendar dots)
   ├── models.rs     ── ClipboardItem, ItemType, HistoryQuery, Template, settings structs
   ├── commands.rs   ── Tauri IPC command handlers
   └── export.rs     ── Text/image export, backup/restore

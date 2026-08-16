@@ -109,8 +109,8 @@ Windows 平台轻量级剪切板管理器。按自定义全局快捷键呼出悬
 
 ```bash
 # 克隆仓库
-git clone https://github.com/yourusername/superclipboard.git
-cd superclipboard
+git clone https://github.com/caojunshuai/SuperClipboard.git
+cd SuperClipboard
 
 # 安装前端依赖
 npm install
@@ -136,6 +136,15 @@ SuperClipboard/
 │   ├── locales/                   # i18n 翻译文件
 │   │   ├── zh-CN.json, en-US.json  # 中文/英文翻译
 │   │   └── index.ts               # i18next 初始化
+│   ├── hooks/                     # 共享状态机（从组件中提取）
+│   │   ├── useModal.ts           # 模态框：遮罩点击/ESC 关闭/阻止冒泡
+│   │   ├── useContextMenu.ts     # 右键菜单：边缘翻转定位、外部点击关闭
+│   │   ├── useSettings.ts        # 设置单例（模块级缓存 + 监听广播）
+│   │   ├── useNoteEdit.ts        # 卡片笔记编辑流程
+│   │   ├── useContentEdit.ts     # 卡片内联文本编辑流程（跨行去重）
+│   │   └── useCardExpand.ts      # 卡片滚动感知的展开/收起
+│   ├── utils/
+│   │   └── format.ts             # 日期/时间/字节格式化工具
 │   └── components/
 │       ├── ClipboardPanel.tsx    # 主面板：搜索、标签页、卡片列表
 │       ├── ClipboardCard.tsx     # 卡片：展开/收起、右键菜单、内联编辑
@@ -152,6 +161,8 @@ SuperClipboard/
 │       ├── SettingsPanel.tsx     # 设置表单（校验、脏检测）
 │       ├── ExportDialog.tsx      # 导出文字/图片弹窗
 │       ├── BackupDialog.tsx      # 备份/恢复弹窗
+│       ├── AboutDialog.tsx       # 关于弹窗（版本、构建信息）
+│       ├── SvgIcon.tsx           # 内联 SVG 图标渲染
 │       └── cards/
 │           ├── TextCard.tsx      # 文字内容展示
 │           ├── ImageCard.tsx     # 图片缩略图展示
@@ -165,14 +176,16 @@ SuperClipboard/
 │       ├── main.rs               # 程序入口
 │       ├── lib.rs                # 插件注册，应用初始化
 │       ├── clipboard.rs          # Windows 剪切板监听
-│       ├── storage.rs            # SQLite 数据库操作
+│       ├── hash.rs               # FNV-1a 64 位内容哈希（去重键）
+│       ├── storage.rs            # SQLite：初始化、CRUD、FTS、设置、模板、清理
+│       ├── stats.rs              # 统计聚合（统计面板 + 日历圆点）
 │       ├── models.rs             # 数据模型和类型定义
 │       ├── commands.rs           # Tauri 命令处理（IPC）
 │       ├── export.rs             # 文字/图片/备份导出逻辑
 │       ├── hotkey.rs             # 全局热键注册（Alt+V）
 │       └── tray.rs               # 系统托盘图标和菜单
 ├── scripts/                      # 工具脚本
-│   └── generate-test-data.mjs     #   测试数据生成器
+│   └── generate-test-data.mjs     #   测试数据生成器（指数时间分布）
 ├── index.html                    # Vite 入口 HTML
 ├── package.json                  # npm 脚本和依赖
 ├── tsconfig.json                 # TypeScript 配置
@@ -187,9 +200,11 @@ SuperClipboard/
 lib.rs  ── 应用启动，数据库初始化，剪切板监听线程
   ├── clipboard.rs  ── Windows 剪切板轮询循环
   │                    (CF_UNICODETEXT / CF_DIB / CF_HDROP)
+  ├── hash.rs       ── FNV-1a 64 位哈希（去重键，clipboard 与 storage 共用）
   ├── hotkey.rs     ── 全局 Alt+V 热键注册
   ├── tray.rs       ── 系统托盘图标和右键菜单
-  ├── storage.rs    ── SQLite CRUD，全文搜索，去重，设置，模板
+  ├── storage.rs    ── SQLite CRUD，全文搜索，去重，设置，模板，清理
+  ├── stats.rs      ── 统计查询（统计面板聚合、日历圆点）
   ├── models.rs     ── ClipboardItem、ItemType、HistoryQuery、Template，设置结构体
   ├── commands.rs   ── Tauri IPC 命令处理器
   └── export.rs     ── 文字/图片导出，备份/恢复

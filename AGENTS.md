@@ -46,6 +46,7 @@ src/                          # React frontend
     TemplateList.tsx          # Template CRUD with placeholder substitution
     ExportDialog.tsx          # Export text/images
     BackupDialog.tsx          # Backup/restore with structured summary
+    AboutDialog.tsx           # About dialog (version, build info)
     SearchBar.tsx / DatePicker.tsx / TabBar.tsx / HotkeyInput.tsx / SvgIcon.tsx / ScrollArea.tsx / CopyToast.tsx
 
 src-tauri/src/                # Rust backend
