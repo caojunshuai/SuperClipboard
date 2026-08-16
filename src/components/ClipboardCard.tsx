@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ClipboardItem } from '../types';
 import TextCard from './cards/TextCard';
@@ -6,8 +6,11 @@ import ImageCard from './cards/ImageCard';
 import FileCard from './cards/FileCard';
 import SvgIcon from './SvgIcon';
 import { truncateText, parseFilePaths, formatTime } from '../utils/format';
-import { openImagePreview, updateNote, updateContent } from '../api';
+import { openImagePreview } from '../api';
 import { useContextMenu } from '../hooks/useContextMenu';
+import { useNoteEdit } from '../hooks/useNoteEdit';
+import { useContentEdit } from '../hooks/useContentEdit';
+import { useCardExpand } from '../hooks/useCardExpand';
 
 import editSvg from '../assets/icons/edit.svg?raw';
 import pinLineSvg from '../assets/icons/pin-line.svg?raw';
@@ -35,78 +38,29 @@ const TYPE_STYLES: Record<string, string> = {
 
 export default function ClipboardCard({ item, deleting, focused, onCopy, onTogglePin, onToggleFavorite, onDelete, onImageMissing }: Props) {
   const { t } = useTranslation();
-  const [expanded, setExpanded] = useState(false);
-  const [floatingCollapse, setFloatingCollapse] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
   // Note editing
-  const [note, setNote] = useState(item.note || '');
-  const [editingNote, setEditingNote] = useState(false);
-  const [noteDraft, setNoteDraft] = useState('');
-  const noteInputRef = useRef<HTMLInputElement>(null);
+  const {
+    note, editingNote, setEditingNote,
+    noteDraft, setNoteDraft, noteInputRef,
+    save: handleSaveNote, handleKeyDown: handleNoteKeyDown,
+  } = useNoteEdit(item);
 
   // Content editing (text items only)
-  const [editingContent, setEditingContent] = useState(false);
-  const [editDraft, setEditDraft] = useState('');
-  const [displayContent, setDisplayContent] = useState(item.content || '');
-  const [displayCreatedAt, setDisplayCreatedAt] = useState(item.created_at);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const {
+    editingContent, editDraft, setEditDraft,
+    displayContent, displayCreatedAt, textareaRef,
+    startEdit, save: handleSaveContent, cancel: handleCancelEdit,
+    handleKeyDown: handleTextareaKeyDown,
+  } = useContentEdit(item, onDelete);
+
+  // Scroll-aware expand/collapse
+  const { expanded, setExpanded, floatingCollapse, collapse: handleCollapse } = useCardExpand(cardRef);
 
   // Card context menu (text items only)
   const { pos: cardCtxMenu, openAt: openCardCtxMenu, close: closeCardCtxMenu } =
     useContextMenu({ menuItemClass: '.card-ctx-menu-item' });
-
-  // Sync note when item changes
-  useEffect(() => {
-    setNote(item.note || '');
-  }, [item.note]);
-
-  useEffect(() => {
-    if (editingNote) {
-      setNoteDraft(note);
-      noteInputRef.current?.focus();
-    }
-  }, [editingNote]);
-
-  // Sync content when item changes
-  useEffect(() => {
-    setDisplayContent(item.content || '');
-  }, [item.content]);
-
-  // Sync created_at when item changes
-  useEffect(() => {
-    setDisplayCreatedAt(item.created_at);
-  }, [item.created_at]);
-
-  // Focus textarea when entering edit mode
-  useEffect(() => {
-    if (editingContent) {
-      setEditDraft(displayContent);
-      setTimeout(() => textareaRef.current?.focus(), 0);
-    }
-  }, [editingContent]);
-
-  const handleSaveNote = async () => {
-    const trimmed = noteDraft.trim();
-    const newNote = trimmed || null;
-    setNote(trimmed);
-    setEditingNote(false);
-    try {
-      await updateNote(item.id, trimmed || null);
-    } catch {
-      // revert on failure
-      setNote(note);
-    }
-  };
-
-  const handleNoteKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSaveNote();
-    } else if (e.key === 'Escape') {
-      setEditingNote(false);
-    }
-  };
 
   // ---- Content editing handlers ----
 
@@ -117,40 +71,10 @@ export default function ClipboardCard({ item, deleting, focused, onCopy, onToggl
     openCardCtxMenu(e.clientX, e.clientY);
   };
 
-  const handleSaveContent = async () => {
-    setEditingContent(false);
-    try {
-      const newCreatedAt = await updateContent(item.id, editDraft);
-      if (newCreatedAt) {
-        // Normal update — refresh local display
-        setDisplayContent(editDraft);
-        setDisplayCreatedAt(newCreatedAt);
-      } else {
-        // Merged into an existing duplicate — remove this card
-        onDelete(item.id);
-      }
-    } catch {
-      setDisplayContent(item.content || '');
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingContent(false);
-  };
-
-  const handleTextareaKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && e.ctrlKey) {
-      e.preventDefault();
-      handleSaveContent();
-    } else if (e.key === 'Escape') {
-      handleCancelEdit();
-    }
-  };
-
   const handleMenuEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
     closeCardCtxMenu();
-    setEditingContent(true);
+    startEdit();
     setExpanded(true);
   };
 
@@ -200,46 +124,6 @@ export default function ClipboardCard({ item, deleting, focused, onCopy, onToggl
       cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   }, [focused]);
-
-  // ---- Scroll-aware expand/collapse ----
-  useEffect(() => {
-    if (!expanded) {
-      setFloatingCollapse(false);
-      return;
-    }
-
-    const card = cardRef.current;
-    if (!card) return;
-
-    const scrollParent = card.closest('.overflow-y-auto') as HTMLElement | null;
-    if (!scrollParent) return;
-
-    const onScroll = () => {
-      const cr = card.getBoundingClientRect();
-      const sr = scrollParent.getBoundingClientRect();
-
-      if (cr.bottom < sr.top) {
-        setExpanded(false);
-        return;
-      }
-
-      setFloatingCollapse(cr.bottom > sr.bottom + 4);
-    };
-
-    const raf = requestAnimationFrame(onScroll);
-    scrollParent.addEventListener('scroll', onScroll, { passive: true });
-
-    return () => {
-      cancelAnimationFrame(raf);
-      scrollParent.removeEventListener('scroll', onScroll);
-    };
-  }, [expanded]);
-
-  const handleCollapse = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    cardRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' });
-    setExpanded(false);
-  };
 
   // ---- Action link (bottom bar) ----
   const getActionLink = () => {
@@ -482,4 +366,3 @@ export default function ClipboardCard({ item, deleting, focused, onCopy, onToggl
     </>
   );
 }
-
