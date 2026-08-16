@@ -1,5 +1,6 @@
 use tauri::Manager;
 use crate::models::*;
+use crate::stats;
 use crate::storage;
 use crate::export;
 
@@ -221,7 +222,7 @@ pub fn get_source_apps() -> Result<Vec<String>, String> {
 #[tauri::command]
 pub fn get_statistics() -> Result<Statistics, String> {
     let dir = crate::APP_DATA_DIR.get().ok_or("app data dir not initialized")?;
-    storage::get_statistics(dir)
+    stats::get_statistics(dir)
 }
 
 #[cfg(target_os = "windows")]
@@ -532,5 +533,5 @@ pub fn close_preview_window(window: tauri::Window) -> Result<(), String> {
 
 #[tauri::command]
 pub fn get_daily_counts(year: i32, month: i32) -> Result<Vec<(String, i64)>, String> {
-    storage::get_daily_counts(year, month)
+    stats::get_daily_counts(year, month)
 }

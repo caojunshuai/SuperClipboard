@@ -1,5 +1,6 @@
 mod hash;
 mod models;
+mod stats;
 mod storage;
 pub mod clipboard;
 pub mod hotkey;
