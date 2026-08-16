@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toDateStr } from '../utils/format';
 
 interface Props {
   activeDays?: Set<string>;
@@ -57,7 +58,7 @@ export default function DatePicker({ value, onChange, min, max, align = 'left', 
   const firstDayOfWeek = new Date(viewDate.year, viewDate.month, 1).getDay();
 
   const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const todayStr = toDateStr(today);
 
   const dayCells: (number | null)[] = [];
   for (let i = 0; i < firstDayOfWeek; i++) dayCells.push(null);

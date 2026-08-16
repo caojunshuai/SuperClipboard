@@ -1,16 +1,12 @@
 import { useTranslation } from 'react-i18next';
 import type { FilterType, DateFilter } from '../types';
 import DatePicker from './DatePicker';
-
-function todayStr(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
+import { toDateStr } from '../utils/format';
 
 function validDate(v: string): string {
-  if (!v) return todayStr();
+  if (!v) return toDateStr(new Date());
   const year = parseInt(v.slice(0, 4));
-  if (isNaN(year) || year < 2000 || year > 2100) return todayStr();
+  if (isNaN(year) || year < 2000 || year > 2100) return toDateStr(new Date());
   return v;
 }
 

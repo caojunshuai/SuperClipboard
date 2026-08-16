@@ -5,20 +5,10 @@ import { getStatistics } from '../api';
 import type { Statistics } from '../types';
 import ScrollArea from './ScrollArea';
 import { useModal } from '../hooks/useModal';
+import { formatBytes } from '../utils/format';
 
 interface Props {
   onClose: () => void;
-}
-
-function formatBytes(bytes: number): string {
-  const units = ['B', 'KB', 'MB', 'GB'];
-  let size = bytes;
-  let unitIdx = 0;
-  while (size >= 1024 && unitIdx < units.length - 1) {
-    size /= 1024;
-    unitIdx++;
-  }
-  return `${size.toFixed(1)} ${units[unitIdx]}`;
 }
 
 const WEEK_LABELS_ZH = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];

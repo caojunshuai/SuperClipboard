@@ -5,11 +5,7 @@ import CardList from './CardList';
 import TemplateList from './TemplateList';
 import type { FilterType, DateFilter, TabType } from '../types';
 import { getSourceApps, getDailyCounts } from '../api';
-
-function todayStr(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
+import { toDateStr } from '../utils/format';
 
 interface Props {
   refreshKey: number;
@@ -21,8 +17,8 @@ export default function ClipboardPanel({ refreshKey, onClose }: Props) {
   const [typeFilter, setTypeFilter] = useState<FilterType>('all');
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [tab, setTab] = useState<TabType>('all');
-  const [customDateFrom, setCustomDateFrom] = useState(todayStr());
-  const [customDateTo, setCustomDateTo] = useState(todayStr());
+  const [customDateFrom, setCustomDateFrom] = useState(toDateStr(new Date()));
+  const [customDateTo, setCustomDateTo] = useState(toDateStr(new Date()));
   const [sourceApp, setSourceApp] = useState('all');
   const [sourceApps, setSourceApps] = useState<string[]>([]);
   const [activeDays, setActiveDays] = useState<Set<string>>(new Set());

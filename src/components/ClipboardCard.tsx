@@ -5,7 +5,7 @@ import TextCard from './cards/TextCard';
 import ImageCard from './cards/ImageCard';
 import FileCard from './cards/FileCard';
 import SvgIcon from './SvgIcon';
-import { truncateText, parseFilePaths } from '../utils/format';
+import { truncateText, parseFilePaths, formatTime } from '../utils/format';
 import { openImagePreview, updateNote, updateContent } from '../api';
 import { useContextMenu } from '../hooks/useContextMenu';
 
@@ -483,32 +483,3 @@ export default function ClipboardCard({ item, deleting, focused, onCopy, onToggl
   );
 }
 
-function formatTime(dateStr: string, t: (key: string, opts?: Record<string, unknown>) => string): string {
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const yesterday = new Date(today.getTime() - 86400000);
-    const targetDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-
-    const hh = String(d.getHours()).padStart(2, '0');
-    const mm = String(d.getMinutes()).padStart(2, '0');
-    const ss = String(d.getSeconds()).padStart(2, '0');
-    const timeStr = `${hh}:${mm}:${ss}`;
-
-    if (targetDay.getTime() === today.getTime()) {
-      return t('time.today', { time: timeStr });
-    } else if (targetDay.getTime() === yesterday.getTime()) {
-      return t('time.yesterday', { time: timeStr });
-    } else {
-      const y = d.getFullYear();
-      const mo = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${y}-${mo}-${day} ${timeStr}`;
-    }
-  } catch {
-    return dateStr;
-  }
-}

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Template } from '../types';
 import { getTemplates, addTemplate, updateTemplate, deleteTemplate } from '../api';
+import { toDateStr } from '../utils/format';
 import TemplateCard from './TemplateCard';
 import CopyToast from './CopyToast';
 import ScrollArea from './ScrollArea';
@@ -35,7 +36,7 @@ export default function TemplateList({ onClose }: Props) {
 
   const handleCopy = useCallback((template: Template) => {
     const now = new Date();
-    const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const dateStr = toDateStr(now);
     const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
     const text = template.content
