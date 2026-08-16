@@ -4,6 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recha
 import { getStatistics } from '../api';
 import type { Statistics } from '../types';
 import ScrollArea from './ScrollArea';
+import { useModal } from '../hooks/useModal';
 
 interface Props {
   onClose: () => void;
@@ -35,13 +36,7 @@ export default function StatisticsDialog({ onClose }: Props) {
       .catch(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  const { backdropProps, stopPropagation } = useModal(onClose);
 
   // ── Trend chart data ──────────────────────────────────────
   const trendData = (() => {
@@ -98,10 +93,10 @@ export default function StatisticsDialog({ onClose }: Props) {
   const monthTotal = stats ? stats.month_daily.reduce((a, [, b]) => a + b, 0) : 0;
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" {...backdropProps}>
       <div
         className="bg-panel-bg border border-panel-border rounded-xl p-6 w-[calc(100%-2rem)] max-w-[680px] max-h-[90vh] shadow-2xl flex flex-col"
-        onClick={e => e.stopPropagation()}
+        onClick={stopPropagation}
       >
         {/* Title */}
         <h2 className="text-lg font-semibold text-panel-text mb-4">{t('statistics.title')}</h2>

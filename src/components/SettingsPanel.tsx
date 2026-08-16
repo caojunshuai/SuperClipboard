@@ -8,6 +8,7 @@ import { applyTheme, type Theme } from '../theme';
 import type { AppSettings } from '../types';
 import HotkeyInput from './HotkeyInput';
 import ScrollArea from './ScrollArea';
+import { useModal } from '../hooks/useModal';
 
 interface Props {
   onClose: () => void;
@@ -163,26 +164,22 @@ export default function SettingsPanel({ onClose }: Props) {
     onClose();
   };
 
-  // ESC key
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (clearTypeConfirm) {
-          setClearTypeConfirm(null);
-        } else if (showConfirm) {
-          setShowConfirm(false);
-        } else {
-          handleClose();
-        }
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [handleClose, showConfirm]);
+  // ESC: close confirmations first, then the panel
+  const handleEscape = useCallback(() => {
+    if (clearTypeConfirm) {
+      setClearTypeConfirm(null);
+    } else if (showConfirm) {
+      setShowConfirm(false);
+    } else {
+      handleClose();
+    }
+  }, [handleClose, showConfirm, clearTypeConfirm]);
+
+  const { backdropProps, stopPropagation } = useModal(handleClose, { onEscape: handleEscape });
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={handleClose}>
-      <div className="bg-panel-bg border border-panel-border rounded-xl p-6 w-96 shadow-2xl max-h-[95vh] flex flex-col relative" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" {...backdropProps}>
+      <div className="bg-panel-bg border border-panel-border rounded-xl p-6 w-96 shadow-2xl max-h-[95vh] flex flex-col relative" onClick={stopPropagation}>
         <h2 className="text-lg font-semibold text-panel-text mb-4 shrink-0">{t('settings.title')}</h2>
         <ScrollArea className="space-y-4 pr-1">
           {/* ====== Appearance ====== */}

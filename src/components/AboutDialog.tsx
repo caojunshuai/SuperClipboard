@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { open } from '@tauri-apps/plugin-shell';
 import { getBuildInfo } from '../api';
 import type { BuildInfo } from '../types';
+import { useModal } from '../hooks/useModal';
 
 interface Props {
   onClose: () => void;
@@ -18,14 +19,7 @@ export default function AboutDialog({ onClose }: Props) {
     getBuildInfo().then(setInfo).catch(() => {});
   }, []);
 
-  // ESC key
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [onClose]);
+  const { backdropProps, stopPropagation } = useModal(onClose);
 
   const handleFeedback = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -33,8 +27,8 @@ export default function AboutDialog({ onClose }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-panel-bg border border-panel-border rounded-xl p-6 w-80 shadow-2xl" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" {...backdropProps}>
+      <div className="bg-panel-bg border border-panel-border rounded-xl p-6 w-80 shadow-2xl" onClick={stopPropagation}>
         <h2 className="text-lg font-semibold text-panel-text mb-4">{t('about.title')}</h2>
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">

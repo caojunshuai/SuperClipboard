@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { exportText, exportImages } from '../api';
 import type { ExportResult } from '../types';
 import { open, save } from '@tauri-apps/plugin-dialog';
+import { useModal } from '../hooks/useModal';
 
 interface Props {
   itemIds: number[];
@@ -41,9 +42,12 @@ export default function ExportDialog({ itemIds, onClose }: Props) {
     }
   };
 
+  // No ESC-to-close: export may be in flight and the dialog shows the result
+  const { backdropProps, stopPropagation } = useModal(onClose, { esc: false });
+
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-panel-bg border border-panel-border rounded-xl p-6 w-96 shadow-2xl" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" {...backdropProps}>
+      <div className="bg-panel-bg border border-panel-border rounded-xl p-6 w-96 shadow-2xl" onClick={stopPropagation}>
         <h2 className="text-lg font-semibold text-panel-text mb-4">{t('export.title')}</h2>
         <div className="space-y-3 mb-4">
           <label className="flex items-center gap-3 p-3 bg-panel-card rounded-lg cursor-pointer hover:bg-panel-hover">
