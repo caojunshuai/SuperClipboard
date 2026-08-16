@@ -199,7 +199,7 @@ export default function DatePicker({ value, onChange, min, max, align = 'left', 
                   type="button"
                   disabled={disabled}
                   onClick={() => selectDay(day)}
-                  className={`w-8 h-8 text-xs rounded-full flex flex-col items-center justify-center transition-colors relative ${
+                  className={`w-8 h-8 text-xs rounded-full flex flex-col items-center justify-start pt-1 transition-colors relative ${
                     isSelected
                       ? 'bg-panel-accent text-white'
                       : isToday
@@ -211,7 +211,7 @@ export default function DatePicker({ value, onChange, min, max, align = 'left', 
                 >
                   <span className="leading-none">{day}</span>
                   {activeDays?.has(dateStr) && (
-                    <span className={`w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-panel-accent'}`} />
+                    <span className={`w-1 h-1 rounded-full mt-0.5 ${isSelected ? 'bg-white' : 'bg-panel-accent'}`} />
                   )}
                 </button>
               );
