@@ -25,12 +25,19 @@ if (!existsSync(join(releaseDir, exeName))) {
   process.exit(1);
 }
 
-// liblzma-5.dll is only needed for GNU (MinGW) builds — lzma-sys links dynamically
-// there. MSVC builds link liblzma statically, so this DLL is absent and must be
-// skipped, not required.
-const files = [join(releaseDir, exeName), join(releaseDir, dllName)];
-if (existsSync(lzmaPath)) files.push(lzmaPath);
-else console.log('Note: liblzma-5.dll not found — skipping (MSVC build, not needed)');
+// DLLs are toolchain-dependent and must be optional, not required:
+// - WebView2Loader.dll: statically linked since Tauri 2.11 (webview2-com static
+//   feature) — no DLL is produced for either toolchain
+// - liblzma-5.dll: only GNU (MinGW) builds link lzma dynamically; MSVC links it
+//   statically
+const files = [join(releaseDir, exeName)];
+for (const dll of [
+  { path: join(releaseDir, dllName), label: dllName },
+  { path: lzmaPath, label: 'liblzma-5.dll' },
+]) {
+  if (existsSync(dll.path)) files.push(dll.path);
+  else console.log(`Note: ${dll.label} not found — skipping (static-linked, not needed)`);
+}
 
 console.log(`Packaging SuperClipboard v${version} portable...`);
 

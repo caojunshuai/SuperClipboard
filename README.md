@@ -242,7 +242,7 @@ npm run tauri build
 npm run package
 ```
 
-The exe is at `src-tauri/target/release/SuperClipboard.exe`. The portable zip contains `SuperClipboard.exe`, `WebView2Loader.dll`, and `liblzma-5.dll` — self-contained, data directories and the database are auto-created alongside the exe on first run. Extract anywhere except `C:\Program Files\` (requires admin write permission).
+The exe is at `src-tauri/target/release/SuperClipboard.exe`. The portable zip contains the exe (WebView2Loader.dll is statically linked since Tauri 2.11; `liblzma-5.dll` is bundled only for GNU/MinGW builds) — self-contained, data directories and the database are auto-created alongside the exe on first run. Requires the WebView2 Runtime (preinstalled on Windows 10/11). Extract anywhere except `C:\Program Files\` (requires admin write permission).
 
 ### Icon Generation
 
