@@ -25,15 +25,17 @@ if (!existsSync(join(releaseDir, exeName))) {
   process.exit(1);
 }
 
-if (!existsSync(lzmaPath)) {
-  console.error(`Error: liblzma-5.dll not found at ${lzmaPath}`);
-  process.exit(1);
-}
+// liblzma-5.dll is only needed for GNU (MinGW) builds — lzma-sys links dynamically
+// there. MSVC builds link liblzma statically, so this DLL is absent and must be
+// skipped, not required.
+const files = [join(releaseDir, exeName), join(releaseDir, dllName)];
+if (existsSync(lzmaPath)) files.push(lzmaPath);
+else console.log('Note: liblzma-5.dll not found — skipping (MSVC build, not needed)');
 
 console.log(`Packaging SuperClipboard v${version} portable...`);
 
 execSync(
-  `powershell -Command "Compress-Archive -Path '${join(releaseDir, exeName)}','${join(releaseDir, dllName)}','${lzmaPath}' -DestinationPath '${zipPath}' -Force"`,
+  `powershell -Command "Compress-Archive -Path '${files.join("','")}' -DestinationPath '${zipPath}' -Force"`,
   { stdio: 'inherit' }
 );
 

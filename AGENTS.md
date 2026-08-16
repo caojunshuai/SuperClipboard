@@ -15,7 +15,7 @@ npm run tauri build  # production
 npm run package      # create portable zip
 ```
 
-> Default toolchain: `stable-x86_64-pc-windows-gnu`. `windres.exe` must be in PATH (MSYS2/MinGW-w64) for the exe icon.
+> Toolchain: `stable-x86_64-pc-windows-gnu` (needs `windres.exe` from MSYS2/MinGW-w64 in PATH for the exe icon) or `stable-x86_64-pc-windows-msvc` (needs VS Build Tools C++ workload). Switch via `rustup default <triple>`, then `cargo clean`. MSVC builds link liblzma statically — no `liblzma-5.dll` needed (package script handles both).
 > Frontend build check: `npm run build` (tsc + vite). Rust check: `cd src-tauri && cargo check`.
 
 ## Project Structure
