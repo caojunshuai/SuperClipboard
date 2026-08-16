@@ -7,6 +7,7 @@ import FileCard from './cards/FileCard';
 import SvgIcon from './SvgIcon';
 import { truncateText, parseFilePaths } from '../utils/format';
 import { openImagePreview, updateNote, updateContent } from '../api';
+import { useContextMenu } from '../hooks/useContextMenu';
 
 import editSvg from '../assets/icons/edit.svg?raw';
 import pinLineSvg from '../assets/icons/pin-line.svg?raw';
@@ -51,8 +52,9 @@ export default function ClipboardCard({ item, deleting, focused, onCopy, onToggl
   const [displayCreatedAt, setDisplayCreatedAt] = useState(item.created_at);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Card context menu
-  const [cardCtxMenu, setCardCtxMenu] = useState<{x: number; y: number} | null>(null);
+  // Card context menu (text items only)
+  const { pos: cardCtxMenu, openAt: openCardCtxMenu, close: closeCardCtxMenu } =
+    useContextMenu({ menuItemClass: '.card-ctx-menu-item' });
 
   // Sync note when item changes
   useEffect(() => {
@@ -84,18 +86,6 @@ export default function ClipboardCard({ item, deleting, focused, onCopy, onToggl
     }
   }, [editingContent]);
 
-  // Dismiss card context menu on outside click
-  useEffect(() => {
-    if (!cardCtxMenu) return;
-    const dismiss = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.closest('.card-ctx-menu-item')) return;
-      setCardCtxMenu(null);
-    };
-    window.addEventListener('mousedown', dismiss);
-    return () => window.removeEventListener('mousedown', dismiss);
-  }, [cardCtxMenu]);
-
   const handleSaveNote = async () => {
     const trimmed = noteDraft.trim();
     const newNote = trimmed || null;
@@ -124,11 +114,7 @@ export default function ClipboardCard({ item, deleting, focused, onCopy, onToggl
     if (item.item_type !== 'text') return;
     e.preventDefault();
     e.stopPropagation();
-    const EST_W = 90;
-    const EST_H = 100;
-    const x = e.clientX + EST_W > window.innerWidth ? e.clientX - EST_W : e.clientX;
-    const y = e.clientY + EST_H > window.innerHeight ? e.clientY - EST_H : e.clientY;
-    setCardCtxMenu({ x, y });
+    openCardCtxMenu(e.clientX, e.clientY);
   };
 
   const handleSaveContent = async () => {
@@ -163,20 +149,20 @@ export default function ClipboardCard({ item, deleting, focused, onCopy, onToggl
 
   const handleMenuEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setCardCtxMenu(null);
+    closeCardCtxMenu();
     setEditingContent(true);
     setExpanded(true);
   };
 
   const handleMenuCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setCardCtxMenu(null);
+    closeCardCtxMenu();
     onCopy(item);
   };
 
   const handleMenuDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setCardCtxMenu(null);
+    closeCardCtxMenu();
     onDelete(item.id);
   };
 
@@ -471,7 +457,7 @@ export default function ClipboardCard({ item, deleting, focused, onCopy, onToggl
       {cardCtxMenu && (
         <div
           className="fixed z-50 bg-panel-card border border-panel-border rounded-lg py-1 shadow-xl min-w-[80px]"
-          style={{ left: cardCtxMenu.x, top: cardCtxMenu.y }}
+          style={{ left: cardCtxMenu.left, top: cardCtxMenu.top }}
         >
           <button
             onClick={handleMenuEdit}

@@ -10,6 +10,7 @@ import StatisticsDialog from './components/StatisticsDialog';
 import { applyTheme } from './theme';
 import i18n from './locales';
 import SvgIcon from './components/SvgIcon';
+import { useContextMenu } from './hooks/useContextMenu';
 
 import exportSvg from './assets/icons/export.svg?raw';
 import backupSvg from './assets/icons/backup.svg?raw';
@@ -20,18 +21,12 @@ import chartSvg from './assets/icons/chart.svg?raw';
 
 type DialogType = 'none' | 'export' | 'backup' | 'settings' | 'about' | 'statistics';
 
-interface ContextMenuState {
-  left: number;
-  top: number;
-  flipX: boolean;
-  flipY: boolean;
-}
-
 function App() {
   const { t } = useTranslation();
   const [dialog, setDialog] = useState<DialogType>('none');
   const [refreshKey, setRefreshKey] = useState(0);
-  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const { pos: contextMenu, openAt: openContextMenu, close: closeContextMenu } =
+    useContextMenu({ menuItemClass: '.context-menu-item' });
   const titleBarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -74,31 +69,12 @@ function App() {
       e.preventDefault();
       const sel = window.getSelection()?.toString().trim();
       if (sel) {
-        const EST_H = 40;
-        const EST_W = 90;
-        const flipY = e.clientY + EST_H > window.innerHeight;
-        const flipX = e.clientX + EST_W > window.innerWidth;
-        setContextMenu({
-          left: flipX ? e.clientX - EST_W : e.clientX,
-          top: flipY ? e.clientY - EST_H : e.clientY,
-          flipX,
-          flipY,
-        });
+        openContextMenu(e.clientX, e.clientY, 90, 40);
       }
     };
-    const dismiss = (e: MouseEvent) => {
-      // Don't dismiss if clicking inside the custom context menu
-      const target = e.target as HTMLElement;
-      if (target.closest('.context-menu-item')) return;
-      setContextMenu(null);
-    };
     window.addEventListener('contextmenu', onCtx);
-    window.addEventListener('mousedown', dismiss);
-    return () => {
-      window.removeEventListener('contextmenu', onCtx);
-      window.removeEventListener('mousedown', dismiss);
-    };
-  }, []);
+    return () => window.removeEventListener('contextmenu', onCtx);
+  }, [openContextMenu]);
 
   const handleContextCopy = useCallback(async () => {
     const sel = window.getSelection()?.toString().trim();
@@ -109,8 +85,8 @@ function App() {
         document.execCommand('copy');
       }
     }
-    setContextMenu(null);
-  }, []);
+    closeContextMenu();
+  }, [closeContextMenu]);
 
   const handleClose = useCallback(() => {
     setDialog('none');

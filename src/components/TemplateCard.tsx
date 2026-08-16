@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Template } from '../types';
 import { truncateText } from '../utils/format';
+import { useContextMenu } from '../hooks/useContextMenu';
 
 interface Props {
   template: Template;
@@ -20,7 +21,8 @@ export default function TemplateCard({ template, onCopy, onUpdate, onDelete }: P
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Context menu
-  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
+  const { pos: ctxMenu, openAt: openCtxMenu, close: closeCtxMenu } =
+    useContextMenu({ menuItemClass: '.tmpl-menu-item' });
 
   // Local display state (updated after save)
   const [displayTitle, setDisplayTitle] = useState(template.title);
@@ -39,25 +41,10 @@ export default function TemplateCard({ template, onCopy, onUpdate, onDelete }: P
     }
   }, [editing]);
 
-  // Dismiss context menu on outside click
-  useEffect(() => {
-    if (!ctxMenu) return;
-    const dismiss = (e: MouseEvent) => {
-      if ((e.target as HTMLElement).closest('.tmpl-menu-item')) return;
-      setCtxMenu(null);
-    };
-    window.addEventListener('mousedown', dismiss);
-    return () => window.removeEventListener('mousedown', dismiss);
-  }, [ctxMenu]);
-
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const EST_W = 90;
-    const EST_H = 100;
-    const x = e.clientX + EST_W > window.innerWidth ? e.clientX - EST_W : e.clientX;
-    const y = e.clientY + EST_H > window.innerHeight ? e.clientY - EST_H : e.clientY;
-    setCtxMenu({ x, y });
+    openCtxMenu(e.clientX, e.clientY);
   };
 
   const handleSave = async () => {
@@ -141,22 +128,22 @@ export default function TemplateCard({ template, onCopy, onUpdate, onDelete }: P
       {ctxMenu && (
         <div
           className="fixed z-50 bg-panel-card border border-panel-border rounded-lg py-1 shadow-xl min-w-[80px]"
-          style={{ left: ctxMenu.x, top: ctxMenu.y }}
+          style={{ left: ctxMenu.left, top: ctxMenu.top }}
         >
           <button
-            onClick={e => { e.stopPropagation(); setCtxMenu(null); setEditing(true); }}
+            onClick={e => { e.stopPropagation(); closeCtxMenu(); setEditing(true); }}
             className="tmpl-menu-item w-full text-left px-3 py-1.5 text-xs text-panel-text hover:bg-panel-hover rounded"
           >
             {t('card.editContent')}
           </button>
           <button
-            onClick={e => { e.stopPropagation(); setCtxMenu(null); onCopy(template); }}
+            onClick={e => { e.stopPropagation(); closeCtxMenu(); onCopy(template); }}
             className="tmpl-menu-item w-full text-left px-3 py-1.5 text-xs text-panel-text hover:bg-panel-hover rounded"
           >
             {t('card.copyContent')}
           </button>
           <button
-            onClick={e => { e.stopPropagation(); setCtxMenu(null); onDelete(template.id); }}
+            onClick={e => { e.stopPropagation(); closeCtxMenu(); onDelete(template.id); }}
             className="tmpl-menu-item w-full text-left px-3 py-1.5 text-xs text-red-400 hover:bg-panel-hover rounded"
           >
             {t('card.delete')}
