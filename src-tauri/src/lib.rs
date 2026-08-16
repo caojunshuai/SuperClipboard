@@ -60,7 +60,6 @@ pub fn run() {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             let dir = app_data_dir();
             APP_DATA_DIR.set(dir.clone()).ok();
@@ -104,24 +103,19 @@ pub fn run() {
             commands::update_template,
             commands::delete_template,
             commands::delete_clipboard_item,
-            commands::delete_clipboard_items,
-            commands::clear_item_images,
             commands::export_text,
             commands::export_images,
             commands::backup,
             commands::restore,
-            commands::clear_all_data,
             commands::clear_data_by_type,
             commands::get_settings,
             commands::update_settings,
-            commands::get_item_count,
             commands::get_source_apps,
             commands::get_item_counts,
             commands::get_statistics,
             commands::hide_window,
             commands::start_drag,
             commands::read_image_base64,
-            commands::get_app_version,
             commands::get_build_info,
             commands::open_image_preview,
             commands::get_daily_counts,

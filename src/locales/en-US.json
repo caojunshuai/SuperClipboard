@@ -1,7 +1,4 @@
 {
-  "app": {
-    "title": "SuperClipboard"
-  },
   "card": {
     "expand": "Expand",
     "collapse": "Collapse",
@@ -97,7 +94,6 @@
     "imageExportDesc": "Export as original PNG/JPG files",
     "cancel": "Cancel",
     "exportBtn": "Export",
-    "exporting": "Exporting...",
     "error": "Export failed: {{error}}",
     "textSuccess": "Exported {{count}} text items",
     "textSuccess_one": "Exported {{count}} text item",
@@ -159,20 +155,12 @@
     "pageNext": "Next"
   },
   "time": {
-    "justNow": "just now",
-    "minutesAgo": "{{count}} min ago",
-    "minutesAgo_one": "{{count}} min ago",
-    "hoursAgo": "{{count}} hr ago",
-    "hoursAgo_one": "{{count}} hr ago",
-    "daysAgo": "{{count}} days ago",
-    "daysAgo_one": "{{count}} day ago",
     "today": "Today {{time}}",
     "yesterday": "Yesterday {{time}}",
     "charCount": "{{count}} chars",
     "charCountK": "{{count}}k chars"
   },
   "template": {
-    "title": "Templates",
     "newTemplate": "New Template",
     "editTitle": "Template title",
     "editContent": "Template content",
@@ -208,7 +196,6 @@
     "topCopied": "Top 10 Most Copied",
     "emptyData": "No statistics available",
     "loading": "Loading...",
-    "copyCount": "copies",
     "close": "Close"
   },
   "lang": {

@@ -7,7 +7,6 @@
     "global-shortcut:default",
     "dialog:default",
     "shell:default",
-    "shell:allow-open",
-    "process:default"
+    "shell:allow-open"
   ]
 }

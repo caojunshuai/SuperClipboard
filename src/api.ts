@@ -26,10 +26,6 @@ export async function deleteClipboardItem(id: number): Promise<void> {
   return invoke('delete_clipboard_item', { id });
 }
 
-export async function deleteClipboardItems(ids: number[]): Promise<void> {
-  return invoke('delete_clipboard_items', { ids });
-}
-
 export async function exportText(ids: number[], outputPath: string): Promise<ExportResult> {
   return invoke('export_text', { ids, outputPath });
 }
@@ -52,10 +48,6 @@ export async function getSettings(): Promise<AppSettings> {
 
 export async function updateSettings(settings: AppSettings): Promise<void> {
   return invoke('update_settings', { settings });
-}
-
-export async function getItemCount(): Promise<number> {
-  return invoke('get_item_count');
 }
 
 export async function getSourceApps(): Promise<string[]> {
@@ -114,14 +106,6 @@ export async function updateContent(id: number, content: string): Promise<string
 
 export async function updateNote(id: number, note: string | null): Promise<void> {
   return invoke('update_note', { id, note });
-}
-
-export async function getAppVersion(): Promise<string> {
-  return invoke('get_app_version');
-}
-
-export async function clearAllData(): Promise<number> {
-  return invoke('clear_all_data');
 }
 
 export async function clearDataByType(itemType: string): Promise<number> {

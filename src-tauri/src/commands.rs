@@ -164,27 +164,6 @@ pub fn delete_clipboard_item(id: i64) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn delete_clipboard_items(ids: Vec<i64>) -> Result<(), String> {
-    for &id in &ids {
-        if let Ok(Some(item)) = storage::get_item(id) {
-            if let Some(ref p) = item.image_path { std::fs::remove_file(p).ok(); }
-            if let Some(ref p) = item.thumbnail_path { std::fs::remove_file(p).ok(); }
-        }
-    }
-    storage::delete_items(&ids).map_err(|e| e.to_string())
-}
-
-/// Clear image/thumbnail paths for an item whose original file was deleted.
-/// Removes the thumbnail file from disk and sets both paths to NULL in DB.
-#[tauri::command]
-pub fn clear_item_images(id: i64) -> Result<(), String> {
-    if let Ok(Some(item)) = storage::get_item(id) {
-        if let Some(ref p) = item.thumbnail_path { std::fs::remove_file(p).ok(); }
-    }
-    storage::clear_item_images(id).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
 pub fn export_text(ids: Vec<i64>, output_path: String) -> Result<ExportResult, String> {
     export::export_text(&ids, &output_path)
 }
@@ -202,11 +181,6 @@ pub fn backup(output_path: String) -> Result<BackupResult, String> {
 #[tauri::command]
 pub fn restore(backup_path: String) -> Result<RestoreResult, String> {
     export::restore(&backup_path)
-}
-
-#[tauri::command]
-pub fn clear_all_data() -> Result<usize, String> {
-    storage::clear_all_data()
 }
 
 #[tauri::command]
@@ -237,21 +211,6 @@ pub fn update_settings(app: tauri::AppHandle, settings: AppSettings) -> Result<(
     crate::hotkey::register(&app, &settings.hotkey);
     crate::tray::update_labels(&app).ok();
     Ok(())
-}
-
-#[tauri::command]
-pub fn get_item_count() -> Result<i64, String> {
-    let result = storage::query_history(&HistoryQuery {
-        keyword: None,
-        item_type: None,
-        date_from: None,
-        date_to: None,
-        tab: None,
-        source_app: None,
-        offset: 0,
-        limit: 1,
-    }).map_err(|e| e.to_string())?;
-    Ok(result.total)
 }
 
 #[tauri::command]
@@ -491,11 +450,6 @@ pub fn start_drag(app: tauri::AppHandle) -> Result<(), String> {
     }
     #[cfg(not(target_os = "windows"))]
     Err("Not supported".to_string())
-}
-
-#[tauri::command]
-pub fn get_app_version() -> String {
-    env!("CARGO_PKG_VERSION").to_string()
 }
 
 /// Return version + build time as a JSON-like struct.

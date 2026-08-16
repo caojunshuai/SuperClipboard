@@ -1,8 +1,6 @@
-export type ItemType = 'text' | 'image' | 'file';
-
 export interface ClipboardItem {
   id: number;
-  item_type: ItemType;
+  item_type: 'text' | 'image' | 'file';
   content: string | null;
   image_path: string | null;
   thumbnail_path: string | null;
@@ -90,16 +88,6 @@ export type TabType = 'all' | 'favorites';
 export type FilterType = 'all' | 'text' | 'image' | 'file' | 'template';
 export type DateFilter = 'all' | 'today' | '3days' | '7days' | 'custom';
 
-export interface SourceCount {
-  app: string;
-  count: number;
-}
-
-export interface TopCopiedItem {
-  preview: string;
-  copy_count: number;
-}
-
 export interface TypeCounts {
   text: number;
   image: number;
@@ -113,9 +101,9 @@ export interface Statistics {
   today_hourly: number[];
   week_daily: [string, number][];
   month_daily: [string, number][];
-  source_stats: SourceCount[];
+  source_stats: Array<{ app: string; count: number }>;
   storage_text_bytes: number;
   storage_image_bytes: number;
   storage_db_bytes: number;
-  top_copied: TopCopiedItem[];
+  top_copied: Array<{ preview: string; copy_count: number }>;
 }

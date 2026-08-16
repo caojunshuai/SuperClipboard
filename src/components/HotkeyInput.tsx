@@ -73,7 +73,7 @@ function normalizeKey(key: string, code: string): string | null {
 }
 
 /** Format a stored hotkey string for display, e.g. "Alt+V" → "Alt + V" */
-export function formatHotkey(raw: string): string {
+function formatHotkey(raw: string): string {
   if (!raw) return '';
   return raw.split('+').map(s => s.trim()).join(' + ');
 }

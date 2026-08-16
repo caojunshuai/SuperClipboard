@@ -379,25 +379,6 @@ pub fn delete_item(id: i64) -> SqliteResult<()> {
     Ok(())
 }
 
-pub fn clear_item_images(id: i64) -> SqliteResult<()> {
-    let conn = get_conn().lock().unwrap();
-    conn.execute(
-        "UPDATE clipboard_items SET image_path = NULL, thumbnail_path = NULL WHERE id = ?1",
-        [id],
-    )?;
-    Ok(())
-}
-
-pub fn delete_items(ids: &[i64]) -> SqliteResult<()> {
-    let conn = get_conn().lock().unwrap();
-    if ids.is_empty() { return Ok(()); }
-    let placeholders: Vec<String> = ids.iter().enumerate().map(|(i, _)| format!("?{}", i + 1)).collect();
-    let sql = format!("DELETE FROM clipboard_items WHERE id IN ({})", placeholders.join(","));
-    let params_refs: Vec<&dyn rusqlite::types::ToSql> = ids.iter().map(|id| id as &dyn rusqlite::types::ToSql).collect();
-    conn.execute(&sql, params_refs.as_slice())?;
-    Ok(())
-}
-
 pub fn cleanup_old_items(max_items: i64, max_images: i64) -> SqliteResult<(usize, usize)> {
     let conn = get_conn().lock().unwrap();
 

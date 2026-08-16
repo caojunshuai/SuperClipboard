@@ -10,7 +10,6 @@
   --panel-text: #e0e0e0;
   --panel-muted: #8888a0;
   --panel-accent: #7c8cf8;
-  --color-scheme: dark;
 }
 
 @media (prefers-color-scheme: light) {
@@ -22,7 +21,6 @@
     --panel-text: #1a1a2e;
     --panel-muted: #707088;
     --panel-accent: #5b6cf0;
-    --color-scheme: light;
   }
 }
 
@@ -34,7 +32,6 @@ html.light {
   --panel-text: #1a1a2e;
   --panel-muted: #707088;
   --panel-accent: #5b6cf0;
-  --color-scheme: light;
 }
 
 html.dark {
@@ -45,7 +42,6 @@ html.dark {
   --panel-text: #e0e0e0;
   --panel-muted: #8888a0;
   --panel-accent: #7c8cf8;
-  --color-scheme: dark;
 }
 
 body {
@@ -77,25 +73,6 @@ body {
 }
 .scrollbar-thin::-webkit-scrollbar-corner {
   background: transparent;
-}
-
-/* Calendar icon visibility */
-input[type="date"] {
-  color-scheme: var(--color-scheme);
-}
-input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(0.7);
-}
-@media (prefers-color-scheme: light) {
-  input[type="date"]::-webkit-calendar-picker-indicator {
-    filter: invert(0);
-  }
-}
-html.light input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(0);
-}
-html.dark input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(0.7);
 }
 
 /* Custom select dropdown */

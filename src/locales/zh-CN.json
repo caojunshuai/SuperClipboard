@@ -1,7 +1,4 @@
 {
-  "app": {
-    "title": "SuperClipboard"
-  },
   "card": {
     "expand": "展开",
     "collapse": "收起",
@@ -95,7 +92,6 @@
     "imageExportDesc": "导出为原始 PNG/JPG 文件",
     "cancel": "取消",
     "exportBtn": "导出",
-    "exporting": "导出中...",
     "error": "导出失败: {{error}}",
     "textSuccess": "已导出 {{count}} 条文本",
     "imageSuccess": "已导出 {{count}} 张图片"
@@ -154,17 +150,12 @@
     "pageNext": "下一页"
   },
   "time": {
-    "justNow": "刚刚",
-    "minutesAgo": "{{count}} 分钟前",
-    "hoursAgo": "{{count}} 小时前",
-    "daysAgo": "{{count}} 天前",
     "today": "今天 {{time}}",
     "yesterday": "昨天 {{time}}",
     "charCount": "{{count}} 字",
     "charCountK": "{{count}}k 字"
   },
   "template": {
-    "title": "固定模板",
     "newTemplate": "新建模板",
     "editTitle": "模板标题",
     "editContent": "模板内容",
@@ -200,7 +191,6 @@
     "topCopied": "最常复制 Top 10",
     "emptyData": "暂无统计数据",
     "loading": "加载中...",
-    "copyCount": "次",
     "close": "关闭"
   },
   "lang": {
