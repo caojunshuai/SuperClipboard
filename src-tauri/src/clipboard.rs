@@ -1,19 +1,9 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tauri::Emitter;
+use crate::hash::fnv1a_64;
 use crate::models::{ClipboardItem, ItemType};
 use crate::storage;
-
-/// FNV-1a 64-bit hash — deterministic, no dependencies, fast.
-/// Used for content deduplication across sessions.
-pub(crate) fn fnv1a_64(data: &[u8]) -> i64 {
-    let mut hash: u64 = 0xcbf29ce484222325;
-    for &byte in data {
-        hash ^= byte as u64;
-        hash = hash.wrapping_mul(0x100000001b3);
-    }
-    hash as i64
-}
 
 /// Generate a Lanczos3 thumbnail at 360px max dimension from PNG bytes.
 /// Shared by clipboard capture and backup restore paths.

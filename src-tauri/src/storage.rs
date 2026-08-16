@@ -1,6 +1,7 @@
 use rusqlite::{params, Connection, Result as SqliteResult, OptionalExtension};
 use once_cell::sync::OnceCell;
 use std::sync::Mutex;
+use crate::hash::fnv1a_64;
 use crate::models::*;
 
 static DB: OnceCell<Mutex<Connection>> = OnceCell::new();
@@ -62,13 +63,24 @@ pub fn init_db(app_data_dir: &std::path::Path) -> SqliteResult<()> {
         END;
     ")?;
 
-    // Migration: add content_hash column and dedup index for existing databases
-    conn.execute("ALTER TABLE clipboard_items ADD COLUMN content_hash INTEGER", []).ok();
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_dedup ON clipboard_items(type, content_hash)", []).ok();
-    // Migration: add note column
-    conn.execute("ALTER TABLE clipboard_items ADD COLUMN note TEXT", []).ok();
-    // Migration: add copy_count column
-    conn.execute("ALTER TABLE clipboard_items ADD COLUMN copy_count INTEGER DEFAULT 0", []).ok();
+    // Migrations for databases created before these columns existed.
+    // SQLite has no ALTER TABLE ... ADD COLUMN IF NOT EXISTS, so check via
+    // PRAGMA table_info. Fresh installs already have all columns (CREATE TABLE
+    // above) and skip these; a real failure now propagates instead of being
+    // silently swallowed by .ok().
+    let existing_columns: Vec<String> = conn
+        .prepare("PRAGMA table_info(clipboard_items)")?
+        .query_map([], |row| row.get(1))?
+        .collect::<Result<_, _>>()?;
+    for (name, ddl) in [
+        ("content_hash", "INTEGER"),
+        ("note", "TEXT"),
+        ("copy_count", "INTEGER DEFAULT 0"),
+    ] {
+        if !existing_columns.iter().any(|c| c == name) {
+            conn.execute(&format!("ALTER TABLE clipboard_items ADD COLUMN {} {}", name, ddl), [])?;
+        }
+    }
 
     // Templates table
     conn.execute_batch("
@@ -290,7 +302,7 @@ pub fn toggle_favorite(id: i64) -> SqliteResult<bool> {
 pub fn update_content(id: i64, content: String) -> SqliteResult<String> {
     let conn = get_conn().lock().unwrap();
     let char_count = content.chars().count() as i64;
-    let content_hash = crate::clipboard::fnv1a_64(content.as_bytes());
+    let content_hash = fnv1a_64(content.as_bytes());
 
     // Check if another text item already has this content (cross-row dedup)
     let existing: Option<i64> = conn.query_row(

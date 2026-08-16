@@ -1,3 +1,4 @@
+mod hash;
 mod models;
 mod storage;
 pub mod clipboard;
