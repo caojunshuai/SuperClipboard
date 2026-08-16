@@ -6,13 +6,6 @@ interface Props {
   onChange: (value: string) => void;
 }
 
-const MODIFIER_LABELS: Record<string, string> = {
-  Control: 'Ctrl',
-  Alt: 'Alt',
-  Shift: 'Shift',
-  Meta: 'Win',
-};
-
 /** Normalize a KeyboardEvent into a display string, e.g. "Ctrl + Shift + X" */
 function formatCombo(e: KeyboardEvent): string | null {
   // Ignore pure modifier key presses

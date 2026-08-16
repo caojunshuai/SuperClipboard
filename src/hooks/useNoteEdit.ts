@@ -25,7 +25,6 @@ export function useNoteEdit(item: ClipboardItem) {
 
   const save = async () => {
     const trimmed = noteDraft.trim();
-    const newNote = trimmed || null;
     setNote(trimmed);
     setEditingNote(false);
     try {
