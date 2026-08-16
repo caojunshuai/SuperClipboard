@@ -1,14 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getSettings, updateSettings as saveSettings, clearDataByType, getItemCounts } from '../api';
+import { clearDataByType, getItemCounts } from '../api';
 import type { TypeCounts } from '../types';
-import { SUPPORTED_LOCALES, type Locale, detectSystemLocale } from '../locales';
+import { SUPPORTED_LOCALES, type Locale } from '../locales';
 import i18n from '../locales';
 import { applyTheme, type Theme } from '../theme';
 import type { AppSettings } from '../types';
 import HotkeyInput from './HotkeyInput';
 import ScrollArea from './ScrollArea';
 import { useModal } from '../hooks/useModal';
+import { useSettings } from '../hooks/useSettings';
 
 interface Props {
   onClose: () => void;
@@ -40,23 +41,18 @@ export default function SettingsPanel({ onClose }: Props) {
   const [maxItemsStr, setMaxItemsStr] = useState('3000');
   const [maxImagesStr, setMaxImagesStr] = useState('500');
 
+  const { settings: savedSettings, save } = useSettings();
+
+  // Init form from shared settings (language init + theme handled by the hook/App)
   useEffect(() => {
-    getSettings().then(s => {
-      // First launch: language not set yet → use system detection + save
-      if (!s.language) {
-        s.language = detectSystemLocale();
-        i18n.changeLanguage(s.language);
-        saveSettings(s).catch(() => {});
-      } else if (s.language !== i18n.language) {
-        // DB has a saved language that differs from i18n → sync
-        i18n.changeLanguage(s.language);
-      }
-      if (s.theme) applyTheme(s.theme as Theme);
-      setSettings(s);
-      setOriginal(s);
-      setMaxItemsStr(s.max_items.toString());
-      setMaxImagesStr(s.max_images.toString());
-    }).catch(() => {});
+    if (!savedSettings || original) return;
+    setSettings(savedSettings);
+    setOriginal(savedSettings);
+    setMaxItemsStr(savedSettings.max_items.toString());
+    setMaxImagesStr(savedSettings.max_images.toString());
+  }, [savedSettings, original]);
+
+  useEffect(() => {
     getItemCounts().then(c => setTypeCounts(c)).catch(() => {});
   }, []);
 
@@ -105,11 +101,7 @@ export default function SettingsPanel({ onClose }: Props) {
     setSaving(true);
     setErrors({});
     try {
-      await saveSettings(newSettings);
-      setSettings(newSettings);
-      setOriginal(newSettings);
-      setMaxItemsStr(newSettings.max_items.toString());
-      setMaxImagesStr(newSettings.max_images.toString());
+      await save(newSettings);
       onClose();
     } catch (err) {
       console.error(err);

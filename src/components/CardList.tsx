@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getClipboardHistory, copyToClipboard, autoPaste, togglePin, toggleFavorite, deleteClipboardItem, getSettings } from '../api';
+import { getClipboardHistory, copyToClipboard, autoPaste, togglePin, toggleFavorite, deleteClipboardItem } from '../api';
 import ClipboardCard from './ClipboardCard';
 import CopyToast from './CopyToast';
 import ScrollArea from './ScrollArea';
 import type { ClipboardItem, HistoryQuery } from '../types';
 import { getDateRange } from '../utils/format';
+import { useSettings } from '../hooks/useSettings';
 
 interface Props {
   query: HistoryQuery;
@@ -61,6 +62,7 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
   tRef.current = t;
   const fetchGenRef = useRef(0);
   const pageSizeRef = useRef(50);
+  const { settings } = useSettings();
 
   const totalPages = Math.max(1, Math.ceil(total / pageSizeRef.current));
 
@@ -84,15 +86,15 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
     }
   }, []);
 
-  // Load settings on mount + panel shown, then fetch
+  // Settings from shared state (fresh after any save); init page size on
+  // mount + panel shown, then fetch
   useEffect(() => {
-    getSettings().then(s => {
-      setAutoPasteEnabled(s.auto_paste);
-      pageSizeRef.current = s.page_size || 50;
-      setPage(1);
-      fetchPage(1);
-    }).catch(() => {});
-  }, [refreshKey]);
+    if (!settings) return;
+    setAutoPasteEnabled(settings.auto_paste);
+    pageSizeRef.current = settings.page_size || 50;
+    setPage(1);
+    fetchPage(1);
+  }, [settings, refreshKey]);
 
   // When filters/tabs change, reset to page 1
   useEffect(() => {

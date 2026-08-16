@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { onPanelShown, onClipboardChanged, hideWindow, startDrag, getSettings } from './api';
+import { onPanelShown, onClipboardChanged, hideWindow, startDrag } from './api';
 import ClipboardPanel from './components/ClipboardPanel';
 import ExportDialog from './components/ExportDialog';
 import BackupDialog from './components/BackupDialog';
@@ -11,6 +11,7 @@ import { applyTheme } from './theme';
 import i18n from './locales';
 import SvgIcon from './components/SvgIcon';
 import { useContextMenu } from './hooks/useContextMenu';
+import { useSettings } from './hooks/useSettings';
 
 import exportSvg from './assets/icons/export.svg?raw';
 import backupSvg from './assets/icons/backup.svg?raw';
@@ -27,6 +28,7 @@ function App() {
   const [refreshKey, setRefreshKey] = useState(0);
   const { pos: contextMenu, openAt: openContextMenu, close: closeContextMenu } =
     useContextMenu({ menuItemClass: '.context-menu-item' });
+  const { settings } = useSettings();
   const titleBarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,11 +40,11 @@ function App() {
     };
   }, []);
 
+  // Apply theme from shared settings — re-runs on any save
   useEffect(() => {
-    getSettings().then(s => {
-      applyTheme(s.theme === 'light' || s.theme === 'system' ? s.theme : 'dark');
-    }).catch(() => {});
-  }, []);
+    if (!settings) return;
+    applyTheme(settings.theme === 'light' || settings.theme === 'system' ? settings.theme : 'dark');
+  }, [settings]);
 
   // Drag via native mousedown listener.
   // Tauri's official startDragging() doesn't work reliably because its async IPC
