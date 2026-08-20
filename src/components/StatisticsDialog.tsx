@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { getStatistics } from '../api';
+import { getStatistics, getDailyCounts } from '../api';
 import type { Statistics } from '../types';
 import ScrollArea from './ScrollArea';
 import { useModal } from '../hooks/useModal';
@@ -13,12 +12,22 @@ interface Props {
 
 const WEEK_LABELS_ZH = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
 const WEEK_LABELS_EN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const ZH_MONTHS = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+const EN_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const CONTRIB_CLASSES = ['bg-contrib-0', 'bg-contrib-1', 'bg-contrib-2', 'bg-contrib-3', 'bg-contrib-4'];
 
 export default function StatisticsDialog({ onClose }: Props) {
   const { t, i18n } = useTranslation();
   const [stats, setStats] = useState<Statistics | null>(null);
   const [loading, setLoading] = useState(true);
-  const [trendTab, setTrendTab] = useState<'today' | 'week' | 'month'>('week');
+
+  // ── Contribution graph month state ────────────────────────
+  const now = new Date();
+  const [viewYear, setViewYear] = useState(now.getFullYear());
+  const [viewMonth, setViewMonth] = useState(now.getMonth() + 1); // 1-based
+  const [monthCounts, setMonthCounts] = useState<Record<string, number>>({});
+  const [monthLoading, setMonthLoading] = useState(true);
+  const [hoverDay, setHoverDay] = useState<{ day: number; count: number } | null>(null);
 
   useEffect(() => {
     getStatistics()
@@ -26,36 +35,58 @@ export default function StatisticsDialog({ onClose }: Props) {
       .catch(() => setLoading(false));
   }, []);
 
+  // Fetch daily counts whenever the viewed month changes
+  useEffect(() => {
+    let cancelled = false;
+    setMonthLoading(true);
+    setHoverDay(null);
+    getDailyCounts(viewYear, viewMonth)
+      .then(m => { if (!cancelled) setMonthCounts(m); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setMonthLoading(false); });
+    return () => { cancelled = true; };
+  }, [viewYear, viewMonth]);
+
   const { backdropProps, stopPropagation } = useModal(onClose);
 
-  // ── Trend chart data ──────────────────────────────────────
-  const trendData = (() => {
-    if (!stats) return [];
-    const isZh = i18n.language.startsWith('zh');
-    switch (trendTab) {
-      case 'today':
-        return stats.today_hourly.map((cnt, hour) => ({
-          label: `${hour}`,
-          count: cnt,
-        }));
-      case 'week': {
-        const labels = isZh ? WEEK_LABELS_ZH : WEEK_LABELS_EN;
-        // week_daily has 7 entries (Mon-Sun of current week), zero-filled.
-        // Compute day-of-week label from each date string so labels always
-        // match the actual dates, regardless of which days have data.
-        return stats.week_daily.map(([dateStr, cnt]) => {
-          const dayOfWeek = new Date(dateStr + 'T00:00:00').getDay(); // 0=Sun..6=Sat
-          const labelIdx = dayOfWeek === 0 ? 6 : dayOfWeek - 1;       // 0=Mon..6=Sun
-          return { label: labels[labelIdx], count: cnt };
-        });
-      }
-      case 'month':
-        return stats.month_daily.map(([day, cnt]) => ({
-          label: day.slice(5), // "06-15"
-          count: cnt,
-        }));
-    }
-  })();
+  // ── Contribution graph grid (Mon-first calendar month) ────
+  const isZh = i18n.language.startsWith('zh');
+  const WEEK_LABELS = isZh ? WEEK_LABELS_ZH : WEEK_LABELS_EN;
+  const MONTHS = isZh ? ZH_MONTHS : EN_MONTHS;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const dateKey = (day: number) => `${viewYear}-${pad(viewMonth)}-${pad(day)}`;
+
+  const daysInMonth = new Date(viewYear, viewMonth, 0).getDate();
+  const firstDow = new Date(viewYear, viewMonth - 1, 1).getDay(); // 0=Sun..6=Sat
+  const firstOffset = firstDow === 0 ? 6 : firstDow - 1;           // 0=Mon..6=Sun
+  const gridCells: (number | null)[] = [
+    ...Array.from({ length: firstOffset }, () => null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ];
+  while (gridCells.length % 7 !== 0) gridCells.push(null);
+
+  const viewMonthTotal = Object.values(monthCounts).reduce((a, b) => a + b, 0);
+  const monthMax = Math.max(...Object.values(monthCounts), 0);
+  // GitHub-style 4-level green scale, thresholds bucketed by the month max.
+  // Sparse months (max <= 4) scale linearly so a single copy doesn't turn dark green.
+  const levelOf = (cnt: number): number => {
+    if (cnt <= 0) return 0;
+    if (monthMax <= 4) return Math.min(4, cnt);
+    const t1 = Math.ceil(monthMax / 4);
+    const t2 = Math.ceil(monthMax / 2);
+    const t3 = Math.ceil((monthMax * 3) / 4);
+    return cnt >= t3 ? 4 : cnt >= t2 ? 3 : cnt >= t1 ? 2 : 1;
+  };
+
+  const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const isCurrentMonth = viewYear === now.getFullYear() && viewMonth === now.getMonth() + 1;
+
+  const changeMonth = (delta: number) => {
+    const m = viewMonth + delta;
+    if (m < 1) { setViewYear(y => y - 1); setViewMonth(12); }
+    else if (m > 12) { setViewYear(y => y + 1); setViewMonth(1); }
+    else setViewMonth(m);
+  };
 
   // ── Source app data (top 20 + "others") ───────────────────
   const sourceData = (() => {
@@ -113,41 +144,89 @@ export default function StatisticsDialog({ onClose }: Props) {
                 ))}
               </div>
 
-              {/* ── Trend chart ────────────────────────────── */}
+              {/* ── Contribution graph (month calendar) ────── */}
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-semibold text-panel-text">{t('statistics.trendTitle')}</h3>
-                  <div className="flex gap-1 bg-panel-card rounded-lg p-0.5">
-                    {(['today', 'week', 'month'] as const).map(tab => (
-                      <button
-                        key={tab}
-                        onClick={() => setTrendTab(tab)}
-                        className={`px-3 py-1 text-xs rounded-md transition-colors ${
-                          trendTab === tab
-                            ? 'bg-panel-hover text-panel-text font-medium'
-                            : 'text-panel-muted hover:text-panel-text'
-                        }`}
-                      >
-                        {t(`statistics.trendTab${tab.charAt(0).toUpperCase() + tab.slice(1)}` as any)}
-                      </button>
-                    ))}
+                  <div className="flex items-center gap-0.5 bg-panel-card rounded-lg p-0.5">
+                    <button
+                      onClick={() => changeMonth(-1)}
+                      title={isZh ? '上一月' : 'Previous month'}
+                      className="p-1 text-panel-muted hover:text-panel-text rounded-md transition-colors"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <span className="text-xs text-panel-text font-medium min-w-[76px] text-center">
+                      {MONTHS[viewMonth - 1]} {viewYear}
+                    </span>
+                    <button
+                      onClick={() => changeMonth(1)}
+                      disabled={isCurrentMonth}
+                      title={isZh ? '下一月' : 'Next month'}
+                      className={`p-1 rounded-md transition-colors ${
+                        isCurrentMonth ? 'text-panel-muted/30 cursor-not-allowed' : 'text-panel-muted hover:text-panel-text'
+                      }`}
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
-                {trendData.length > 0 && (
-                  <ResponsiveContainer width="100%" height={160}>
-                    <BarChart data={trendData} margin={{ top: 4, right: 4, left: -16, bottom: -8 }}>
-                      <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} allowDecimals={false} />
-                      <Tooltip
-                        contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px', fontSize: '12px' }}
-                        labelStyle={{ color: '#9ca3af' }}
-                        separator=""
-                        formatter={(value: any) => [`${value ?? 0}${i18n.language.startsWith('zh') ? '次' : ' copies'}`, '']}
-                      />
-                      <Bar dataKey="count" fill="#3b82f6" radius={[3, 3, 0, 0]} maxBarSize={32} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
+
+                {/* Weekday headers */}
+                <div className="grid grid-cols-7 gap-1 mb-1">
+                  {WEEK_LABELS.map(d => (
+                    <div key={d} className="w-9 h-5 flex items-center justify-center text-[10px] text-panel-muted">
+                      {d}
+                    </div>
+                  ))}
+                </div>
+                {/* Day grid, colored by copy-count intensity */}
+                <div className="grid grid-cols-7 gap-1">
+                  {gridCells.map((day, i) => {
+                    if (day === null) return <div key={`e${i}`} className="w-9 h-9" />;
+                    const key = dateKey(day);
+                    const count = monthCounts[key] ?? 0;
+                    const level = levelOf(count);
+                    const isToday = key === todayStr;
+                    return (
+                      <div
+                        key={key}
+                        onMouseEnter={() => setHoverDay({ day, count })}
+                        onMouseLeave={() => setHoverDay(null)}
+                        className={`w-9 h-9 rounded-[4px] flex items-center justify-center text-[10px] cursor-default select-none transition-colors ${CONTRIB_CLASSES[level]} ${
+                          level >= 3 ? 'text-white' : 'text-panel-muted'
+                        } ${isToday ? 'ring-2 ring-panel-accent' : ''} hover:ring-2 hover:ring-panel-muted/60`}
+                      >
+                        {day}
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* Hover detail / month total + legend */}
+                <div className="flex items-center justify-between mt-2">
+                  <div className="text-xs text-panel-muted">
+                    {monthLoading ? (
+                      <span>{t('statistics.loading')}</span>
+                    ) : hoverDay ? (
+                      <span>
+                        {dateKey(hoverDay.day)} · {t('statistics.trendDayCount', { count: hoverDay.count })}
+                      </span>
+                    ) : (
+                      <span>{t('statistics.trendMonthTotal', { count: viewMonthTotal })}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 text-[10px] text-panel-muted">
+                    <span>{isZh ? '少' : 'Less'}</span>
+                    {[0, 1, 2, 3, 4].map(level => (
+                      <div key={level} className={`w-2.5 h-2.5 rounded-[2px] ${CONTRIB_CLASSES[level]}`} />
+                    ))}
+                    <span>{isZh ? '多' : 'More'}</span>
+                  </div>
+                </div>
               </div>
 
               {/* ── Top copied ────────────────────────────── */}

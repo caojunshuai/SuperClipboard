@@ -12,6 +12,13 @@ export default {
           text: 'var(--panel-text)',
           muted: 'var(--panel-muted)',
           accent: 'var(--panel-accent)',
+        },
+        contrib: {
+          0: 'var(--contrib-0)',
+          1: 'var(--contrib-1)',
+          2: 'var(--contrib-2)',
+          3: 'var(--contrib-3)',
+          4: 'var(--contrib-4)',
         }
       },
       animation: {
