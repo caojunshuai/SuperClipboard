@@ -7,6 +7,11 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    // Don't watch Rust build artifacts: chokidar races with cargo writing
+    // locked build-script exes under src-tauri/target → EBUSY crash on Windows
+    watch: {
+      ignored: ["**/src-tauri/**"],
+    },
   },
   envPrefix: ["VITE_", "TAURI_"],
   build: {
