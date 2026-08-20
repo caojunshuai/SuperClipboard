@@ -179,7 +179,7 @@ export default function StatisticsDialog({ onClose }: Props) {
                 {/* Weekday headers */}
                 <div className="grid grid-cols-7 gap-1 mb-1">
                   {WEEK_LABELS.map(d => (
-                    <div key={d} className="w-9 h-5 flex items-center justify-center text-[10px] text-panel-muted">
+                    <div key={d} className="w-full h-5 flex items-center justify-center text-[10px] text-panel-muted">
                       {d}
                     </div>
                   ))}
@@ -187,7 +187,7 @@ export default function StatisticsDialog({ onClose }: Props) {
                 {/* Day grid, colored by copy-count intensity */}
                 <div className="grid grid-cols-7 gap-1">
                   {gridCells.map((day, i) => {
-                    if (day === null) return <div key={`e${i}`} className="w-9 h-9" />;
+                    if (day === null) return <div key={`e${i}`} className="w-full aspect-square max-w-9 max-h-9" />;
                     const key = dateKey(day);
                     const count = monthCounts[key] ?? 0;
                     const level = levelOf(count);
@@ -197,7 +197,7 @@ export default function StatisticsDialog({ onClose }: Props) {
                         key={key}
                         onMouseEnter={() => setHoverDay({ day, count })}
                         onMouseLeave={() => setHoverDay(null)}
-                        className={`w-9 h-9 rounded-[4px] flex items-center justify-center text-[10px] cursor-default select-none transition-colors ${CONTRIB_CLASSES[level]} ${
+                        className={`w-full aspect-square max-w-9 max-h-9 rounded-[4px] flex items-center justify-center text-[10px] cursor-default select-none transition-colors ${CONTRIB_CLASSES[level]} ${
                           level >= 3 ? 'text-white' : 'text-panel-muted'
                         } ${isToday ? 'ring-2 ring-panel-accent' : ''} hover:ring-2 hover:ring-panel-muted/60`}
                       >
