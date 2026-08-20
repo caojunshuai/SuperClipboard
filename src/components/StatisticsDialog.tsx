@@ -177,7 +177,7 @@ export default function StatisticsDialog({ onClose }: Props) {
                 </div>
 
                 {/* Weekday headers */}
-                <div className="grid grid-cols-7 gap-1 mb-1">
+                <div className="grid grid-cols-7 gap-1 mb-1 w-fit mx-auto">
                   {WEEK_LABELS.map(d => (
                     <div key={d} className="w-full h-5 flex items-center justify-center text-[10px] text-panel-muted">
                       {d}
@@ -185,7 +185,7 @@ export default function StatisticsDialog({ onClose }: Props) {
                   ))}
                 </div>
                 {/* Day grid, colored by copy-count intensity */}
-                <div className="grid grid-cols-7 gap-1">
+                <div className="grid grid-cols-7 gap-1 w-fit mx-auto">
                   {gridCells.map((day, i) => {
                     if (day === null) return <div key={`e${i}`} className="w-full aspect-square max-w-9 max-h-9" />;
                     const key = dateKey(day);
@@ -207,7 +207,7 @@ export default function StatisticsDialog({ onClose }: Props) {
                   })}
                 </div>
                 {/* Hover detail / month total + legend */}
-                <div className="flex items-center justify-between mt-2">
+                <div className="flex items-center justify-center gap-6 mt-2 flex-wrap">
                   <div className="text-xs text-panel-muted">
                     {monthLoading ? (
                       <span>{t('statistics.loading')}</span>
