@@ -27,7 +27,6 @@ export default function StatisticsDialog({ onClose }: Props) {
   const [viewMonth, setViewMonth] = useState(now.getMonth() + 1); // 1-based
   const [monthCounts, setMonthCounts] = useState<Record<string, number>>({});
   const [monthLoading, setMonthLoading] = useState(true);
-  const [hoverDay, setHoverDay] = useState<{ day: number; count: number } | null>(null);
 
   useEffect(() => {
     getStatistics()
@@ -39,7 +38,6 @@ export default function StatisticsDialog({ onClose }: Props) {
   useEffect(() => {
     let cancelled = false;
     setMonthLoading(true);
-    setHoverDay(null);
     getDailyCounts(viewYear, viewMonth)
       .then(m => { if (!cancelled) setMonthCounts(m); })
       .catch(() => {})
@@ -87,6 +85,8 @@ export default function StatisticsDialog({ onClose }: Props) {
     else if (m > 12) { setViewYear(y => y + 1); setViewMonth(1); }
     else setViewMonth(m);
   };
+
+  const changeYear = (delta: number) => setViewYear(y => y + delta);
 
   // ── Source app data (top 20 + "others") ───────────────────
   const sourceData = (() => {
@@ -146,9 +146,21 @@ export default function StatisticsDialog({ onClose }: Props) {
 
               {/* ── Contribution graph (month calendar) ────── */}
               <div>
-                <div className="flex items-center justify-between mb-3">
+                <div className="mb-3">
                   <h3 className="text-sm font-semibold text-panel-text">{t('statistics.trendTitle')}</h3>
-                  <div className="flex items-center gap-0.5 bg-panel-card rounded-lg p-0.5">
+                </div>
+                <div className="max-w-[490px] mx-auto">
+                {/* Month/year switcher, centered over the graph */}
+                <div className="flex items-center gap-0.5 bg-panel-card rounded-lg p-0.5 w-fit mx-auto mb-2">
+                    <button
+                      onClick={() => changeYear(-1)}
+                      title={isZh ? '上一年' : 'Previous year'}
+                      className="p-1 text-panel-muted hover:text-panel-text rounded-md transition-colors"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                      </svg>
+                    </button>
                     <button
                       onClick={() => changeMonth(-1)}
                       title={isZh ? '上一月' : 'Previous month'}
@@ -173,11 +185,22 @@ export default function StatisticsDialog({ onClose }: Props) {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     </button>
+                    <button
+                      onClick={() => changeYear(1)}
+                      disabled={viewYear >= now.getFullYear()}
+                      title={isZh ? '下一年' : 'Next year'}
+                      className={`p-1 rounded-md transition-colors ${
+                        viewYear >= now.getFullYear() ? 'text-panel-muted/30 cursor-not-allowed' : 'text-panel-muted hover:text-panel-text'
+                      }`}
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7m-8-14l7 7-7 7" />
+                      </svg>
+                    </button>
                   </div>
-                </div>
 
                 {/* Weekday headers */}
-                <div className="grid grid-cols-7 gap-1 mb-1 w-fit mx-auto">
+                <div className="grid grid-cols-[repeat(7,minmax(0,36px))] gap-1 mb-1 justify-between">
                   {WEEK_LABELS.map(d => (
                     <div key={d} className="w-full h-5 flex items-center justify-center text-[10px] text-panel-muted">
                       {d}
@@ -185,9 +208,9 @@ export default function StatisticsDialog({ onClose }: Props) {
                   ))}
                 </div>
                 {/* Day grid, colored by copy-count intensity */}
-                <div className="grid grid-cols-7 gap-1 w-fit mx-auto">
+                <div className="grid grid-cols-[repeat(7,minmax(0,36px))] gap-1 justify-between">
                   {gridCells.map((day, i) => {
-                    if (day === null) return <div key={`e${i}`} className="w-full aspect-square max-w-9 max-h-9" />;
+                    if (day === null) return <div key={`e${i}`} className="w-full aspect-square" />;
                     const key = dateKey(day);
                     const count = monthCounts[key] ?? 0;
                     const level = levelOf(count);
@@ -195,9 +218,8 @@ export default function StatisticsDialog({ onClose }: Props) {
                     return (
                       <div
                         key={key}
-                        onMouseEnter={() => setHoverDay({ day, count })}
-                        onMouseLeave={() => setHoverDay(null)}
-                        className={`w-full aspect-square max-w-9 max-h-9 rounded-[4px] flex items-center justify-center text-[10px] cursor-default select-none transition-colors ${CONTRIB_CLASSES[level]} ${
+                        title={t('statistics.trendDayCount', { count })}
+                        className={`w-full aspect-square rounded-[4px] flex items-center justify-center text-[10px] cursor-default select-none transition-colors ${CONTRIB_CLASSES[level]} ${
                           level >= 3 ? 'text-white' : 'text-panel-muted'
                         } ${isToday ? 'ring-2 ring-panel-accent' : ''} hover:ring-2 hover:ring-panel-muted/60`}
                       >
@@ -207,14 +229,10 @@ export default function StatisticsDialog({ onClose }: Props) {
                   })}
                 </div>
                 {/* Hover detail / month total + legend */}
-                <div className="flex items-center justify-center gap-6 mt-2 flex-wrap">
+                <div className="flex items-center justify-between gap-6 mt-2 flex-wrap">
                   <div className="text-xs text-panel-muted">
                     {monthLoading ? (
                       <span>{t('statistics.loading')}</span>
-                    ) : hoverDay ? (
-                      <span>
-                        {dateKey(hoverDay.day)} · {t('statistics.trendDayCount', { count: hoverDay.count })}
-                      </span>
                     ) : (
                       <span>{t('statistics.trendMonthTotal', { count: viewMonthTotal })}</span>
                     )}
@@ -226,6 +244,7 @@ export default function StatisticsDialog({ onClose }: Props) {
                     ))}
                     <span>{isZh ? '多' : 'More'}</span>
                   </div>
+                </div>
                 </div>
               </div>
 
