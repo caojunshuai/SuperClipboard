@@ -592,11 +592,16 @@ pub fn get_source_apps() -> Result<Vec<String>, rusqlite::Error> {
 /// Shrink the db file after a bulk delete. SQLite DELETE leaves free
 /// pages behind — without VACUUM the file stays at its peak size. Skip
 /// when the free share is small to avoid paying the cost on tiny clears.
+///
+/// WAL-mode gotcha: VACUUM alone rewrites the logical pages but leaves
+/// the main file at its high-water size; wal_checkpoint(TRUNCATE) is
+/// what actually releases the old pages back to the OS.
 fn vacuum_if_fragmented(conn: &Connection) -> SqliteResult<()> {
     let page_count: i64 = conn.query_row("PRAGMA page_count", [], |r| r.get(0))?;
     let freelist: i64 = conn.query_row("PRAGMA freelist_count", [], |r| r.get(0))?;
     if page_count > 0 && freelist * 100 / page_count > 20 {
         conn.execute("VACUUM", [])?;
+        conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);")?;
     }
     Ok(())
 }
