@@ -91,9 +91,11 @@ export default function StatisticsDialog({ onClose }: Props) {
   // ── Source app data (top 20 + "others") ───────────────────
   const sourceData = (() => {
     if (!stats) return [];
-    const top20 = stats.source_stats.slice(0, 20);
+    // Display source app names without the .exe suffix
+    const cleanAppName = (app: string) => app.replace(/\.exe$/i, '');
+    const top20 = stats.source_stats.slice(0, 20).map(s => ({ name: cleanAppName(s.app), count: s.count }));
     const othersCount = stats.source_stats.slice(20).reduce((s, x) => s + x.count, 0);
-    const result = top20.map(s => ({ name: s.app, count: s.count }));
+    const result = top20;
     if (othersCount > 0) {
       result.push({ name: t('statistics.sourceOther'), count: othersCount });
     }
