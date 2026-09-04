@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import type { HistoryQuery, HistoryResult, ClipboardItem, AppSettings, BuildInfo, ExportResult, BackupResult, RestoreResult, Template, TemplateListResult, Statistics, TypeCounts, AppDirs } from './types';
+import type { HistoryQuery, HistoryResult, ClipboardItem, AppSettings, BuildInfo, ExportResult, BackupResult, RestoreResult, Template, TemplateListResult, Statistics, TypeCounts, AppDirs, TransferProgress } from './types';
 
 export async function getClipboardHistory(query: HistoryQuery): Promise<HistoryResult> {
   return invoke('get_clipboard_history', { query });
@@ -86,6 +86,14 @@ export function onClipboardChanged(callback: (item: ClipboardItem) => void): Pro
   return listen<ClipboardItem>('clipboard-changed', (event) => {
     callback(event.payload);
   });
+}
+
+export function onBackupProgress(callback: (p: TransferProgress) => void): Promise<UnlistenFn> {
+  return listen<TransferProgress>('backup-progress', (event) => callback(event.payload));
+}
+
+export function onRestoreProgress(callback: (p: TransferProgress) => void): Promise<UnlistenFn> {
+  return listen<TransferProgress>('restore-progress', (event) => callback(event.payload));
 }
 
 export async function hideWindow(): Promise<void> {

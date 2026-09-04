@@ -114,6 +114,17 @@ pub struct BackupResult {
     pub output_path: String,
 }
 
+/// Progress event emitted while a backup is being created or a restore
+/// is being imported (throttled). Frontend renders a progress bar.
+#[derive(Debug, Clone, Serialize)]
+pub struct TransferProgress {
+    /// 0 = preparing (JSON serialize for backup / import loop for restore),
+    /// 1 = writing entries (backup zip loop).
+    pub phase: u8,
+    pub done: u64,
+    pub total: u64,
+}
+
 /// Structured result of a restore operation — enables the frontend
 /// to display a clean i18n summary rather than a raw log line.
 #[derive(Debug, Clone, Serialize, Deserialize)]

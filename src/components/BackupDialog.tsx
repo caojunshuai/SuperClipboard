@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { backup, restore, getAppDirs } from '../api';
-import type { BackupResult, RestoreResult, AppDirs } from '../types';
+import { backup, restore, getAppDirs, onBackupProgress, onRestoreProgress } from '../api';
+import type { BackupResult, RestoreResult, AppDirs, TransferProgress } from '../types';
+import type { UnlistenFn } from '@tauri-apps/api/event';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { join } from '@tauri-apps/api/path';
 import { useModal } from '../hooks/useModal';
@@ -101,6 +102,16 @@ export default function BackupDialog({ onClose }: Props) {
   const [status, setStatus] = useState<{ type: 'backup'; result: BackupResult } | { type: 'restore'; result: RestoreResult } | null>(null);
   const [isError, setIsError] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [progress, setProgress] = useState<{ kind: 'backup' | 'restore'; p: TransferProgress } | null>(null);
+
+  // Listen to progress events emitted by the backend transfer loop.
+  useEffect(() => {
+    let unBackup: UnlistenFn | null = null;
+    let unRestore: UnlistenFn | null = null;
+    onBackupProgress(p => setProgress({ kind: 'backup', p })).then(fn => { unBackup = fn; });
+    onRestoreProgress(p => setProgress({ kind: 'restore', p })).then(fn => { unRestore = fn; });
+    return () => { unBackup?.(); unRestore?.(); };
+  }, []);
 
   const handleBackup = async () => {
     try {
@@ -112,10 +123,13 @@ export default function BackupDialog({ onClose }: Props) {
       if (!path) return;
       setIsError(false);
       setStatus(null);
+      setProgress({ kind: 'backup', p: { phase: 0, done: 0, total: 1 } });
       const result = await backup(path as string);
+      setProgress(null);
       setStatus({ type: 'backup', result });
     } catch (err: any) {
       setStatus(null);
+      setProgress(null);
       setIsError(true);
       setErrorMsg(t('backup.backupError', { error: String(err) }));
     }
@@ -134,10 +148,13 @@ export default function BackupDialog({ onClose }: Props) {
       if (!confirm(t('backup.confirmRestore'))) return;
       setIsError(false);
       setStatus(null);
+      setProgress({ kind: 'restore', p: { phase: 0, done: 0, total: 0 } });
       const result = await restore(path as string);
+      setProgress(null);
       setStatus({ type: 'restore', result });
     } catch (err: any) {
       setStatus(null);
+      setProgress(null);
       setIsError(true);
       setErrorMsg(t('backup.restoreError', { error: String(err) }));
     }
@@ -154,20 +171,41 @@ export default function BackupDialog({ onClose }: Props) {
           <div className="p-4 bg-panel-card rounded-lg">
             <h3 className="text-sm font-medium text-panel-text mb-2">{t('backup.backupTitle')}</h3>
             <p className="text-xs text-panel-muted mb-3">{t('backup.backupDesc')}</p>
-            <button onClick={handleBackup} className="px-4 py-2 text-sm bg-panel-accent text-white rounded-lg hover:opacity-90">
+            <button onClick={handleBackup} disabled={progress !== null} className="px-4 py-2 text-sm bg-panel-accent text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed">
               {t('backup.createBackup')}
             </button>
           </div>
           <div className="p-4 bg-panel-card rounded-lg">
             <h3 className="text-sm font-medium text-panel-text mb-2">{t('backup.restoreTitle')}</h3>
             <p className="text-xs text-panel-muted mb-3">{t('backup.restoreDesc')}</p>
-            <button onClick={handleRestore} className="px-4 py-2 text-sm border border-panel-border text-panel-text rounded-lg hover:bg-panel-hover">
+            <button onClick={handleRestore} disabled={progress !== null} className="px-4 py-2 text-sm border border-panel-border text-panel-text rounded-lg hover:bg-panel-hover disabled:opacity-50 disabled:cursor-not-allowed">
               {t('backup.selectFile')}
             </button>
           </div>
         </div>
         {isError && (
           <p className="text-sm mt-4 p-3 rounded-lg bg-red-500/10 text-red-400">{errorMsg}</p>
+        )}
+        {progress && (
+          <div className="mt-4 p-3 rounded-lg bg-panel-card border border-panel-border">
+            {(() => {
+              const p = progress.p;
+              const percent = p.total > 0 ? Math.round((p.done / p.total) * 100) : 0;
+              const label = progress.kind === 'restore'
+                ? t('backup.progressRestoring', { percent })
+                : p.phase === 0
+                  ? t('backup.progressPacking', { percent })
+                  : t('backup.progressWriting', { percent });
+              return (
+                <>
+                  <div className="text-xs text-panel-muted mb-2">{label}</div>
+                  <div className="h-2 bg-panel-hover rounded-full overflow-hidden">
+                    <div className="h-full bg-panel-accent rounded-full transition-all duration-200" style={{ width: `${percent}%` }} />
+                  </div>
+                </>
+              );
+            })()}
+          </div>
         )}
         {status && status.type === 'backup' && <BackupSummary result={status.result} />}
         {status && status.type === 'restore' && <RestoreSummary result={status.result} />}

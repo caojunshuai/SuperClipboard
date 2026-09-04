@@ -52,15 +52,27 @@ pub fn export_images(ids: &[i64], output_dir: &str) -> Result<ExportResult, Stri
     })
 }
 
-pub fn backup(output_path: &str) -> Result<BackupResult, String> {
+pub fn backup(
+    output_path: &str,
+    mut on_progress: impl FnMut(crate::models::TransferProgress),
+) -> Result<BackupResult, String> {
     let items = storage::get_all_items_for_backup().map_err(|e| e.to_string())?;
     let count = items.len();
+
+    // Phase 0: JSON serialization (the slow part for large history)
+    on_progress(crate::models::TransferProgress { phase: 0, done: 0, total: 1 });
     let json = serde_json::to_string_pretty(&items).map_err(|e| e.to_string())?;
+    on_progress(crate::models::TransferProgress { phase: 0, done: 1, total: 1 });
 
     let file = fs::File::create(output_path).map_err(|e| e.to_string())?;
     let mut zip = zip::ZipWriter::new(file);
     let options = zip::write::SimpleFileOptions::default()
         .compression_method(zip::CompressionMethod::Deflated);
+
+    // Phase 1: per-item zip writes
+    let total = count as u64;
+    let mut done = 0u64;
+    on_progress(crate::models::TransferProgress { phase: 1, done: 0, total });
 
     zip.start_file("clipboard_data.json", options).map_err(|e| e.to_string())?;
     zip.write_all(json.as_bytes()).map_err(|e| e.to_string())?;
@@ -76,6 +88,8 @@ pub fn backup(output_path: &str) -> Result<BackupResult, String> {
                 zip.write_all(&data).map_err(|e| e.to_string())?;
             }
         }
+        done += 1;
+        on_progress(crate::models::TransferProgress { phase: 1, done, total });
     }
 
     zip.finish().map_err(|e| e.to_string())?;
@@ -85,7 +99,10 @@ pub fn backup(output_path: &str) -> Result<BackupResult, String> {
     })
 }
 
-pub fn restore(backup_path: &str) -> Result<RestoreResult, String> {
+pub fn restore(
+    backup_path: &str,
+    mut on_progress: impl FnMut(crate::models::TransferProgress),
+) -> Result<RestoreResult, String> {
     let file = fs::File::open(backup_path).map_err(|e| e.to_string())?;
     let mut archive = zip::ZipArchive::new(file).map_err(|e| e.to_string())?;
 
@@ -120,7 +137,11 @@ pub fn restore(backup_path: &str) -> Result<RestoreResult, String> {
     let mut duplicates: usize = 0;
     let mut truncated = false;
 
+    let total = items.len() as u64;
+    let mut done = 0u64;
     for item in &items {
+        done += 1;
+        on_progress(crate::models::TransferProgress { phase: 0, done, total });
         // Check type-specific capacity
         let is_image = item.item_type == crate::models::ItemType::Image;
         if is_image {

@@ -1,4 +1,5 @@
 use tauri::Manager;
+use tauri::Emitter;
 use crate::models::*;
 use crate::stats;
 use crate::storage;
@@ -183,13 +184,28 @@ pub fn export_images(ids: Vec<i64>, output_dir: String) -> Result<ExportResult, 
 }
 
 #[tauri::command]
-pub fn backup(output_path: String) -> Result<BackupResult, String> {
-    export::backup(&output_path)
+pub fn backup(app: tauri::AppHandle, output_path: String) -> Result<BackupResult, String> {
+    export::backup(&output_path, |p| emit_progress(&app, "backup-progress", p))
 }
 
 #[tauri::command]
-pub fn restore(backup_path: String) -> Result<RestoreResult, String> {
-    export::restore(&backup_path)
+pub fn restore(app: tauri::AppHandle, backup_path: String) -> Result<RestoreResult, String> {
+    export::restore(&backup_path, |p| emit_progress(&app, "restore-progress", p))
+}
+
+/// Emit a transfer progress event, throttled to ~10/s so 10000-item
+/// backups don't flood the webview. Always emits the final (done==total).
+fn emit_progress(app: &tauri::AppHandle, event: &str, p: TransferProgress) {
+    const THROTTLE: std::time::Duration = std::time::Duration::from_millis(100);
+    use std::sync::Mutex;
+    static LAST: Mutex<Option<std::time::Instant>> = Mutex::new(None);
+    let is_final = p.done == p.total;
+    let mut lock = LAST.lock().unwrap_or_else(|e| e.into_inner());
+    if lock.map(|t| t.elapsed() >= THROTTLE).unwrap_or(true) || is_final {
+        *lock = Some(std::time::Instant::now());
+        drop(lock);
+        let _ = app.emit(event, p);
+    }
 }
 
 #[tauri::command]

@@ -103,6 +103,12 @@ export interface AppDirs {
   backups_dir: string;
 }
 
+export interface TransferProgress {
+  phase: number;
+  done: number;
+  total: number;
+}
+
 export interface Statistics {
   total_items: number;
   today_hourly: number[];
