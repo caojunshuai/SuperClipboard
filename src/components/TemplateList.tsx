@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Template } from '../types';
-import { getTemplates, addTemplate, updateTemplate, deleteTemplate } from '../api';
+import { getTemplates, addTemplate, updateTemplate, deleteTemplate, hideWindow } from '../api';
 import { toDateStr } from '../utils/format';
+import { useSettings } from '../hooks/useSettings';
 import TemplateCard from './TemplateCard';
 import CopyToast from './CopyToast';
 import ScrollArea from './ScrollArea';
@@ -13,6 +14,7 @@ interface Props {
 
 export default function TemplateList({ onClose }: Props) {
   const { t } = useTranslation();
+  const { settings } = useSettings();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -50,6 +52,11 @@ export default function TemplateList({ onClose }: Props) {
       setTimeout(() => {
         setToast(null);
         onClose();
+        // Template copy uses navigator.clipboard (not copy_to_clipboard),
+        // so hide the main window here to honor close_after_copy.
+        if (settings?.close_after_copy) {
+          hideWindow().catch(() => {});
+        }
       }, 600);
     };
 
