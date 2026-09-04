@@ -1,9 +1,14 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { backup, restore } from '../api';
-import type { BackupResult, RestoreResult } from '../types';
+import { backup, restore, getAppDirs } from '../api';
+import type { BackupResult, RestoreResult, AppDirs } from '../types';
 import { open, save } from '@tauri-apps/plugin-dialog';
+import { join } from '@tauri-apps/api/path';
 import { useModal } from '../hooks/useModal';
+
+// Module-level cache — backup & restore share the same app dirs.
+let dirsPromise: Promise<AppDirs> | null = null;
+const getDirs = () => (dirsPromise ??= getAppDirs());
 
 interface Props {
   onClose: () => void;
@@ -99,9 +104,10 @@ export default function BackupDialog({ onClose }: Props) {
 
   const handleBackup = async () => {
     try {
+      const dirs = await getDirs();
       const path = await save({
         filters: [{ name: 'Zip', extensions: ['zip'] }],
-        defaultPath: `superclipboard_backup_${new Date().toISOString().slice(0, 10)}.zip`,
+        defaultPath: await join(dirs.backups_dir, `superclipboard_backup_${new Date().toISOString().slice(0, 10)}.zip`),
       });
       if (!path) return;
       setIsError(false);
@@ -117,10 +123,12 @@ export default function BackupDialog({ onClose }: Props) {
 
   const handleRestore = async () => {
     try {
+      const dirs = await getDirs();
       const path = await open({
         directory: false,
         multiple: false,
         filters: [{ name: 'Zip', extensions: ['zip'] }],
+        defaultPath: dirs.backups_dir,
       });
       if (!path) return;
       if (!confirm(t('backup.confirmRestore'))) return;

@@ -1,9 +1,14 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { exportText, exportImages } from '../api';
-import type { ExportResult } from '../types';
+import { exportText, exportImages, getAppDirs } from '../api';
+import type { ExportResult, AppDirs } from '../types';
 import { open, save } from '@tauri-apps/plugin-dialog';
+import { join } from '@tauri-apps/api/path';
 import { useModal } from '../hooks/useModal';
+
+// Module-level cache — both export paths share the same app dirs.
+let dirsPromise: Promise<AppDirs> | null = null;
+const getDirs = () => (dirsPromise ??= getAppDirs());
 
 interface Props {
   itemIds: number[];
@@ -19,17 +24,18 @@ export default function ExportDialog({ itemIds, onClose }: Props) {
 
   const handleExport = async () => {
     try {
+      const dirs = await getDirs();
       if (exportMode === 'text') {
         const path = await save({
           filters: [{ name: 'Text', extensions: ['txt'] }],
-          defaultPath: `superclipboard_export_${Date.now()}.txt`,
+          defaultPath: await join(dirs.exports_dir, `superclipboard_export_${Date.now()}.txt`),
         });
         if (!path) return;
         setIsError(false);
         const result = await exportText(itemIds, path as string);
         setStatus(result);
       } else {
-        const dir = await open({ directory: true, multiple: false });
+        const dir = await open({ directory: true, multiple: false, defaultPath: dirs.exports_dir });
         if (!dir) return;
         setIsError(false);
         const result = await exportImages(itemIds, dir as string);

@@ -96,6 +96,12 @@ export interface TypeCounts {
   total: number;
 }
 
+export interface AppDirs {
+  app_root: string;
+  exports_dir: string;
+  backups_dir: string;
+}
+
 export interface Statistics {
   total_items: number;
   today_hourly: number[];

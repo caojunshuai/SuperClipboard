@@ -219,6 +219,24 @@ pub fn get_source_apps() -> Result<Vec<String>, String> {
     storage::get_source_apps().map_err(|e| e.to_string())
 }
 
+/// Returns the exe's directory (portable app root) and creates the
+/// `exports`/`backups` subdirs. File dialogs default to these paths.
+#[tauri::command]
+pub fn get_app_dirs() -> Result<crate::models::AppDirs, String> {
+    let app_root = crate::APP_DATA_DIR
+        .get()
+        .ok_or("app data dir not initialized")?;
+    let exports_dir = app_root.join("exports");
+    let backups_dir = app_root.join("backups");
+    std::fs::create_dir_all(&exports_dir).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&backups_dir).map_err(|e| e.to_string())?;
+    Ok(crate::models::AppDirs {
+        app_root: app_root.to_string_lossy().to_string(),
+        exports_dir: exports_dir.to_string_lossy().to_string(),
+        backups_dir: backups_dir.to_string_lossy().to_string(),
+    })
+}
+
 #[tauri::command]
 pub fn get_statistics() -> Result<Statistics, String> {
     let dir = crate::APP_DATA_DIR.get().ok_or("app data dir not initialized")?;

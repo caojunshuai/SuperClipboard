@@ -113,6 +113,7 @@ pub fn run() {
             commands::get_settings,
             commands::update_settings,
             commands::get_source_apps,
+            commands::get_app_dirs,
             commands::get_item_counts,
             commands::get_statistics,
             commands::hide_window,

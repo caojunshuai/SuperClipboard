@@ -184,6 +184,15 @@ pub struct TopCopiedItem {
     pub copy_count: i64,
 }
 
+/// App directory paths — exe location (portable layout) plus the
+/// `backups`/`exports` subdirs that file dialogs default to.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AppDirs {
+    pub app_root: String,
+    pub exports_dir: String,
+    pub backups_dir: String,
+}
+
 /// Counts of items by type, for the clear-data UI.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TypeCounts {
