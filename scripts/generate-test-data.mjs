@@ -3,10 +3,14 @@
 //   count defaults to 1000, output defaults to project root.
 //
 // Features:
-//   - Time distributed across last 30 days (exponential decay: more items recently)
-//   - Every item has unique content (no duplicates)
-//   - Rich source app variety with weighted distribution
-//   - Pinned items, favorites, notes for testing statistics panel
+//   - Time uniformly random within the last 6 calendar months; the ordering is
+//     guaranteed to be monotonic — smaller "#xxxx#" index = older timestamp.
+//   - Each item's content starts with "#NNNN#" (zero-padded, 0-based, strictly
+//     increasing) followed by random filler; total text length 10~10000 chars.
+//   - Fields match the current clipboard_items schema, including the migrated
+//     columns (note, copy_count) — keep in sync if the DB schema grows.
+//   - Source app variety with weighted distribution; pinned/favorites/notes
+//     sprinkled for statistics panel testing.
 
 import { writeFileSync, mkdirSync, rmSync } from 'fs';
 import { join, dirname } from 'path';
@@ -36,7 +40,6 @@ function fnv1a64(str) {
 }
 
 // ── Seeded random (deterministic across runs) ─────────────────────────
-// Simple mulberry32 PRNG so content is reproducible but varied.
 function mulberry32(seed) {
   return function () {
     seed |= 0; seed = seed + 0x6D2B79F5 | 0;
@@ -47,21 +50,10 @@ function mulberry32(seed) {
 }
 const rng = mulberry32(42);
 
-// ── Content generators ────────────────────────────────────────────────
+// ── Filler content pool (sentences / code / urls) ─────────────────────
 const ZH_PREFIXES = [
   '通知：', '提醒：', '备忘：', '分享：', '转发：',
   '讨论：', '总结：', '问题：', '建议：', '更新：',
-];
-
-const ZH_TEMPLATES = [
-  '{prefix}{sentence}',
-  '{prefix}{sentence}\n{sentence2}',
-  '{sentence}\n{url}',
-  '{code}',
-  '{sentence}\n{sentence2}\n{url}',
-  '{prefix}{code}',
-  '{code}\n// {sentence}',
-  '{sentence}\n---\n{sentence2}',
 ];
 
 const ZH_SENTENCES = [
@@ -120,8 +112,9 @@ const ZH_CODES = [
   'curl -s https://api.github.com/repos/tauri-apps/tauri/releases/latest | jq .tag_name',
 ];
 
+const FILLER_POOL = [...ZH_SENTENCES, ...ZH_CODES, ...ZH_URLS, ...ZH_PREFIXES];
+
 // ── Source apps with weighted distribution ────────────────────────────
-// { name, weight } — higher weight = more likely to appear
 const SOURCE_APPS = [
   { name: 'chrome.exe', weight: 35 },
   { name: 'vscode.exe', weight: 25 },
@@ -144,29 +137,23 @@ function pickSourceApp() {
   return SOURCE_APPS[0].name;
 }
 
-// ── Content generation (guaranteed unique) ────────────────────────────
 function pick(arr) { return arr[Math.floor(rng() * arr.length)]; }
 
-function generateContent(i) {
-  const prefix = pick(ZH_PREFIXES);
-  const sentence = pick(ZH_SENTENCES);
-  const sentence2 = pick(ZH_SENTENCES);
-  const url = pick(ZH_URLS);
-  const code = pick(ZH_CODES);
-  const tpl = pick(ZH_TEMPLATES);
+// ── Content generation ────────────────────────────────────────────────
+// "#0000#" prefix then random filler; total length = prefix + filler = target.
+function generateContent(index, minLen, maxLen) {
+  const prefix = `#${String(index).padStart(4, '0')}#`;
+  const targetLen = minLen + Math.floor(rng() * (maxLen - minLen + 1));
+  const fillLen = Math.max(0, targetLen - prefix.length);
 
-  let body = tpl
-    .replace('{prefix}', prefix)
-    .replace('{sentence}', sentence)
-    .replace('{sentence2}', sentence2)
-    .replace('{url}', url)
-    .replace('{code}', code);
-
-  // Append a unique index suffix to guarantee no duplicates.
-  // Wrapped in a zero-width joiner block so it doesn't interfere with reading.
-  body += '​#' + (i + 1);
-
-  return body;
+  let parts = [];
+  let len = 0;
+  while (len < fillLen) {
+    const s = pick(FILLER_POOL);
+    parts.push(s);
+    len += s.length;
+  }
+  return prefix + parts.join(' ').slice(0, fillLen);
 }
 
 // ── Time helpers ──────────────────────────────────────────────────────
@@ -177,83 +164,50 @@ function fmtDate(date) {
 }
 
 // ── Generate items ────────────────────────────────────────────────────
-const NOW = Date.now();
+const NOW = new Date();
+const MIN_LEN = 10;
+const MAX_LEN = 10000;
+const MONTHS = 6;
 const DAY_MS = 24 * 60 * 60 * 1000;
-const SPAN_DAYS = 30;
 
 console.log(`Generating ${count} test items...`);
 
-// Pre-compute daily counts: more items in recent days (exponential decay
-// from today back to 30 days ago).
-// day index: 0 = 30 days ago, SPAN_DAYS-1 = today
-const rawWeights = Array.from({ length: SPAN_DAYS }, (_, day) => {
-  const daysAgo = SPAN_DAYS - 1 - day;
-  return Math.exp(-daysAgo / 7);  // half-life ≈ 5 days
-});
-const totalWeight = rawWeights.reduce((a, w) => a + w, 0);
+// Window: last 6 calendar months — from the 1st of (current month - 5) to now.
+const windowStart = new Date(NOW.getFullYear(), NOW.getMonth() - (MONTHS - 1), 1);
+const spanMs = NOW.getTime() - windowStart.getTime();
 
-// Distribute items across days (fractional → integer with remainder correction)
-const itemsPerDay = new Array(SPAN_DAYS).fill(0);
-let assigned = 0;
-for (let day = 0; day < SPAN_DAYS; day++) {
-  if (day === SPAN_DAYS - 1) {
-    itemsPerDay[day] = count - assigned;
-  } else {
-    itemsPerDay[day] = Math.round(count * rawWeights[day] / totalWeight);
-    assigned += itemsPerDay[day];
-  }
-}
+// Draw N uniform times across the window, sort ascending, then assign
+// index 0 -> oldest. So "#0000#" is the earliest, "#NNNN#" the newest.
+const times = Array.from({ length: count }, () =>
+  windowStart.getTime() + rng() * spanMs
+).sort((a, b) => a - b);
 
 const allItems = [];
-let globalIdx = 0;
-for (let day = 0; day < SPAN_DAYS; day++) {
-  const dayStart = new Date(NOW - (SPAN_DAYS - 1 - day) * DAY_MS);
-  dayStart.setHours(0, 0, 0, 0);
-  const dayEnd = new Date(dayStart.getTime() + DAY_MS);
+for (let i = 0; i < count; i++) {
+  const ts = new Date(times[i]);
+  const content = generateContent(i, MIN_LEN, MAX_LEN);
+  const tsStr = fmtDate(ts);
 
-  for (let j = 0; j < itemsPerDay[day]; j++) {
-    // Random time within the day, weighted toward business hours (9-18)
-    const hour = Math.random() < 0.7
-      ? 9 + Math.floor(rng() * 10)   // 9:00-18:00 (70% of items)
-      : Math.floor(rng() * 24);      // any hour (30%)
-    const minute = Math.floor(rng() * 60);
-    const second = Math.floor(rng() * 60);
-    const ts = new Date(dayStart);
-    ts.setHours(hour, minute, second);
-    // Clamp to valid range
-    if (ts < dayStart) ts.setHours(0, 0, 0, 0);
-    if (ts >= dayEnd) ts.setHours(23, 59, 59);
-
-    const content = generateContent(globalIdx);
-    const tsStr = fmtDate(ts);
-
-    allItems.push({
-      id: globalIdx + 1,
-      item_type: 'text',
-      content,
-      image_path: null,
-      thumbnail_path: null,
-      file_paths: null,
-      source_app: pickSourceApp(),
-      char_count: content.length,
-      image_size: null,
-      is_pinned: globalIdx < 3,
-      is_favorite: globalIdx < 15 && rng() > 0.4,
-      metadata: null,
-      content_hash: fnv1a64(content),
-      note: globalIdx % 40 === 0 ? `这是第 ${globalIdx + 1} 条记录的备注` : null,
-      created_at: tsStr,
-      updated_at: tsStr,
-    });
-    globalIdx++;
-  }
+  allItems.push({
+    id: i + 1,
+    item_type: 'text',
+    content,
+    image_path: null,
+    thumbnail_path: null,
+    file_paths: null,
+    source_app: pickSourceApp(),
+    char_count: content.length,
+    image_size: null,
+    content_hash: fnv1a64(content),
+    is_pinned: i < 3,
+    is_favorite: i < 15 && rng() > 0.4,
+    metadata: null,
+    note: i % 40 === 0 ? `这是第 ${i + 1} 条记录的备注` : null,
+    copy_count: 1 + Math.floor(rng() * 20),
+    created_at: tsStr,
+    updated_at: tsStr,
+  });
 }
-
-// Sort by created_at descending (newest first, matching real DB order)
-allItems.sort((a, b) => b.created_at.localeCompare(a.created_at));
-
-// Re-assign sequential IDs after sort
-allItems.forEach((item, i) => { item.id = i + 1; });
 
 // ── Build zip ─────────────────────────────────────────────────────────
 const tmpDir = join(tmpdir(), `sc_test_data_${Date.now()}`);
@@ -276,9 +230,12 @@ const pinned = allItems.filter(i => i.is_pinned).length;
 const favs = allItems.filter(i => i.is_favorite).length;
 const notes = allItems.filter(i => i.note).length;
 const sources = [...new Set(allItems.map(i => i.source_app))];
-const dateMin = fmtDate(new Date(NOW - (SPAN_DAYS - 1) * DAY_MS));
-const dateMax = fmtDate(new Date(NOW));
+const dateMin = fmtDate(new Date(times[0]));
+const dateMax = fmtDate(new Date(times[count - 1]));
+const minBodyLen = Math.min(...allItems.map(i => i.content.length));
+const maxBodyLen = Math.max(...allItems.map(i => i.content.length));
 console.log(`  ${count} items | ${pinned} pinned | ${favs} favorites | ${notes} notes`);
 console.log(`  ${sources.length} source apps: ${sources.join(', ')}`);
-console.log(`  date range: ${dateMin} ~ ${dateMax}`);
-console.log(`  daily breakdown: ${itemsPerDay.map((n, d) => `D-${SPAN_DAYS - 1 - d}:${n}`).join(' ')}`);
+console.log(`  time range: ${dateMin} ~ ${dateMax} (${MONTHS} calendar months)`);
+console.log(`  content length: ${minBodyLen} ~ ${maxBodyLen} chars`);
+console.log(`  monotonic check: first=${allItems[0].content.slice(0, 12)} last=${allItems[count - 1].content.slice(0, 12)}`);
