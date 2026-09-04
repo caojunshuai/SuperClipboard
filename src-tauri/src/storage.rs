@@ -414,6 +414,19 @@ pub fn cleanup_old_items(max_items: i64, max_images: i64) -> SqliteResult<(usize
         [], |row| row.get(0),
     )?;
     let img_deleted = if img_count > max_images {
+        // Remove oldest unprotected image records, then delete their files
+        // from disk so the images/ + thumbnails/ dirs don't accumulate orphans.
+        let paths: Vec<(Option<String>, Option<String>)> = conn
+            .prepare("SELECT image_path, thumbnail_path FROM clipboard_items WHERE is_pinned = 0 AND is_favorite = 0 AND type = 'image' ORDER BY created_at ASC LIMIT ?1")?
+            .query_map(params![img_count - max_images], |row| {
+                Ok((row.get(0)?, row.get(1)?))
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
+        for (img_path, thumb_path) in paths {
+            if let Some(p) = img_path { if !p.is_empty() { std::fs::remove_file(p).ok(); } }
+            if let Some(p) = thumb_path { if !p.is_empty() { std::fs::remove_file(p).ok(); } }
+        }
         conn.execute(
             "DELETE FROM clipboard_items WHERE id IN (
                 SELECT id FROM clipboard_items WHERE is_pinned = 0 AND is_favorite = 0 AND type = 'image'
