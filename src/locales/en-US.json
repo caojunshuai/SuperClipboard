@@ -58,6 +58,8 @@
     "imageRange": "Range 10 - 500",
     "autoPaste": "Auto-paste after selection",
     "autoPasteHint": "Automatically Ctrl+V after selecting a clip",
+    "closeAfterCopy": "Close window after copy",
+    "closeAfterCopyHint": "Hide the main window after copying an item",
     "autoStart": "Start with Windows",
     "autoStartHint": "Automatically run on Windows startup",
     "save": "Save Settings",

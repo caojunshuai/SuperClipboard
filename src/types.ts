@@ -42,6 +42,7 @@ export interface AppSettings {
   auto_start: boolean;
   language: string;
   always_on_top: boolean;
+  close_after_copy: boolean;
   page_size: number;
   theme: string;
 }

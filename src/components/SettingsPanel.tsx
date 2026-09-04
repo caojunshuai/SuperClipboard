@@ -25,6 +25,7 @@ export default function SettingsPanel({ onClose }: Props) {
     auto_start: false,
     language: 'en-US',
     always_on_top: true,
+    close_after_copy: true,
     page_size: 50,
     theme: 'dark',
   });
@@ -265,6 +266,18 @@ export default function SettingsPanel({ onClose }: Props) {
                   type="checkbox"
                   checked={settings.auto_paste}
                   onChange={e => setSettings(s => ({ ...s, auto_paste: e.target.checked }))}
+                  className="w-4 h-4 text-panel-accent"
+                />
+              </label>
+              <label className="flex items-center justify-between p-3 bg-panel-card rounded-lg cursor-pointer">
+                <div>
+                  <div className="text-sm text-panel-text">{t('settings.closeAfterCopy')}</div>
+                  <div className="text-xs text-panel-muted">{t('settings.closeAfterCopyHint')}</div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.close_after_copy}
+                  onChange={e => setSettings(s => ({ ...s, close_after_copy: e.target.checked }))}
                   className="w-4 h-4 text-panel-accent"
                 />
               </label>

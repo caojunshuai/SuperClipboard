@@ -85,6 +85,9 @@ pub struct AppSettings {
     pub language: String,
     #[serde(default = "default_true")]
     pub always_on_top: bool,
+    /// Hide the main window after copying an item from the panel.
+    #[serde(default = "default_true")]
+    pub close_after_copy: bool,
     #[serde(default = "default_page_size")]
     pub page_size: i64,
     #[serde(default = "default_theme")]
@@ -230,6 +233,7 @@ impl Default for AppSettings {
             auto_start: true,
             language: default_language(),
             always_on_top: true,
+            close_after_copy: true,
             page_size: 20,
             theme: default_theme(),
         }

@@ -56,6 +56,8 @@
     "imageRange": "范围 10 - 500",
     "autoPaste": "选中后自动粘贴",
     "autoPasteHint": "选择记录后自动 Ctrl+V",
+    "closeAfterCopy": "复制后自动收起主界面",
+    "closeAfterCopyHint": "从面板复制条目后自动隐藏主界面，按快捷键再次唤出",
     "autoStart": "开机自启",
     "autoStartHint": "Windows 启动时自动运行",
     "save": "保存设置",
