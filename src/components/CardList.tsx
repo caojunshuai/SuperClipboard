@@ -139,7 +139,9 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
       setToast({ message: tRef.current('list.copied'), type: 'success' });
       setTimeout(() => {
         setToast(null);
-        onClose();
+        // Collapse the panel only when the close-after-copy setting is on
+        // (default true). When off, the panel stays open after copying.
+        if (settings?.close_after_copy ?? true) onClose();
       }, 600);
     } catch (err) {
       let msg: string;
@@ -165,7 +167,7 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
       setToast({ message: msg, type: 'error' });
       setTimeout(() => setToast(null), 4000);
     }
-  }, [autoPasteEnabled, onClose, page, fetchPage]);
+  }, [autoPasteEnabled, onClose, page, fetchPage, settings]);
 
   const handleTogglePin = useCallback(async (id: number) => {
     try {

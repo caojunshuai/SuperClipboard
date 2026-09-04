@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Template } from '../types';
-import { getTemplates, addTemplate, updateTemplate, deleteTemplate, hideWindow } from '../api';
+import { getTemplates, addTemplate, updateTemplate, deleteTemplate } from '../api';
 import { toDateStr } from '../utils/format';
 import { useSettings } from '../hooks/useSettings';
 import TemplateCard from './TemplateCard';
@@ -51,12 +51,8 @@ export default function TemplateList({ onClose }: Props) {
       setToast({ message: tRef.current('list.copied'), type: 'success' });
       setTimeout(() => {
         setToast(null);
-        onClose();
-        // Template copy uses navigator.clipboard (not copy_to_clipboard),
-        // so hide the main window here to honor close_after_copy.
-        if (settings?.close_after_copy) {
-          hideWindow().catch(() => {});
-        }
+        // Collapse the panel only when the close-after-copy setting is on.
+        if (settings?.close_after_copy ?? true) onClose();
       }, 600);
     };
 

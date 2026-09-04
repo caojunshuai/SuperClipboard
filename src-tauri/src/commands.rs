@@ -11,7 +11,7 @@ pub fn get_clipboard_history(query: HistoryQuery) -> Result<HistoryResult, Strin
 }
 
 #[tauri::command]
-pub fn copy_to_clipboard(id: i64, app: tauri::AppHandle) -> Result<(), String> {
+pub fn copy_to_clipboard(id: i64) -> Result<(), String> {
     let item = storage::get_item(id).map_err(|e| e.to_string())?
         .ok_or_else(|| "Item not found".to_string())?;
 
@@ -32,14 +32,6 @@ pub fn copy_to_clipboard(id: i64, app: tauri::AppHandle) -> Result<(), String> {
             if let Some(ref paths) = item.file_paths {
                 set_clipboard_file_list(paths)?;
             }
-        }
-    }
-
-    // Hide the main window after copying if the user enabled it.
-    let settings = storage::get_all_settings().map_err(|e| e.to_string())?;
-    if settings.close_after_copy {
-        if let Some(window) = app.get_webview_window("main") {
-            window.hide().ok();
         }
     }
     Ok(())
