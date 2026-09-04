@@ -90,7 +90,7 @@ pub fn restore(backup_path: &str) -> Result<RestoreResult, String> {
     let mut archive = zip::ZipArchive::new(file).map_err(|e| e.to_string())?;
 
     let json_entry = archive.by_name("clipboard_data.json").map_err(|e| e.to_string())?;
-    let items: Vec<crate::models::ClipboardItem> =
+    let mut items: Vec<crate::models::ClipboardItem> =
         serde_json::from_reader(json_entry).map_err(|e| e.to_string())?;
 
     let expected = items.len();
@@ -98,11 +98,14 @@ pub fn restore(backup_path: &str) -> Result<RestoreResult, String> {
     // Get limits from settings
     let settings = storage::get_all_settings().map_err(|e| e.to_string())?;
 
-    // Count current unprotected items (pinned/favorite items don't count toward limit)
-    let (text_count, img_count) = storage::get_unprotected_counts().map_err(|e| e.to_string())?;
+    // All items (pinned/favorite included) occupy limit slots.
+    let (text_count, img_count) = storage::count_by_type().map_err(|e| e.to_string())?;
 
     let mut text_remaining = (settings.max_items - text_count).max(0);
     let mut img_remaining = (settings.max_images - img_count).max(0);
+
+    // Import protected items first so they always land within the cap.
+    items.sort_by_key(|i| !(i.is_pinned || i.is_favorite));
 
     // Use the real app data directory (not derived from backup path)
     let app_data = crate::APP_DATA_DIR.get()

@@ -395,32 +395,31 @@ pub fn cleanup_old_items(max_items: i64, max_images: i64) -> SqliteResult<(usize
     let conn = get_conn().lock().unwrap();
 
     let text_count: i64 = conn.query_row(
-        "SELECT COUNT(*) FROM clipboard_items WHERE is_pinned = 0 AND is_favorite = 0 AND type != 'image'",
+        "SELECT COUNT(*) FROM clipboard_items WHERE type != 'image'",
         [], |row| row.get(0),
     )?;
     let text_deleted = if text_count > max_items {
-        let to_delete = text_count - max_items;
+        // Limit applies to ALL items; only oldest unprotected items are deleted
         conn.execute(
             "DELETE FROM clipboard_items WHERE id IN (
                 SELECT id FROM clipboard_items WHERE is_pinned = 0 AND is_favorite = 0 AND type != 'image'
                 ORDER BY created_at ASC LIMIT ?1
             )",
-            params![to_delete],
+            params![text_count - max_items],
         )?
     } else { 0 };
 
     let img_count: i64 = conn.query_row(
-        "SELECT COUNT(*) FROM clipboard_items WHERE is_pinned = 0 AND is_favorite = 0 AND type = 'image'",
+        "SELECT COUNT(*) FROM clipboard_items WHERE type = 'image'",
         [], |row| row.get(0),
     )?;
     let img_deleted = if img_count > max_images {
-        let to_delete = img_count - max_images;
         conn.execute(
             "DELETE FROM clipboard_items WHERE id IN (
                 SELECT id FROM clipboard_items WHERE is_pinned = 0 AND is_favorite = 0 AND type = 'image'
                 ORDER BY created_at ASC LIMIT ?1
             )",
-            params![to_delete],
+            params![img_count - max_images],
         )?
     } else { 0 };
 
@@ -502,16 +501,17 @@ pub fn try_restore_item(item: &ClipboardItem) -> SqliteResult<bool> {
     Ok(true)
 }
 
-/// Count unprotected (non-pinned, non-favorite) items by type.
+/// Count items by type, including pinned/favorite — they occupy limit slots
+/// and only never get deleted by cleanup.
 /// Returns (text_and_file_count, image_count).
-pub fn get_unprotected_counts() -> SqliteResult<(i64, i64)> {
+pub fn count_by_type() -> SqliteResult<(i64, i64)> {
     let conn = get_conn().lock().unwrap();
     let text_count: i64 = conn.query_row(
-        "SELECT COUNT(*) FROM clipboard_items WHERE is_pinned = 0 AND is_favorite = 0 AND type != 'image'",
+        "SELECT COUNT(*) FROM clipboard_items WHERE type != 'image'",
         [], |row| row.get(0),
     )?;
     let img_count: i64 = conn.query_row(
-        "SELECT COUNT(*) FROM clipboard_items WHERE is_pinned = 0 AND is_favorite = 0 AND type = 'image'",
+        "SELECT COUNT(*) FROM clipboard_items WHERE type = 'image'",
         [], |row| row.get(0),
     )?;
     Ok((text_count, img_count))
