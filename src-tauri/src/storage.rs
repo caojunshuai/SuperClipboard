@@ -536,8 +536,8 @@ pub fn set_setting(key: &str, value: &str) -> SqliteResult<()> {
 pub fn get_all_settings() -> SqliteResult<AppSettings> {
     let mut settings = AppSettings::default();
     if let Some(v) = get_setting("hotkey")? { settings.hotkey = v; }
-    if let Some(v) = get_setting("max_items")? { settings.max_items = v.parse().unwrap_or(3000); }
-    if let Some(v) = get_setting("max_images")? { settings.max_images = v.parse().unwrap_or(500); }
+    if let Some(v) = get_setting("max_items")? { settings.max_items = v.parse().unwrap_or(10000); }
+    if let Some(v) = get_setting("max_images")? { settings.max_images = v.parse().unwrap_or(1000); }
     if let Some(v) = get_setting("auto_paste")? { settings.auto_paste = v == "true"; }
     if let Some(v) = get_setting("auto_start")? { settings.auto_start = v == "true"; }
     if let Some(v) = get_setting("language")? { settings.language = v; }

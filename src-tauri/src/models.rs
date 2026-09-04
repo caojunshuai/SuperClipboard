@@ -215,8 +215,8 @@ impl Default for AppSettings {
     fn default() -> Self {
         Self {
             hotkey: "Alt+V".to_string(),
-            max_items: 1000,
-            max_images: 100,
+            max_items: 10000,
+            max_images: 1000,
             auto_paste: false,
             auto_start: true,
             language: default_language(),

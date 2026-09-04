@@ -19,8 +19,8 @@ export default function SettingsPanel({ onClose }: Props) {
   const { t } = useTranslation();
   const [settings, setSettings] = useState<AppSettings>({
     hotkey: 'Alt+V',
-    max_items: 3000,
-    max_images: 500,
+    max_items: 10000,
+    max_images: 1000,
     auto_paste: false,
     auto_start: false,
     language: 'en-US',
@@ -38,8 +38,8 @@ export default function SettingsPanel({ onClose }: Props) {
   const [typeCounts, setTypeCounts] = useState<TypeCounts | null>(null);
 
   // Track number fields as strings so empty input doesn't auto-refill
-  const [maxItemsStr, setMaxItemsStr] = useState('3000');
-  const [maxImagesStr, setMaxImagesStr] = useState('500');
+  const [maxItemsStr, setMaxItemsStr] = useState('10000');
+  const [maxImagesStr, setMaxImagesStr] = useState('1000');
 
   const { settings: savedSettings, save } = useSettings();
 
@@ -70,8 +70,8 @@ export default function SettingsPanel({ onClose }: Props) {
 
   const buildSettings = (): AppSettings => ({
     ...settings,
-    max_items: parseInt(maxItemsStr) || 3000,
-    max_images: parseInt(maxImagesStr) || 500,
+    max_items: parseInt(maxItemsStr) || 10000,
+    max_images: parseInt(maxImagesStr) || 1000,
   });
 
   const validate = (): boolean => {
@@ -81,13 +81,13 @@ export default function SettingsPanel({ onClose }: Props) {
 
     if (!maxItemsStr.trim() || isNaN(items) || items < 100) {
       e.items = t('settings.errorItems');
-    } else if (items > 5000) {
+    } else if (items > 10000) {
       e.items = t('settings.errorItemsMax');
     }
 
     if (!maxImagesStr.trim() || isNaN(images) || images < 10) {
       e.images = t('settings.errorImages');
-    } else if (images > 500) {
+    } else if (images > 1000) {
       e.images = t('settings.errorImagesMax');
     }
 
