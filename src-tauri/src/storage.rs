@@ -589,6 +589,18 @@ pub fn get_source_apps() -> Result<Vec<String>, rusqlite::Error> {
 
 /// Delete all clipboard items and their image/thumbnail files.
 /// Settings are preserved. Returns the number of deleted records.
+/// Shrink the db file after a bulk delete. SQLite DELETE leaves free
+/// pages behind — without VACUUM the file stays at its peak size. Skip
+/// when the free share is small to avoid paying the cost on tiny clears.
+fn vacuum_if_fragmented(conn: &Connection) -> SqliteResult<()> {
+    let page_count: i64 = conn.query_row("PRAGMA page_count", [], |r| r.get(0))?;
+    let freelist: i64 = conn.query_row("PRAGMA freelist_count", [], |r| r.get(0))?;
+    if page_count > 0 && freelist * 100 / page_count > 20 {
+        conn.execute("VACUUM", [])?;
+    }
+    Ok(())
+}
+
 pub fn clear_all_data() -> Result<usize, String> {
     let conn = get_conn().lock().map_err(|e| e.to_string())?;
 
@@ -620,6 +632,8 @@ pub fn clear_all_data() -> Result<usize, String> {
     for p in &paths {
         std::fs::remove_file(p).ok();
     }
+
+    vacuum_if_fragmented(&conn).map_err(|e| e.to_string())?;
 
     Ok(count)
 }
@@ -662,6 +676,8 @@ pub fn clear_data_by_type(item_type: &str) -> Result<usize, String> {
             for p in &paths {
                 std::fs::remove_file(p).ok();
             }
+
+            vacuum_if_fragmented(&conn).map_err(|e| e.to_string())?;
             Ok(count)
         }
         "text" | "file" => {
@@ -673,12 +689,15 @@ pub fn clear_data_by_type(item_type: &str) -> Result<usize, String> {
                 .map_err(|e| e.to_string())?;
 
             conn.execute("INSERT INTO clipboard_fts(clipboard_fts) VALUES ('optimize')", []).ok();
+
+            vacuum_if_fragmented(&conn).map_err(|e| e.to_string())?;
             Ok(count)
         }
         "template" => {
             let count = conn
                 .execute("DELETE FROM templates", [])
                 .map_err(|e| e.to_string())?;
+            vacuum_if_fragmented(&conn).map_err(|e| e.to_string())?;
             Ok(count)
         }
         _ => Err(format!("Unknown item type: {}", item_type)),
