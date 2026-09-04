@@ -116,10 +116,14 @@ pub struct BackupResult {
 
 /// Progress event emitted while a backup is being created or a restore
 /// is being imported (throttled). Frontend renders a progress bar.
+/// `total == 0` means the phase is indeterminate (no percentage known).
+///
+/// Phases per operation:
+/// - backup:   0 = JSON serialize (indeterminate), 1 = writing zip entries (items)
+/// - restore:  0 = reading JSON bytes from zip (bytes), 1 = parsing JSON (indeterminate),
+///             2 = importing items (items)
 #[derive(Debug, Clone, Serialize)]
 pub struct TransferProgress {
-    /// 0 = preparing (JSON serialize for backup / import loop for restore),
-    /// 1 = writing entries (backup zip loop).
     pub phase: u8,
     pub done: u64,
     pub total: u64,

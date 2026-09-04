@@ -59,10 +59,11 @@ pub fn backup(
     let items = storage::get_all_items_for_backup().map_err(|e| e.to_string())?;
     let count = items.len();
 
-    // Phase 0: JSON serialization (the slow part for large history)
-    on_progress(crate::models::TransferProgress { phase: 0, done: 0, total: 1 });
+    // Phase 0: JSON serialization (the slow part for large history).
+    // Indeterminate — the byte count isn't known until serialization ends,
+    // so total=0 tells the frontend to show a busy indicator, not a 0% bar.
+    on_progress(crate::models::TransferProgress { phase: 0, done: 0, total: 0 });
     let json = serde_json::to_string_pretty(&items).map_err(|e| e.to_string())?;
-    on_progress(crate::models::TransferProgress { phase: 0, done: 1, total: 1 });
 
     let file = fs::File::create(output_path).map_err(|e| e.to_string())?;
     let mut zip = zip::ZipWriter::new(file);
@@ -106,9 +107,33 @@ pub fn restore(
     let file = fs::File::open(backup_path).map_err(|e| e.to_string())?;
     let mut archive = zip::ZipArchive::new(file).map_err(|e| e.to_string())?;
 
+    // Phase 0: read JSON bytes out of the zip with byte-level progress —
+    // the decompressed size is known ahead of time, so the bar actually
+    // moves instead of hanging at 0% on multi-MB backups.
     let json_entry = archive.by_name("clipboard_data.json").map_err(|e| e.to_string())?;
+    let total_bytes = json_entry.size();
+    let mut buffer = Vec::with_capacity(total_bytes as usize);
+    let mut bytes_done = 0u64;
+    let mut reader = json_entry;
+    let mut chunk = [0u8; 64 * 1024];
+    loop {
+        use std::io::Read;
+        match reader.read(&mut chunk) {
+            Ok(0) => break,
+            Ok(n) => {
+                bytes_done += n as u64;
+                buffer.extend_from_slice(&chunk[..n]);
+                on_progress(crate::models::TransferProgress { phase: 0, done: bytes_done, total: total_bytes });
+            }
+            Err(e) => return Err(format!("Failed to read backup: {}", e)),
+        }
+    }
+    drop(reader);
+
+    // Phase 1: JSON parse (indeterminate — no byte-level hooks in serde)
+    on_progress(crate::models::TransferProgress { phase: 1, done: 0, total: 0 });
     let mut items: Vec<crate::models::ClipboardItem> =
-        serde_json::from_reader(json_entry).map_err(|e| e.to_string())?;
+        serde_json::from_slice(&buffer).map_err(|e| e.to_string())?;
 
     let expected = items.len();
 
@@ -141,7 +166,7 @@ pub fn restore(
     let mut done = 0u64;
     for item in &items {
         done += 1;
-        on_progress(crate::models::TransferProgress { phase: 0, done, total });
+        on_progress(crate::models::TransferProgress { phase: 2, done, total });
         // Check type-specific capacity
         let is_image = item.item_type == crate::models::ItemType::Image;
         if is_image {

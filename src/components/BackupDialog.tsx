@@ -190,17 +190,27 @@ export default function BackupDialog({ onClose }: Props) {
           <div className="mt-4 p-3 rounded-lg bg-panel-card border border-panel-border">
             {(() => {
               const p = progress.p;
-              const percent = p.total > 0 ? Math.round((p.done / p.total) * 100) : 0;
-              const label = progress.kind === 'restore'
-                ? t('backup.progressRestoring', { percent })
-                : p.phase === 0
-                  ? t('backup.progressPacking', { percent })
-                  : t('backup.progressWriting', { percent });
+              const hasPct = p.total > 0 && (progress.kind === 'restore' ? p.phase !== 1 : true);
+              const percent = hasPct ? Math.round((p.done / p.total) * 100) : 0;
+              const label =
+                progress.kind === 'restore'
+                  ? p.phase === 0
+                    ? t('backup.progressReading', { percent })
+                    : p.phase === 1
+                      ? t('backup.progressParsing')
+                      : t('backup.progressRestoring', { percent })
+                  : p.phase === 0
+                    ? t('backup.progressPacking')
+                    : t('backup.progressWriting', { percent });
               return (
                 <>
                   <div className="text-xs text-panel-muted mb-2">{label}</div>
                   <div className="h-2 bg-panel-hover rounded-full overflow-hidden">
-                    <div className="h-full bg-panel-accent rounded-full transition-all duration-200" style={{ width: `${percent}%` }} />
+                    {hasPct ? (
+                      <div className="h-full bg-panel-accent rounded-full transition-all duration-200" style={{ width: `${percent}%` }} />
+                    ) : (
+                      <div className="h-full bg-panel-accent rounded-full w-1/3 animate-pulse" />
+                    )}
                   </div>
                 </>
               );
