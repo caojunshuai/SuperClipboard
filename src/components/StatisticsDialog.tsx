@@ -88,17 +88,12 @@ export default function StatisticsDialog({ onClose }: Props) {
 
   const changeYear = (delta: number) => setViewYear(y => y + delta);
 
-  // ── Source app data (top 20 + "others") ───────────────────
+  // ── Source app data (top 10) ──────────────────────────────
   const sourceData = (() => {
     if (!stats) return [];
     // Display source app names without the .exe suffix
     const cleanAppName = (app: string) => app.replace(/\.exe$/i, '');
-    const top20 = stats.source_stats.slice(0, 20).map(s => ({ name: cleanAppName(s.app), count: s.count }));
-    const othersCount = stats.source_stats.slice(20).reduce((s, x) => s + x.count, 0);
-    const result = top20;
-    if (othersCount > 0) {
-      result.push({ name: t('statistics.sourceOther'), count: othersCount });
-    }
+    const result = stats.source_stats.slice(0, 10).map(s => ({ name: cleanAppName(s.app), count: s.count }));
     const max = Math.max(...result.map(r => r.count), 1);
     return result.map(r => ({ ...r, pct: ((r.count / max) * 100).toFixed(0) }));
   })();
