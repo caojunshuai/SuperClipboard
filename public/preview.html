@@ -32,7 +32,22 @@
   var started = Date.now();
   var MAX_WAIT = 10000;
 
+  // The window is built hidden; reveal it once content is ready so no
+  // blank window flashes. Safety-net interval guards against stalls.
+  var shown = false;
+  var showTimer = setInterval(function() { showOnce(); }, 1000);
+  function showOnce() {
+    if (shown) return;
+    var ipc = window.__TAURI_INTERNALS__;
+    if (ipc && typeof ipc.invoke === 'function') {
+      shown = true;
+      clearInterval(showTimer);
+      ipc.invoke('show_preview_window').catch(function() {});
+    }
+  }
+
   function showError(msg) {
+    showOnce();
     app.innerHTML =
       '<div style="text-align:center">' +
       '<p class="error">' + msg + '</p>' +
@@ -69,6 +84,7 @@
         img.alt = 'preview';
         img.onload = function() {
           document.title = '图片预览 (' + img.naturalWidth + '×' + img.naturalHeight + ')';
+          showOnce();
         };
         img.onerror = function() { showError('图片加载失败'); };
         app.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%"></div>';

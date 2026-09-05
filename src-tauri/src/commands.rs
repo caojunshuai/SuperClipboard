@@ -539,6 +539,9 @@ pub fn open_image_preview(app: tauri::AppHandle, path: String) -> Result<(), Str
             .center()
             .resizable(true)
             .always_on_top(true)
+            // Hidden until preview.html reports the image is loaded
+            // (show_preview_window) — avoids a blank-window flash.
+            .visible(false)
             .build()
     })
     .join()
@@ -563,6 +566,14 @@ pub fn get_preview_image_path(window: tauri::Window) -> Result<String, String> {
 #[tauri::command]
 pub fn close_preview_window(window: tauri::Window) -> Result<(), String> {
     window.close().map_err(|e| e.to_string())
+}
+
+/// Show the calling preview window once its content is ready.
+/// The window is built hidden (open_image_preview) and revealed here.
+#[tauri::command]
+pub fn show_preview_window(window: tauri::Window) -> Result<(), String> {
+    window.show().map_err(|e| e.to_string())?;
+    window.set_focus().map_err(|e| e.to_string())
 }
 
 #[tauri::command]

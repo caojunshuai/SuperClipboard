@@ -123,6 +123,7 @@ pub fn run() {
             commands::open_image_preview,
             commands::get_daily_counts,
             commands::get_preview_image_path,
+            commands::show_preview_window,
             commands::close_preview_window,
         ])
         .run(tauri::generate_context!())
