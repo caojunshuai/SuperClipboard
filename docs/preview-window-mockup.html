@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>预览窗口 UI 方案预览</title>
+<style>
+  /* 页面背景(仅用于展示窗口,不属于窗口本身) */
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: #131322;
+    display: flex; flex-direction: column; gap: 28px;
+    align-items: center; justify-content: center;
+    padding: 24px; box-sizing: border-box;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  .page-hint { color: #8888a0; font-size: 13px; text-align: center; line-height: 1.6; }
+  .page-hint b { color: #e0e0e0; }
+
+  /* ── 以下为窗口本体 1:1 还原 ─────────────────────── */
+  .window {
+    width: 820px; max-width: 100%; height: 560px;
+    background: rgb(30 30 46);              /* --panel-bg */
+    border: 1px solid rgb(58 58 76);        /* --panel-border */
+    border-radius: 10px; overflow: hidden;
+    box-shadow: 0 18px 50px rgba(0,0,0,.5);
+    display: flex; flex-direction: column;
+  }
+
+  /* 自定义标题栏 — 与主窗口同构 */
+  .titlebar {
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px;
+    background: rgb(42 42 60 / .5);         /* --panel-card/50 */
+    border-bottom: 1px solid rgb(58 58 76); /* --panel-border */
+    user-select: none;
+  }
+  .titlebar .left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .titlebar .app-icon { width: 16px; height: 16px; flex-shrink: 0; }
+  .titlebar .title {
+    color: rgb(224 224 224);                /* --panel-text */
+    font-size: 13px; font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .titlebar .dim-badge {
+    flex-shrink: 0;
+    color: rgb(136 136 160);                /* --panel-muted */
+    font-size: 11px;
+    background: rgb(42 42 60);
+    border: 1px solid rgb(58 58 76);
+    padding: 1px 7px; border-radius: 999px;
+  }
+  .win-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 6px;
+    color: rgb(136 136 160);                /* --panel-muted */
+    cursor: pointer; transition: color .15s, background .15s;
+  }
+  .win-btn:hover { color: rgb(224 224 224); background: rgb(58 58 76 / .6); }
+  .win-btn.close:hover { color: #f87171; background: rgb(239 68 68 / .15); }
+  .win-btn svg { width: 14px; height: 14px; display: block; }
+
+  /* 图片区域 */
+  .stage {
+    flex: 1; min-height: 0; padding: 16px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .img-frame {
+    max-width: 100%; max-height: 100%;
+    border: 1px solid rgb(58 58 76);        /* --panel-border */
+    border-radius: 8px; overflow: hidden;
+    box-shadow: 0 8px 28px rgba(0,0,0,.35);
+    /* 透明 PNG 的棋盘格底纹 */
+    background:
+      linear-gradient(45deg, rgb(42 42 60) 25%, transparent 25%, transparent 75%, rgb(42 42 60) 75%),
+      linear-gradient(45deg, rgb(42 42 60) 25%, transparent 25%, transparent 75%, rgb(42 42 60) 75%),
+      rgb(24 24 38);
+    background-size: 16px 16px;
+    background-position: 0 0, 8px 8px;
+  }
+  .img-frame img { display: block; max-width: 100%; max-height: 480px; }
+</style>
+</head>
+<body>
+  <p class="page-hint">
+    <b>图片预览窗口 · 新方案 1:1 模拟</b>(820×560,实际 900×700)<br>
+    标题栏:panel-card/50 底 + panel-border 分割线,与主窗口同构 · 关闭键悬停变红 · Esc 关闭保留
+  </p>
+
+  <div class="window">
+    <div class="titlebar">
+      <div class="left">
+        <svg class="app-icon" viewBox="0 0 24 24" fill="none" stroke="rgb(124 140 248)" stroke-width="2">
+          <rect x="4" y="4" width="16" height="16" rx="3"/>
+          <circle cx="9.5" cy="9.5" r="1.6" fill="rgb(124 140 248)" stroke="none"/>
+          <path d="M5 17l4.5-5 3.5 4 2.5-3L20 17"/>
+        </svg>
+        <span class="title">图片预览</span>
+        <span class="dim-badge">1920 × 1080</span>
+      </div>
+      <div class="win-btn close" title="关闭 (Esc)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M6 6l12 12M18 6L6 18"/>
+        </svg>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="img-frame">
+        <img alt="preview"
+          src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='360'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237c8cf8'/%3E%3Cstop offset='1' stop-color='%235b6cf0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='640' height='360' fill='url(%23g)'/%3E%3Ccircle cx='500' cy='90' r='46' fill='%23ffffff' opacity='.25'/%3E%3Cpath d='M0 300 L160 190 L280 260 L420 150 L560 240 L640 200 L640 360 L0 360 Z' fill='%232a2a3c' opacity='.85'/%3E%3C/svg%3E">
+      </div>
+    </div>
+  </div>
+
+  <p class="page-hint">
+    对比:窗口内配色 = 主界面深色主题色板(panel-bg / card / border / muted / accent)。<br>
+    悬停右上角 ✕ 可以看到与主窗口一致的变红反馈;图片四周为 panel-border 细框 + 棋盘格(透明图场景)。
+  </p>
+</body>
+</html>

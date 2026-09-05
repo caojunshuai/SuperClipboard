@@ -435,8 +435,9 @@ pub fn hide_window(app: tauri::AppHandle) -> Result<(), String> {
 /// Initiate window drag via Windows API.
 /// Mirrors tao's handle_os_dragging: ReleaseCapture + PostMessageW(WM_NCLBUTTONDOWN, HTCAPTION).
 /// Using our own FFI for ReleaseCapture since it's missing from windows-sys 0.52.
+/// Drags the CALLING window (main title bar and preview title bar both use it).
 #[tauri::command]
-pub fn start_drag(app: tauri::AppHandle) -> Result<(), String> {
+pub fn start_drag(window: tauri::Window) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
         use windows_sys::Win32::UI::WindowsAndMessaging::*;
@@ -447,41 +448,37 @@ pub fn start_drag(app: tauri::AppHandle) -> Result<(), String> {
             fn ReleaseCapture() -> BOOL;
         }
 
-        if let Some(window) = app.get_webview_window("main") {
-            let raw = window.hwnd().map_err(|e| e.to_string())?;
-            // HWND is a type alias for isize in windows-sys 0.52
-            let hwnd: HWND = raw.0 as isize;
+        let raw = window.hwnd().map_err(|e| e.to_string())?;
+        // HWND is a type alias for isize in windows-sys 0.52
+        let hwnd: HWND = raw.0 as isize;
 
-            // Get current cursor position
-            let mut cursor_pos = POINT { x: 0, y: 0 };
-            if unsafe { GetCursorPos(&mut cursor_pos) } == 0 {
-                return Err("GetCursorPos failed".into());
-            }
-
-            let points = POINTS {
-                x: cursor_pos.x as i16,
-                y: cursor_pos.y as i16,
-            };
-
-            // Must release webview capture before posting, otherwise
-            // WM_NCLBUTTONDOWN won't initiate drag
-            unsafe { ReleaseCapture(); }
-
-            // PostMessageW (async) so the message loop handles drag properly
-            // WPARAM = usize, LPARAM = isize (type aliases)
-            unsafe {
-                PostMessageW(
-                    hwnd,
-                    WM_NCLBUTTONDOWN,
-                    HTCAPTION as usize,
-                    &points as *const _ as isize,
-                );
-            }
-
-            Ok(())
-        } else {
-            Err("Window not found".to_string())
+        // Get current cursor position
+        let mut cursor_pos = POINT { x: 0, y: 0 };
+        if unsafe { GetCursorPos(&mut cursor_pos) } == 0 {
+            return Err("GetCursorPos failed".into());
         }
+
+        let points = POINTS {
+            x: cursor_pos.x as i16,
+            y: cursor_pos.y as i16,
+        };
+
+        // Must release webview capture before posting, otherwise
+        // WM_NCLBUTTONDOWN won't initiate drag
+        unsafe { ReleaseCapture(); }
+
+        // PostMessageW (async) so the message loop handles drag properly
+        // WPARAM = usize, LPARAM = isize (type aliases)
+        unsafe {
+            PostMessageW(
+                hwnd,
+                WM_NCLBUTTONDOWN,
+                HTCAPTION as usize,
+                &points as *const _ as isize,
+            );
+        }
+
+        Ok(())
     }
     #[cfg(not(target_os = "windows"))]
     Err("Not supported".to_string())
@@ -542,6 +539,8 @@ pub fn open_image_preview(app: tauri::AppHandle, path: String) -> Result<(), Str
             // Hidden until preview.html reports the image is loaded
             // (show_preview_window) — avoids a blank-window flash.
             .visible(false)
+            // Custom title bar in preview.html, matching the main window.
+            .decorations(false)
             .build()
     })
     .join()

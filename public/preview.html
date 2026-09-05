@@ -5,30 +5,111 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>图片预览</title>
 <style>
+  /* Color palette mirrors the app's dark theme (App.css --panel-* values). */
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { height: 100%; background: #0f0f1a; overflow: hidden; }
+  html, body { height: 100%; overflow: hidden; }
   body {
-    display: flex; align-items: center; justify-content: center;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    display: flex; flex-direction: column;
+    background: rgb(30 30 46);              /* --panel-bg */
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
   }
-  .status { color: #94a3b8; font-size: 14px; }
-  .error { color: #ef4444; font-size: 14px; text-align: center; }
-  .close-btn {
-    position: fixed; top: 12px; right: 12px;
-    width: 32px; height: 32px; border: 1px solid rgba(255,255,255,0.15);
-    background: rgba(255,255,255,0.08); color: #ccc; font-size: 18px;
-    border-radius: 6px; cursor: pointer; z-index: 100;
-    display: flex; align-items: center; justify-content: center;
-    transition: background 0.15s;
+
+  /* ── Custom title bar, same structure as the main window's ── */
+  .titlebar {
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px;
+    background: rgb(42 42 60 / .5);         /* --panel-card / 50 */
+    border-bottom: 1px solid rgb(58 58 76); /* --panel-border */
+    user-select: none;
   }
-  .close-btn:hover { background: rgba(239,68,68,0.5); color: #fff; }
-  img { max-width: 100%; max-height: 100vh; object-fit: contain; border-radius: 6px; }
+  .titlebar .left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .titlebar .app-icon { width: 16px; height: 16px; flex-shrink: 0; }
+  .titlebar .title {
+    color: rgb(224 224 224);                /* --panel-text */
+    font-size: 13px; font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .dim-badge {
+    flex-shrink: 0; display: none;
+    color: rgb(136 136 160);                /* --panel-muted */
+    font-size: 11px;
+    background: rgb(42 42 60);              /* --panel-card */
+    border: 1px solid rgb(58 58 76);        /* --panel-border */
+    padding: 1px 7px; border-radius: 999px;
+  }
+  .dim-badge.show { display: inline-block; }
+
+  .win-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 6px;
+    color: rgb(136 136 160);                /* --panel-muted */
+    cursor: pointer; transition: color .15s, background .15s;
+  }
+  .win-btn:hover { color: rgb(224 224 224); background: rgb(58 58 76 / .6); }
+  .win-btn.close:hover { color: #f87171; background: rgb(239 68 68 / .15); }
+  .win-btn svg { width: 14px; height: 14px; display: block; }
+
+  /* ── Image stage ──────────────────────────────────────────── */
+  .stage {
+    flex: 1; min-height: 0; padding: 16px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .img-frame {
+    display: none;
+    max-width: 100%; max-height: 100%;
+    border: 1px solid rgb(58 58 76);        /* --panel-border */
+    border-radius: 8px; overflow: hidden;
+    box-shadow: 0 8px 28px rgba(0,0,0,.35);
+    /* Checkerboard under transparent PNGs */
+    background:
+      linear-gradient(45deg, rgb(42 42 60) 25%, transparent 25%, transparent 75%, rgb(42 42 60) 75%),
+      linear-gradient(45deg, rgb(42 42 60) 25%, transparent 25%, transparent 75%, rgb(42 42 60) 75%),
+      rgb(24 24 38);
+    background-size: 16px 16px;
+    background-position: 0 0, 8px 8px;
+  }
+  .img-frame img { display: block; max-width: 100%; max-height: 100vh; }
+
+  .status { color: rgb(136 136 160); font-size: 14px; }
+  .error { color: #f87171; font-size: 14px; text-align: center; }
+  .error-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-top: 12px; padding: 0;
+    width: 32px; height: 32px;
+    border: 1px solid rgb(58 58 76);
+    background: rgb(42 42 60); color: rgb(136 136 160);
+    font-size: 18px; border-radius: 6px; cursor: pointer;
+    transition: color .15s, background .15s;
+  }
+  .error-btn:hover { color: #f87171; background: rgb(239 68 68 / .15); }
 </style>
 </head>
 <body>
-<div id="app"><span class="status">加载中...</span></div>
+  <div class="titlebar" id="titlebar">
+    <div class="left">
+      <svg class="app-icon" viewBox="0 0 24 24" fill="none" stroke="rgb(124 140 248)" stroke-width="2">
+        <rect x="4" y="4" width="16" height="16" rx="3"/>
+        <circle cx="9.5" cy="9.5" r="1.6" fill="rgb(124 140 248)" stroke="none"/>
+        <path d="M5 17l4.5-5 3.5 4 2.5-3L20 17"/>
+      </svg>
+      <span class="title">图片预览</span>
+      <span class="dim-badge" id="dim-badge"></span>
+    </div>
+    <div class="win-btn close" id="close-btn" title="关闭 (Esc)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M6 6l12 12M18 6L6 18"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="stage" id="app"><span class="status">加载中...</span></div>
+
 <script>
   var app = document.getElementById('app');
+  var titlebar = document.getElementById('titlebar');
+  var closeBtn = document.getElementById('close-btn');
+  var dimBadge = document.getElementById('dim-badge');
   var started = Date.now();
   var MAX_WAIT = 10000;
 
@@ -51,7 +132,7 @@
     app.innerHTML =
       '<div style="text-align:center">' +
       '<p class="error">' + msg + '</p>' +
-      '<button class="close-btn" style="position:static;margin:12px auto 0" onclick="doClose()">&times;</button>' +
+      '<button class="error-btn" onclick="doClose()">&times;</button>' +
       '</div>';
   }
 
@@ -64,8 +145,19 @@
     }
   }
 
+  closeBtn.addEventListener('click', doClose);
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') doClose();
+  });
+
+  // Drag the window from the title bar (same command the main window uses).
+  titlebar.addEventListener('mousedown', function(e) {
+    if (e.button !== 0) return;
+    if (e.target.closest && e.target.closest('.win-btn')) return;
+    var ipc = window.__TAURI_INTERNALS__;
+    if (ipc && typeof ipc.invoke === 'function') {
+      ipc.invoke('start_drag').catch(function() {});
+    }
   });
 
   // Poll until __TAURI_INTERNALS__.invoke is ready.
@@ -82,13 +174,20 @@
         var img = document.createElement('img');
         img.src = dataUrl;
         img.alt = 'preview';
+        var frame = document.createElement('div');
+        frame.className = 'img-frame';
+        frame.style.display = 'none';
+        frame.appendChild(img);
+        app.innerHTML = '';
+        app.appendChild(frame);
         img.onload = function() {
           document.title = '图片预览 (' + img.naturalWidth + '×' + img.naturalHeight + ')';
+          dimBadge.textContent = img.naturalWidth + ' × ' + img.naturalHeight;
+          dimBadge.classList.add('show');
+          frame.style.display = 'block';
           showOnce();
         };
         img.onerror = function() { showError('图片加载失败'); };
-        app.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%"></div>';
-        app.querySelector('div').appendChild(img);
       }).catch(function(e) {
         showError('预览失败: ' + (e && e.message ? e.message : e));
       });
