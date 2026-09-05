@@ -5,13 +5,15 @@ export default {
     extend: {
       colors: {
         panel: {
-          bg: 'var(--panel-bg)',
-          card: 'var(--panel-card)',
-          border: 'var(--panel-border)',
-          hover: 'var(--panel-hover)',
-          text: 'var(--panel-text)',
-          muted: 'var(--panel-muted)',
-          accent: 'var(--panel-accent)',
+          // RGB triplets (defined in App.css) + <alpha-value> so Tailwind's
+          // opacity modifier works: bg-panel-accent/50 → rgb(var(--panel-accent) / 0.5)
+          bg: 'rgb(var(--panel-bg) / <alpha-value>)',
+          card: 'rgb(var(--panel-card) / <alpha-value>)',
+          border: 'rgb(var(--panel-border) / <alpha-value>)',
+          hover: 'rgb(var(--panel-hover) / <alpha-value>)',
+          text: 'rgb(var(--panel-text) / <alpha-value>)',
+          muted: 'rgb(var(--panel-muted) / <alpha-value>)',
+          accent: 'rgb(var(--panel-accent) / <alpha-value>)',
         },
         contrib: {
           0: 'var(--contrib-0)',

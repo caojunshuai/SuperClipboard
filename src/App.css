@@ -3,13 +3,13 @@
 @tailwind utilities;
 
 :root {
-  --panel-bg: #1e1e2e;
-  --panel-card: #2a2a3c;
-  --panel-border: #3a3a4c;
-  --panel-hover: #32324a;
-  --panel-text: #e0e0e0;
-  --panel-muted: #8888a0;
-  --panel-accent: #7c8cf8;
+  --panel-bg: 30 30 46;
+  --panel-card: 42 42 60;
+  --panel-border: 58 58 76;
+  --panel-hover: 50 50 74;
+  --panel-text: 224 224 224;
+  --panel-muted: 136 136 160;
+  --panel-accent: 124 140 248;
   --contrib-0: #2a2a3c;
   --contrib-1: #0e4429;
   --contrib-2: #006d32;
@@ -19,13 +19,13 @@
 
 @media (prefers-color-scheme: light) {
   :root {
-    --panel-bg: #f5f5f7;
-    --panel-card: #ffffff;
-    --panel-border: #e0e0e8;
-    --panel-hover: #f0f0f4;
-    --panel-text: #1a1a2e;
-    --panel-muted: #707088;
-    --panel-accent: #5b6cf0;
+    --panel-bg: 245 245 247;
+    --panel-card: 255 255 255;
+    --panel-border: 224 224 232;
+    --panel-hover: 240 240 244;
+    --panel-text: 26 26 46;
+    --panel-muted: 112 112 136;
+    --panel-accent: 91 108 240;
     --contrib-0: #ebedf0;
     --contrib-1: #9be9a8;
     --contrib-2: #40c463;
@@ -35,13 +35,13 @@
 }
 
 html.light {
-  --panel-bg: #f5f5f7;
-  --panel-card: #ffffff;
-  --panel-border: #e0e0e8;
-  --panel-hover: #f0f0f4;
-  --panel-text: #1a1a2e;
-  --panel-muted: #707088;
-  --panel-accent: #5b6cf0;
+  --panel-bg: 245 245 247;
+  --panel-card: 255 255 255;
+  --panel-border: 224 224 232;
+  --panel-hover: 240 240 244;
+  --panel-text: 26 26 46;
+  --panel-muted: 112 112 136;
+  --panel-accent: 91 108 240;
   --contrib-0: #ebedf0;
   --contrib-1: #9be9a8;
   --contrib-2: #40c463;
@@ -50,13 +50,13 @@ html.light {
 }
 
 html.dark {
-  --panel-bg: #1e1e2e;
-  --panel-card: #2a2a3c;
-  --panel-border: #3a3a4c;
-  --panel-hover: #32324a;
-  --panel-text: #e0e0e0;
-  --panel-muted: #8888a0;
-  --panel-accent: #7c8cf8;
+  --panel-bg: 30 30 46;
+  --panel-card: 42 42 60;
+  --panel-border: 58 58 76;
+  --panel-hover: 50 50 74;
+  --panel-text: 224 224 224;
+  --panel-muted: 136 136 160;
+  --panel-accent: 124 140 248;
   --contrib-0: #2a2a3c;
   --contrib-1: #0e4429;
   --contrib-2: #006d32;
@@ -68,7 +68,7 @@ body {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background: var(--panel-bg);
+  background: rgb(var(--panel-bg));
 }
 
 #root {
@@ -95,10 +95,9 @@ body {
   background: transparent;
 }
 
-/* Skeleton loading blocks. Uses --panel-border directly because Tailwind's
-   alpha modifier (/60) silently no-ops on var()-based theme colors. */
+/* Skeleton loading blocks (see StatisticsDialog). */
 .skeleton-block {
-  background-color: var(--panel-border);
+  background-color: rgb(var(--panel-border));
   animation: skeleton-pulse 1.5s ease-in-out infinite;
 }
 @keyframes skeleton-pulse {
@@ -112,7 +111,7 @@ select.custom-select {
   -webkit-appearance: none;
   cursor: pointer;
   padding-right: 2rem;
-  background-color: var(--panel-card);
+  background-color: rgb(var(--panel-card));
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 10px center;
@@ -120,16 +119,16 @@ select.custom-select {
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 select.custom-select:hover {
-  border-color: var(--panel-muted);
+  border-color: rgb(var(--panel-muted));
 }
 select.custom-select:focus {
   outline: none;
-  border-color: var(--panel-accent);
-  box-shadow: 0 0 0 1px rgba(124, 140, 248, 0.2);
+  border-color: rgb(var(--panel-accent));
+  box-shadow: 0 0 0 1px rgb(var(--panel-accent) / 0.2);
 }
 select.custom-select option {
-  background-color: var(--panel-card);
-  color: var(--panel-text);
+  background-color: rgb(var(--panel-card));
+  color: rgb(var(--panel-text));
 }
 
 /* Darker arrow for light themes */

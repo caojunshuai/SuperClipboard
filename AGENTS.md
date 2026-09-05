@@ -104,7 +104,7 @@ scripts/
 - **Time format:** Today → `今天 HH:MM:SS`, Yesterday → `昨天 HH:MM:SS`, Older → `YYYY-MM-DD HH:MM:SS`
 - **Pagination:** `pageSizeRef` (10-50) from shared settings, gen counter discards stale responses. Auto-refill after delete, clamp on page shrink
 - **Always-on-top / skip_taskbar:** toggled together; on = floating panel, off = normal window with taskbar
-- **Theme:** CSS-driven (`html.light`/`html.dark` classes + `@media (prefers-color-scheme: light)` for system). Applied reactively from shared settings in App.tsx
+- **Theme:** CSS-driven (`html.light`/`html.dark` classes + `@media (prefers-color-scheme: light)` for system). Applied reactively from shared settings in App.tsx Panel colors are RGB triplets in App.css (`--panel-accent: 124 140 248`) consumed by Tailwind as `rgb(var(--panel-x) / <alpha-value>)` — so alpha modifiers (`bg-panel-accent/50`) work; direct `var(--panel-x)` usages in App.css must wrap in `rgb(...)`.
 - **Context menus:** global (selected text → Copy), card-level (Edit/Copy/Delete), template-level — all via `useContextMenu` (edge flip + outside-click dismiss)
 - **Text editor:** inline `<textarea>`, Ctrl+Enter save, Escape cancel. Cross-row dedup on save (merge → remove card), FTS auto-sync
 - **Templates:** `{date}`, `{time}`, `{datetime}` placeholders replaced on copy
