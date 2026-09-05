@@ -1,9 +1,9 @@
+use crate::clipboard::generate_thumbnail;
+use crate::models::{BackupResult, ExportResult, RestoreResult};
+use crate::storage;
 use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
-use crate::models::{ExportResult, BackupResult, RestoreResult};
-use crate::storage;
-use crate::clipboard::generate_thumbnail;
 
 pub fn export_text(ids: &[i64], output_path: &str) -> Result<ExportResult, String> {
     let items = get_items_by_ids(ids)?;
@@ -15,8 +15,7 @@ pub fn export_text(ids: &[i64], output_path: &str) -> Result<ExportResult, Strin
             if count > 0 {
                 writeln!(file).map_err(|e| e.to_string())?;
             }
-            writeln!(file, "--- {} ---", item.created_at)
-                .map_err(|e| e.to_string())?;
+            writeln!(file, "--- {} ---", item.created_at).map_err(|e| e.to_string())?;
             writeln!(file, "{}", content).map_err(|e| e.to_string())?;
             count += 1;
         }
@@ -37,9 +36,7 @@ pub fn export_images(ids: &[i64], output_dir: &str) -> Result<ExportResult, Stri
         if let Some(ref img_path) = item.image_path {
             let src = PathBuf::from(img_path);
             if src.exists() {
-                let dest = PathBuf::from(output_dir).join(
-                    src.file_name().unwrap_or_default()
-                );
+                let dest = PathBuf::from(output_dir).join(src.file_name().unwrap_or_default());
                 fs::copy(&src, &dest).map_err(|e| e.to_string())?;
                 count += 1;
             }
@@ -62,7 +59,11 @@ pub fn backup(
     // Phase 0: JSON serialization (the slow part for large history).
     // Indeterminate — the byte count isn't known until serialization ends,
     // so total=0 tells the frontend to show a busy indicator, not a 0% bar.
-    on_progress(crate::models::TransferProgress { phase: 0, done: 0, total: 0 });
+    on_progress(crate::models::TransferProgress {
+        phase: 0,
+        done: 0,
+        total: 0,
+    });
     let json = serde_json::to_string_pretty(&items).map_err(|e| e.to_string())?;
 
     let file = fs::File::create(output_path).map_err(|e| e.to_string())?;
@@ -72,25 +73,34 @@ pub fn backup(
 
     // Phase 1: per-item zip writes
     let total = count as u64;
-    let mut done = 0u64;
-    on_progress(crate::models::TransferProgress { phase: 1, done: 0, total });
+    on_progress(crate::models::TransferProgress {
+        phase: 1,
+        done: 0,
+        total,
+    });
 
-    zip.start_file("clipboard_data.json", options).map_err(|e| e.to_string())?;
+    zip.start_file("clipboard_data.json", options)
+        .map_err(|e| e.to_string())?;
     zip.write_all(json.as_bytes()).map_err(|e| e.to_string())?;
 
-    for item in &items {
+    for (done, item) in items.iter().enumerate() {
+        let done = done as u64 + 1;
         if let Some(ref img_path) = item.image_path {
             let src = PathBuf::from(img_path);
             if src.exists() {
                 let name = src.file_name().unwrap_or_default().to_string_lossy();
                 let zip_path = format!("images/{}", name);
-                zip.start_file(&zip_path, options).map_err(|e| e.to_string())?;
+                zip.start_file(&zip_path, options)
+                    .map_err(|e| e.to_string())?;
                 let data = fs::read(&src).map_err(|e| e.to_string())?;
                 zip.write_all(&data).map_err(|e| e.to_string())?;
             }
         }
-        done += 1;
-        on_progress(crate::models::TransferProgress { phase: 1, done, total });
+        on_progress(crate::models::TransferProgress {
+            phase: 1,
+            done,
+            total,
+        });
     }
 
     zip.finish().map_err(|e| e.to_string())?;
@@ -110,7 +120,9 @@ pub fn restore(
     // Phase 0: read JSON bytes out of the zip with byte-level progress —
     // the decompressed size is known ahead of time, so the bar actually
     // moves instead of hanging at 0% on multi-MB backups.
-    let json_entry = archive.by_name("clipboard_data.json").map_err(|e| e.to_string())?;
+    let json_entry = archive
+        .by_name("clipboard_data.json")
+        .map_err(|e| e.to_string())?;
     let total_bytes = json_entry.size();
     let mut buffer = Vec::with_capacity(total_bytes as usize);
     let mut bytes_done = 0u64;
@@ -123,7 +135,11 @@ pub fn restore(
             Ok(n) => {
                 bytes_done += n as u64;
                 buffer.extend_from_slice(&chunk[..n]);
-                on_progress(crate::models::TransferProgress { phase: 0, done: bytes_done, total: total_bytes });
+                on_progress(crate::models::TransferProgress {
+                    phase: 0,
+                    done: bytes_done,
+                    total: total_bytes,
+                });
             }
             Err(e) => return Err(format!("Failed to read backup: {}", e)),
         }
@@ -131,7 +147,11 @@ pub fn restore(
     drop(reader);
 
     // Phase 1: JSON parse (indeterminate — no byte-level hooks in serde)
-    on_progress(crate::models::TransferProgress { phase: 1, done: 0, total: 0 });
+    on_progress(crate::models::TransferProgress {
+        phase: 1,
+        done: 0,
+        total: 0,
+    });
     let mut items: Vec<crate::models::ClipboardItem> =
         serde_json::from_slice(&buffer).map_err(|e| e.to_string())?;
 
@@ -150,9 +170,7 @@ pub fn restore(
     items.sort_by_key(|i| !(i.is_pinned || i.is_favorite));
 
     // Use the real app data directory (not derived from backup path)
-    let app_data = crate::APP_DATA_DIR.get()
-        .cloned()
-        .unwrap_or_default();
+    let app_data = crate::APP_DATA_DIR.get().cloned().unwrap_or_default();
     let images_dir = app_data.join("images");
     let thumbs_dir = app_data.join("thumbnails");
     fs::create_dir_all(&images_dir).map_err(|e| e.to_string())?;
@@ -163,10 +181,13 @@ pub fn restore(
     let mut truncated = false;
 
     let total = items.len() as u64;
-    let mut done = 0u64;
-    for item in &items {
-        done += 1;
-        on_progress(crate::models::TransferProgress { phase: 2, done, total });
+    for (done, item) in items.iter().enumerate() {
+        let done = done as u64 + 1;
+        on_progress(crate::models::TransferProgress {
+            phase: 2,
+            done,
+            total,
+        });
         // Check type-specific capacity
         let is_image = item.item_type == crate::models::ItemType::Image;
         if is_image {
@@ -191,8 +212,10 @@ pub fn restore(
                     .map(|n| n.to_string_lossy().to_string())
                     .unwrap_or_default();
                 if !filename.is_empty() {
-                    item.image_path = Some(images_dir.join(&filename).to_string_lossy().to_string());
-                    item.thumbnail_path = Some(thumbs_dir.join(&filename).to_string_lossy().to_string());
+                    item.image_path =
+                        Some(images_dir.join(&filename).to_string_lossy().to_string());
+                    item.thumbnail_path =
+                        Some(thumbs_dir.join(&filename).to_string_lossy().to_string());
 
                     // Extract image from zip and generate thumbnail
                     let zip_path = format!("images/{}", filename);

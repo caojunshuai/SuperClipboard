@@ -94,6 +94,45 @@ pub struct AppSettings {
     pub theme: String,
 }
 
+/// Structured error for the copy path (`copy_to_clipboard`). The frontend
+/// maps `code` to i18n messages instead of matching English prose.
+#[derive(Debug, Clone, Serialize)]
+pub struct CopyError {
+    /// One of: image_not_found | file_not_found | files_not_found |
+    /// parse_error | clipboard_error
+    pub code: String,
+    /// Populated for files_not_found (how many paths are missing).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub count: Option<u32>,
+}
+
+impl CopyError {
+    pub fn new(code: &str) -> Self {
+        Self {
+            code: code.to_string(),
+            count: None,
+        }
+    }
+
+    pub fn with_count(code: &str, count: u32) -> Self {
+        Self {
+            code: code.to_string(),
+            count: Some(count),
+        }
+    }
+}
+
+impl std::fmt::Display for CopyError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match (self.code.as_str(), self.count) {
+            ("files_not_found", Some(n)) => write!(f, "{} files not found", n),
+            ("image_not_found", _) => write!(f, "Image file not found"),
+            ("file_not_found", _) => write!(f, "File not found"),
+            (other, _) => write!(f, "clipboard error: {}", other),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BuildInfo {
     pub version: String,
@@ -121,7 +160,7 @@ pub struct BackupResult {
 /// Phases per operation:
 /// - backup:   0 = JSON serialize (indeterminate), 1 = writing zip entries (items)
 /// - restore:  0 = reading JSON bytes from zip (bytes), 1 = parsing JSON (indeterminate),
-///             2 = importing items (items)
+///   2 = importing items (items)
 #[derive(Debug, Clone, Serialize)]
 pub struct TransferProgress {
     pub phase: u8,

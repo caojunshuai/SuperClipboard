@@ -1,16 +1,17 @@
+pub mod clipboard;
+mod commands;
+mod export;
 mod hash;
+pub mod hotkey;
 mod models;
 mod stats;
 mod storage;
-pub mod clipboard;
-pub mod hotkey;
 mod tray;
-mod commands;
-mod export;
+mod window;
 
-use tauri::Manager;
-use std::path::PathBuf;
 use once_cell::sync::OnceCell;
+use std::path::PathBuf;
+use tauri::Manager;
 
 /// Global app data directory — set once at startup, read by export/restore.
 pub static APP_DATA_DIR: OnceCell<PathBuf> = OnceCell::new();
@@ -41,7 +42,8 @@ pub fn set_auto_start(enabled: bool) {
     if let Ok(run_key) = hkcu.open_subkey_with_flags(path, KEY_WRITE) {
         if enabled {
             if let Ok(exe_path) = std::env::current_exe() {
-                let _ = run_key.set_value("SuperClipboard", &exe_path.to_string_lossy().to_string());
+                let _ =
+                    run_key.set_value("SuperClipboard", &exe_path.to_string_lossy().to_string());
             }
         } else {
             let _ = run_key.delete_value("SuperClipboard");
@@ -77,7 +79,9 @@ pub fn run() {
                 set_auto_start(settings.auto_start);
 
                 let handle = app.handle().clone();
-                hotkey::register(&handle, &settings.hotkey);
+                hotkey::register(&handle, &settings.hotkey)
+                    .map_err(|e| eprintln!("[startup] {}", e))
+                    .ok();
             }
 
             let handle = app.handle().clone();

@@ -1,6 +1,6 @@
-use rusqlite::params;
 use crate::models::{SourceCount, Statistics, TopCopiedItem};
 use crate::storage::get_conn;
+use rusqlite::params;
 
 /// Compute statistics for the statistics panel.
 /// Runs 7 SQL queries + filesystem size checks.
@@ -14,20 +14,23 @@ pub fn get_statistics(app_data_dir: &std::path::Path) -> Result<Statistics, Stri
 
     // Today hourly (0..23)
     let today_hourly: Vec<i64> = {
-        let mut stmt = conn.prepare(
-            "SELECT CAST(strftime('%H', created_at) AS INTEGER) AS hour, COUNT(*) AS cnt
+        let mut stmt = conn
+            .prepare(
+                "SELECT CAST(strftime('%H', created_at) AS INTEGER) AS hour, COUNT(*) AS cnt
              FROM clipboard_items
              WHERE date(created_at) = date('now', 'localtime')
-             GROUP BY hour ORDER BY hour"
-        ).map_err(|e| e.to_string())?;
-        let rows: Vec<(i64, i64)> = stmt.query_map([], |row| {
-            Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?))
-        }).map_err(|e| e.to_string())?
-        .filter_map(|r| r.ok()).collect();
+             GROUP BY hour ORDER BY hour",
+            )
+            .map_err(|e| e.to_string())?;
+        let rows: Vec<(i64, i64)> = stmt
+            .query_map([], |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)))
+            .map_err(|e| e.to_string())?
+            .filter_map(|r| r.ok())
+            .collect();
 
         let mut hourly = vec![0i64; 24];
         for (hour, cnt) in rows {
-            if hour >= 0 && hour < 24 {
+            if (0..24).contains(&hour) {
                 hourly[hour as usize] = cnt;
             }
         }
@@ -36,8 +39,9 @@ pub fn get_statistics(app_data_dir: &std::path::Path) -> Result<Statistics, Stri
 
     // Week daily (calendar week Mon-Sun, zero-filled)
     let week_daily: Vec<(String, i64)> = {
-        let mut stmt = conn.prepare(
-            "WITH RECURSIVE dates(d) AS (
+        let mut stmt = conn
+            .prepare(
+                "WITH RECURSIVE dates(d) AS (
                 SELECT date('now', 'localtime',
                     CASE CAST(strftime('%w', 'now', 'localtime') AS INTEGER)
                         WHEN 0 THEN '-6 days'
@@ -82,46 +86,60 @@ pub fn get_statistics(app_data_dir: &std::path::Path) -> Result<Statistics, Stri
                 )
                 GROUP BY day
             ) sub ON dates.d = sub.day
-            ORDER BY dates.d"
-        ).map_err(|e| e.to_string())?;
-        let result = stmt.query_map([], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
-        }).map_err(|e| e.to_string())?
-        .filter_map(|r| r.ok()).collect::<Vec<_>>();
+            ORDER BY dates.d",
+            )
+            .map_err(|e| e.to_string())?;
+        let result = stmt
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+            })
+            .map_err(|e| e.to_string())?
+            .filter_map(|r| r.ok())
+            .collect::<Vec<_>>();
         result
     };
 
     // Month daily
     let month_daily: Vec<(String, i64)> = {
-        let mut stmt = conn.prepare(
-            "SELECT date(created_at) AS day, COUNT(*) AS cnt
+        let mut stmt = conn
+            .prepare(
+                "SELECT date(created_at) AS day, COUNT(*) AS cnt
              FROM clipboard_items
              WHERE strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now', 'localtime')
-             GROUP BY day ORDER BY day"
-        ).map_err(|e| e.to_string())?;
-        let result = stmt.query_map([], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
-        }).map_err(|e| e.to_string())?
-        .filter_map(|r| r.ok()).collect::<Vec<_>>();
+             GROUP BY day ORDER BY day",
+            )
+            .map_err(|e| e.to_string())?;
+        let result = stmt
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+            })
+            .map_err(|e| e.to_string())?
+            .filter_map(|r| r.ok())
+            .collect::<Vec<_>>();
         result
     };
 
     // Source app stats (top apps by count)
     let source_stats: Vec<SourceCount> = {
-        let mut stmt = conn.prepare(
-            "SELECT source_app, COUNT(*) AS cnt
+        let mut stmt = conn
+            .prepare(
+                "SELECT source_app, COUNT(*) AS cnt
              FROM clipboard_items
              WHERE source_app IS NOT NULL AND source_app != ''
              GROUP BY source_app
-             ORDER BY cnt DESC"
-        ).map_err(|e| e.to_string())?;
-        let result = stmt.query_map([], |row| {
-            Ok(SourceCount {
-                app: row.get::<_, String>(0)?,
-                count: row.get::<_, i64>(1)?,
+             ORDER BY cnt DESC",
+            )
+            .map_err(|e| e.to_string())?;
+        let result = stmt
+            .query_map([], |row| {
+                Ok(SourceCount {
+                    app: row.get::<_, String>(0)?,
+                    count: row.get::<_, i64>(1)?,
+                })
             })
-        }).map_err(|e| e.to_string())?
-        .filter_map(|r| r.ok()).collect::<Vec<_>>();
+            .map_err(|e| e.to_string())?
+            .filter_map(|r| r.ok())
+            .collect::<Vec<_>>();
         result
     };
 
@@ -160,20 +178,25 @@ pub fn get_statistics(app_data_dir: &std::path::Path) -> Result<Statistics, Stri
 
     // Top copied text items (top 10)
     let top_copied: Vec<TopCopiedItem> = {
-        let mut stmt = conn.prepare(
-            "SELECT content, copy_count
+        let mut stmt = conn
+            .prepare(
+                "SELECT content, copy_count
              FROM clipboard_items
              WHERE type = 'text' AND copy_count > 0
              ORDER BY copy_count DESC
-             LIMIT 10"
-        ).map_err(|e| e.to_string())?;
-        let result: Vec<TopCopiedItem> = stmt.query_map([], |row| {
-            Ok(TopCopiedItem {
-                preview: row.get::<_, String>(0)?,
-                copy_count: row.get::<_, i64>(1)?,
+             LIMIT 10",
+            )
+            .map_err(|e| e.to_string())?;
+        let result: Vec<TopCopiedItem> = stmt
+            .query_map([], |row| {
+                Ok(TopCopiedItem {
+                    preview: row.get::<_, String>(0)?,
+                    copy_count: row.get::<_, i64>(1)?,
+                })
             })
-        }).map_err(|e| e.to_string())?
-        .filter_map(|r| r.ok()).collect();
+            .map_err(|e| e.to_string())?
+            .filter_map(|r| r.ok())
+            .collect();
         result
     };
 
@@ -194,15 +217,20 @@ pub fn get_statistics(app_data_dir: &std::path::Path) -> Result<Statistics, Stri
 pub fn get_daily_counts(year: i32, month: i32) -> Result<Vec<(String, i64)>, String> {
     let conn = get_conn().lock().map_err(|e| e.to_string())?;
     let month_str = format!("{:04}-{:02}", year, month);
-    let mut stmt = conn.prepare(
-        "SELECT date(created_at) AS day, COUNT(*) AS cnt
+    let mut stmt = conn
+        .prepare(
+            "SELECT date(created_at) AS day, COUNT(*) AS cnt
          FROM clipboard_items
          WHERE strftime('%Y-%m', created_at) = ?1
-         GROUP BY day ORDER BY day"
-    ).map_err(|e| e.to_string())?;
-    let rows = stmt.query_map(params![month_str], |row| {
-        Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
-    }).map_err(|e| e.to_string())?
-    .filter_map(|r| r.ok()).collect();
+         GROUP BY day ORDER BY day",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map(params![month_str], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+        })
+        .map_err(|e| e.to_string())?
+        .filter_map(|r| r.ok())
+        .collect();
     Ok(rows)
 }

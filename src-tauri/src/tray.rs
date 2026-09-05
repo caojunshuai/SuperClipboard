@@ -1,8 +1,7 @@
 use tauri::{
-    Emitter, Manager,
-    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    menu::{MenuBuilder, MenuItemBuilder},
     image::Image,
+    menu::{MenuBuilder, MenuItemBuilder},
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
 };
 
 fn tray_labels(lang: &str) -> (&'static str, &'static str) {
@@ -15,7 +14,11 @@ fn tray_labels(lang: &str) -> (&'static str, &'static str) {
 
 const TRAY_ID: &str = "main-tray";
 
-fn build_menu(app: &tauri::AppHandle, show_label: &str, quit_label: &str) -> Result<tauri::menu::Menu<tauri::Wry>, Box<dyn std::error::Error>> {
+fn build_menu(
+    app: &tauri::AppHandle,
+    show_label: &str,
+    quit_label: &str,
+) -> Result<tauri::menu::Menu<tauri::Wry>, Box<dyn std::error::Error>> {
     let show_item = MenuItemBuilder::with_id("show", show_label).build(app)?;
     let separator = tauri::menu::PredefinedMenuItem::separator(app)?;
     let quit_item = MenuItemBuilder::with_id("quit", quit_label).build(app)?;
@@ -42,20 +45,19 @@ pub fn setup(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
         .icon(icon)
         .menu(&menu)
         .tooltip("SuperClipboard")
-        .on_menu_event(|app, event| {
-            match event.id().as_ref() {
-                "show" => toggle_window(app),
-                "quit" => app.exit(0),
-                _ => {}
-            }
+        .on_menu_event(|app, event| match event.id().as_ref() {
+            "show" => crate::window::toggle_main_window(app),
+            "quit" => app.exit(0),
+            _ => {}
         })
         .on_tray_icon_event(|tray, event| {
             if let TrayIconEvent::Click {
                 button: MouseButton::Left,
                 button_state: MouseButtonState::Up,
                 ..
-            } = event {
-                toggle_window(tray.app_handle());
+            } = event
+            {
+                crate::window::toggle_main_window(tray.app_handle());
             }
         })
         .build(app)?;
@@ -74,16 +76,4 @@ pub fn update_labels(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::E
         tray.set_menu(Some(menu))?;
     }
     Ok(())
-}
-
-fn toggle_window(app: &tauri::AppHandle) {
-    if let Some(window) = app.get_webview_window("main") {
-        if window.is_visible().unwrap_or(false) {
-            let _ = window.hide();
-        } else {
-            let _ = window.show();
-            let _ = window.set_focus();
-            app.emit("panel-shown", ()).ok();
-        }
-    }
 }

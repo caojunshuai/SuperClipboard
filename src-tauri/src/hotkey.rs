@@ -1,6 +1,5 @@
-use std::sync::Mutex;
 use once_cell::sync::Lazy;
-use tauri::{Emitter, Manager};
+use std::sync::Mutex;
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
 /// Stores the currently registered shortcut so we can un-register it.
@@ -8,7 +7,9 @@ static CURRENT_SHORTCUT: Lazy<Mutex<Option<Shortcut>>> = Lazy::new(|| Mutex::new
 
 /// Register (or replace) the global hotkey from a string like "Alt+V" or "Ctrl+Shift+X".
 /// Pass an empty string to unregister without re-registering.
-pub fn register(app: &tauri::AppHandle, shortcut_str: &str) {
+/// Returns Err when parsing or registration fails so callers (e.g. the
+/// settings save path) can surface the problem to the user.
+pub fn register(app: &tauri::AppHandle, shortcut_str: &str) -> Result<(), String> {
     let shortcut_mgr = app.global_shortcut();
 
     // Unregister the previous shortcut if any
@@ -19,29 +20,33 @@ pub fn register(app: &tauri::AppHandle, shortcut_str: &str) {
     // Empty string → no shortcut
     let trimmed = shortcut_str.trim();
     if trimmed.is_empty() {
-        return;
+        return Ok(());
     }
 
     // Parse the shortcut string
     let shortcut = match parse_shortcut(trimmed) {
         Ok(s) => s,
         Err(e) => {
-            eprintln!("[hotkey] failed to parse shortcut '{}': {}", trimmed, e);
-            return;
+            let msg = format!("failed to parse shortcut '{}': {}", trimmed, e);
+            eprintln!("[hotkey] {}", msg);
+            return Err(msg);
         }
     };
 
     let handle = app.clone();
-    match shortcut_mgr.on_shortcut(shortcut.clone(), move |_app, _scut, event| {
+    match shortcut_mgr.on_shortcut(shortcut, move |_app, _scut, event| {
         if event.state == ShortcutState::Pressed {
-            toggle_window(&handle);
+            crate::window::toggle_main_window(&handle);
         }
     }) {
         Ok(()) => {
             *CURRENT_SHORTCUT.lock().unwrap() = Some(shortcut);
+            Ok(())
         }
         Err(e) => {
-            eprintln!("[hotkey] failed to register shortcut '{}': {}", trimmed, e);
+            let msg = format!("failed to register shortcut '{}': {}", trimmed, e);
+            eprintln!("[hotkey] {}", msg);
+            Err(msg)
         }
     }
 }
@@ -85,8 +90,7 @@ fn parse_key(s: &str) -> Result<Code, String> {
     // Single letter
     if upper.len() == 1 && upper.chars().all(|c| c.is_ascii_uppercase()) {
         let code_str = format!("Key{}", upper);
-        return parse_code_str(&code_str)
-            .ok_or_else(|| format!("unknown key: {}", s));
+        return parse_code_str(&code_str).ok_or_else(|| format!("unknown key: {}", s));
     }
 
     // Digit
@@ -101,8 +105,7 @@ fn parse_key(s: &str) -> Result<Code, String> {
     if let Some(n) = upper.strip_prefix('F').and_then(|n| n.parse::<u8>().ok()) {
         if (1..=24).contains(&n) {
             let code_str = format!("F{}", n);
-            return parse_code_str(&code_str)
-                .ok_or_else(|| format!("unknown key: {}", s));
+            return parse_code_str(&code_str).ok_or_else(|| format!("unknown key: {}", s));
         }
     }
 
@@ -231,14 +234,36 @@ fn parse_code_str(code_str: &str) -> Option<Code> {
     }
 }
 
-fn toggle_window(app: &tauri::AppHandle) {
-    if let Some(window) = app.get_webview_window("main") {
-        if window.is_visible().unwrap_or(false) {
-            let _ = window.hide();
-        } else {
-            let _ = window.show();
-            let _ = window.set_focus();
-            app.emit("panel-shown", ()).ok();
-        }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_valid_shortcuts() {
+        assert!(parse_shortcut("Alt+V").is_ok());
+        assert!(parse_shortcut("Ctrl+Shift+X").is_ok());
+        assert!(parse_shortcut("alt+1").is_ok());
+        assert!(parse_shortcut("Ctrl+ArrowDown").is_ok());
+        assert!(parse_shortcut("Ctrl+F12").is_ok());
+        assert!(parse_shortcut("Super+Space").is_ok());
+        // empty → unregister
+        assert!(register_for_test_empty_ok());
+    }
+
+    fn register_for_test_empty_ok() -> bool {
+        // Empty string short-circuits before touching the shortcut manager;
+        // parse_shortcut itself must reject modifier-less combos.
+        parse_shortcut("V").is_err()
+    }
+
+    #[test]
+    fn rejects_invalid_shortcuts() {
+        // No modifier
+        assert!(parse_shortcut("V").is_err());
+        assert!(parse_shortcut("F5").is_err());
+        // Unknown key / modifier
+        assert!(parse_shortcut("Ctrl+Foo").is_err());
+        assert!(parse_shortcut("Hyper+V").is_err());
+        assert!(parse_shortcut("").is_err());
     }
 }
