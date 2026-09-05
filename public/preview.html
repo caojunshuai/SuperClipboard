@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>图片预览</title>
+<title>Image Preview</title>
 <style>
   /* Color palette mirrors the app's panel theme (App.css --panel-* RGB
      triplets). 'system' theme resolves via the media query, explicit
@@ -132,25 +132,60 @@
         <circle cx="9.5" cy="9.5" r="1.6" fill="rgb(124 140 248)" stroke="none"/>
         <path d="M5 17l4.5-5 3.5 4 2.5-3L20 17"/>
       </svg>
-      <span class="title">图片预览</span>
+      <span class="title" id="win-title">Image Preview</span>
       <span class="dim-badge" id="dim-badge"></span>
     </div>
-    <div class="win-btn close" id="close-btn" title="关闭 (Esc)">
+    <div class="win-btn close" id="close-btn" title="Close (Esc)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
         <path d="M6 6l12 12M18 6L6 18"/>
       </svg>
     </div>
   </div>
 
-  <div class="stage" id="app"><span class="status">加载中...</span></div>
+  <div class="stage" id="app"><span class="status" id="status-text">Loading...</span></div>
 
 <script>
   var app = document.getElementById('app');
   var titlebar = document.getElementById('titlebar');
   var closeBtn = document.getElementById('close-btn');
   var dimBadge = document.getElementById('dim-badge');
+  var winTitle = document.getElementById('win-title');
+  var statusText = document.getElementById('status-text');
   var started = Date.now();
   var MAX_WAIT = 10000;
+
+  // ── i18n ────────────────────────────────────────────────────
+  // The standalone preview page doesn't load i18next; language comes from
+  // get_settings (same source as the tray), with navigator.language as the
+  // pre-IPC fallback.
+  var STR = {
+    zh: {
+      title: '图片预览',
+      closeHint: '关闭 (Esc)',
+      loading: '加载中...',
+      loadFailed: '图片加载失败',
+      previewFailed: '预览失败: ',
+      ipcNotReady: 'IPC 未就绪'
+    },
+    en: {
+      title: 'Image Preview',
+      closeHint: 'Close (Esc)',
+      loading: 'Loading...',
+      loadFailed: 'Failed to load image',
+      previewFailed: 'Preview failed: ',
+      ipcNotReady: 'IPC not ready'
+    }
+  };
+  var lang = ((navigator.language || 'en').toLowerCase().indexOf('zh') === 0) ? 'zh' : 'en';
+  function str(key) { return STR[lang][key]; }
+  function applyLang() {
+    document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en-US';
+    document.title = str('title');
+    winTitle.textContent = str('title');
+    closeBtn.title = str('closeHint');
+    statusText.textContent = str('loading');
+  }
+  applyLang();
 
   // The window is built hidden; reveal it once content is ready so no
   // blank window flashes. Safety-net interval guards against stalls.
@@ -218,6 +253,11 @@
       // Sync the theme while the window is still hidden.
       ipc.invoke('get_settings').then(function(s) {
         applyTheme(s && s.theme ? s.theme : 'dark');
+        // Language from settings beats the navigator.language guess
+        if (s && s.language) {
+          lang = s.language.toLowerCase().indexOf('zh') === 0 ? 'zh' : 'en';
+          applyLang();
+        }
       }).catch(function() {});
 
       // IPC is ready — get the image path and load it
@@ -234,22 +274,22 @@
         app.innerHTML = '';
         app.appendChild(frame);
         img.onload = function() {
-          document.title = '图片预览 (' + img.naturalWidth + '×' + img.naturalHeight + ')';
+          document.title = str('title') + ' (' + img.naturalWidth + '×' + img.naturalHeight + ')';
           dimBadge.textContent = img.naturalWidth + ' × ' + img.naturalHeight;
           dimBadge.classList.add('show');
           frame.style.display = 'block';
           showOnce();
         };
-        img.onerror = function() { showError('图片加载失败'); };
+        img.onerror = function() { showError(str('loadFailed')); };
       }).catch(function(e) {
-        showError('预览失败: ' + (e && e.message ? e.message : e));
+        showError(str('previewFailed') + (e && e.message ? e.message : e));
       });
       return;
     }
 
     if (Date.now() - started > MAX_WAIT) {
       var keys = ipc ? Object.keys(ipc).join(', ') : 'ipc is null';
-      showError('IPC 未就绪 (keys: ' + keys + ')');
+      showError(str('ipcNotReady') + ' (keys: ' + keys + ')');
       return;
     }
 

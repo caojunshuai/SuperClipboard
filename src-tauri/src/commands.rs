@@ -594,9 +594,19 @@ pub fn open_image_preview(app: tauri::AppHandle, path: String) -> Result<(), Str
         }
     }
 
+    // Native window title (taskbar/alt-tab) follows the UI language;
+    // the in-page title bar strings are localized in preview.html.
+    let title = match storage::get_all_settings()
+        .map(|s| s.language)
+        .unwrap_or_default()
+    {
+        lang if lang.starts_with("zh") => "图片预览",
+        _ => "Image Preview",
+    };
+
     let result = std::thread::spawn(move || {
         tauri::WebviewWindow::builder(&app, &label, tauri::WebviewUrl::App("preview.html".into()))
-            .title("图片预览")
+            .title(title)
             .inner_size(900.0, 700.0)
             .center()
             .resizable(true)
