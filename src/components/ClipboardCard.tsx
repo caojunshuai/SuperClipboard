@@ -338,7 +338,7 @@ export default function ClipboardCard({ item, deleting, focused, onCopy, onEditi
       {floatingCollapse && (
         <button
           onClick={handleCollapse}
-          className="fixed right-4 bottom-4 z-40 px-3 py-1.5 text-xs
+          className="fixed right-4 bottom-12 z-40 px-3 py-1.5 text-xs
                      bg-panel-card/95 backdrop-blur-sm border border-panel-border
                      text-blue-400 hover:text-blue-300 hover:bg-panel-hover
                      rounded-full shadow-lg transition-all duration-200
