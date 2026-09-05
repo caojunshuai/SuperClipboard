@@ -124,7 +124,7 @@ export default function StatisticsDialog({ onClose }: Props) {
         {/* Title */}
         <h2 className="text-lg font-semibold text-panel-text mb-4">{t('statistics.title')}</h2>
 
-        <ScrollArea className="pr-6 space-y-5">
+        <ScrollArea className="space-y-5">
           {loading ? (
             <p className="text-sm text-panel-muted text-center py-8">{t('statistics.loading')}</p>
           ) : !stats ? (
@@ -281,14 +281,14 @@ export default function StatisticsDialog({ onClose }: Props) {
                   <div className="space-y-2">
                     {sourceData.map(s => (
                       <div key={s.name} className="flex items-center gap-2">
-                        <span className="text-xs text-panel-text w-20 min-[480px]:w-28 truncate text-right shrink-0" title={s.name}>{s.name}</span>
+                        <span className="text-xs text-panel-text w-20 min-[480px]:w-24 truncate shrink-0" title={s.name}>{s.name}</span>
                         <div className="flex-1 bg-panel-card rounded-full h-5 overflow-hidden min-w-0">
                           <div
                             className="h-full rounded-full bg-blue-500/60 transition-all"
                             style={{ width: `${s.pct}%` }}
                           />
                         </div>
-                        <span className="text-xs text-panel-muted w-9 min-[480px]:w-12 shrink-0 text-right">
+                        <span className="text-xs text-panel-muted w-14 shrink-0 text-right">
                           {s.count}
                         </span>
                       </div>
@@ -304,15 +304,15 @@ export default function StatisticsDialog({ onClose }: Props) {
                 <h3 className="text-sm font-semibold text-panel-text mb-3">{t('statistics.storageTitle')}</h3>
                 <div className="space-y-2">
                   {storageData.map(s => (
-                    <div key={s.label} className="flex items-center gap-3">
-                      <span className="text-xs text-panel-text w-12 shrink-0">{s.label}</span>
-                      <div className="flex-1 bg-panel-card rounded-full h-5 overflow-hidden">
+                    <div key={s.label} className="flex items-center gap-2">
+                      <span className="text-xs text-panel-text w-20 min-[480px]:w-24 shrink-0">{s.label}</span>
+                      <div className="flex-1 bg-panel-card rounded-full h-5 overflow-hidden min-w-0">
                         <div
                           className="h-full rounded-full transition-all"
                           style={{ width: `${(s.bytes / storageMax) * 100}%`, backgroundColor: s.color }}
                         />
                       </div>
-                      <span className="text-xs text-panel-muted w-20 shrink-0 text-right">
+                      <span className="text-xs text-panel-muted w-14 shrink-0 text-right">
                         {formatBytes(s.bytes)}
                       </span>
                     </div>
