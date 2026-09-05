@@ -16,10 +16,75 @@ const ZH_MONTHS = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月
 const EN_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const CONTRIB_CLASSES = ['bg-contrib-0', 'bg-contrib-1', 'bg-contrib-2', 'bg-contrib-3', 'bg-contrib-4'];
 
+// Stale-while-revalidate: reopening the dialog renders the previous result
+// instantly while a fresh fetch updates the numbers in place. Stats tolerate
+// the brief staleness; the cache lives for the app session only.
+let statsCache: Statistics | null = null;
+
+// Skeleton placeholder shaped like the real sections (overview cards, trend
+// calendar, top-copied, source bars, storage bars) so the layout doesn't jump
+// when data arrives. Card shells use panel-card; inner blocks skeleton-block.
+const Skeleton = ({ className }: { className: string }) => (
+  <div className={`skeleton-block rounded-md ${className}`} />
+);
+
+const StatsSkeleton = () => (
+  <div className="space-y-5" aria-hidden>
+    <div className="grid grid-cols-2 min-[480px]:grid-cols-4 gap-3">
+      {[0, 1, 2, 3].map(i => (
+        <div key={i} className="bg-panel-card rounded-lg p-3 text-center">
+          <Skeleton className="h-7 w-2/3 mx-auto" />
+          <Skeleton className="h-3 w-1/2 mx-auto mt-2" />
+        </div>
+      ))}
+    </div>
+    <div>
+      <Skeleton className="h-4 w-28 mb-3" />
+      <div className="max-w-[490px] mx-auto">
+        <Skeleton className="h-8 w-44 mx-auto mb-2 rounded-lg" />
+        <div className="grid grid-cols-7 gap-1">
+          {Array.from({ length: 35 }, (_, i) => (
+            <Skeleton key={i} className="aspect-square rounded-[4px]" />
+          ))}
+        </div>
+      </div>
+    </div>
+    <div>
+      <Skeleton className="h-4 w-20 mb-3" />
+      <div className="space-y-1.5">
+        {Array.from({ length: 5 }, (_, i) => (
+          <div key={i} className="flex items-center gap-2 bg-panel-card rounded-lg px-3 py-2">
+            <Skeleton className="h-3 w-5" />
+            <Skeleton className="h-3 flex-1" />
+            <Skeleton className="h-3 w-8" />
+          </div>
+        ))}
+      </div>
+    </div>
+    {[
+      { rows: 10 },
+      { rows: 3 },
+    ].map((sec, s) => (
+      <div key={s}>
+        <Skeleton className="h-4 w-24 mb-3" />
+        <div className="space-y-2">
+          {Array.from({ length: sec.rows }, (_, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <Skeleton className="h-3 w-20 min-[480px]:w-24" />
+              <Skeleton className="h-5 flex-1 rounded-full" />
+              <Skeleton className="h-3 w-14" />
+            </div>
+          ))}
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
 export default function StatisticsDialog({ onClose }: Props) {
   const { t, i18n } = useTranslation();
-  const [stats, setStats] = useState<Statistics | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<Statistics | null>(statsCache);
+  const [loading, setLoading] = useState(statsCache === null);
 
   // ── Contribution graph month state ────────────────────────
   const now = new Date();
@@ -29,9 +94,14 @@ export default function StatisticsDialog({ onClose }: Props) {
   const [monthLoading, setMonthLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     getStatistics()
-      .then(s => { setStats(s); setLoading(false); })
-      .catch(() => setLoading(false));
+      .then(s => {
+        statsCache = s;
+        if (!cancelled) { setStats(s); setLoading(false); }
+      })
+      .catch(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
   // Fetch daily counts whenever the viewed month changes
@@ -121,7 +191,7 @@ export default function StatisticsDialog({ onClose }: Props) {
 
         <ScrollArea className="space-y-5">
           {loading ? (
-            <p className="text-sm text-panel-muted text-center py-8">{t('statistics.loading')}</p>
+            <StatsSkeleton />
           ) : !stats ? (
             <p className="text-sm text-panel-muted text-center py-8">{t('statistics.emptyData')}</p>
           ) : (
