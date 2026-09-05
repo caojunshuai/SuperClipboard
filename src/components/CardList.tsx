@@ -291,11 +291,11 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
         break;
       case 'PageDown':
         e.preventDefault();
-        if (page < totalPages) goToPage(page + 1);
+        goToPage(page === totalPages ? 1 : page + 1);
         break;
       case 'PageUp':
         e.preventDefault();
-        if (page > 1) goToPage(page - 1);
+        goToPage(page === 1 ? totalPages : page - 1);
         break;
     }
   }, [items, focusIndex, handleCopy, handleDelete, onClose, page, totalPages, goToPage]);
@@ -323,8 +323,8 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
           </span>
           <div className="flex items-center gap-1">
             <button
-              onClick={() => goToPage(page - 1)}
-              disabled={page <= 1 || loading}
+              onClick={() => goToPage(page === 1 ? totalPages : page - 1)}
+              disabled={loading}
               className="px-2 py-0.5 rounded text-panel-muted hover:text-panel-text hover:bg-panel-card disabled:opacity-30 disabled:cursor-default transition-colors"
             >
               ← {t('list.pagePrev')}
@@ -333,8 +333,8 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
               {page} / {totalPages}
             </span>
             <button
-              onClick={() => goToPage(page + 1)}
-              disabled={page >= totalPages || loading}
+              onClick={() => goToPage(page === totalPages ? 1 : page + 1)}
+              disabled={loading}
               className="px-2 py-0.5 rounded text-panel-muted hover:text-panel-text hover:bg-panel-card disabled:opacity-30 disabled:cursor-default transition-colors"
             >
               {t('list.pageNext')} →
