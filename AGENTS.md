@@ -60,6 +60,7 @@ src-tauri/src/                # Rust backend
   export.rs                   # Export, backup/restore
   hotkey.rs                   # Global hotkey via tauri-plugin-global-shortcut
   tray.rs                     # System tray icon & context menu
+  window.rs                   # Shared toggle_main_window (hotkey + tray)
 
 scripts/
   generate-test-data.mjs      # Test data generator with exponential time distribution
@@ -68,13 +69,13 @@ scripts/
 ## Architecture Notes
 
 ### Clipboard Monitor (clipboard.rs)
-- Runs in `std::thread`, polls `GetClipboardSequenceNumber()` every 500ms
+- Runs in `std::thread`, polls `GetClipboardSequenceNumber()` every 300ms
 - Deduplicates via FNV-1a 64-bit hash (`hash.rs`) → `upsert_item()` bumps timestamp + `copy_count` on duplicate
 - Thumbnails: Lanczos3 at 360px max. DIB: top-down = negative biHeight. CF_HDROP: 20-byte header + wide-char paths
 
 ### Database (storage.rs)
 - SQLite via `rusqlite` (bundled), WAL mode. `OnceCell<Mutex<Connection>>` singleton; `get_conn()` is `pub(crate)` — stats.rs shares it
-- Search: `LIKE '%keyword%'` for all queries (FTS5 tokenizer can't handle CJK, LIKE fast enough at clipboard scale)
+- Search: `LIKE '%keyword%'` for all queries, with wildcards (`%` `_` backslash) escaped via `ESCAPE '\'` so user keywords match literally. FTS5 was removed: its tokenizer can't handle CJK and LIKE is fast enough at clipboard scale
 - `init_db()`: CREATE TABLE IF NOT EXISTS + migrations. SQLite has no `ADD COLUMN IF NOT EXISTS` — check via `PRAGMA table_info` first, then ALTER; fresh installs skip
 - `clipboard_items` columns: `id, type, content, image_path, thumbnail_path, file_paths, source_app, char_count, image_size, content_hash, is_pinned, is_favorite, metadata, note, copy_count, created_at, updated_at`
 - `templates` table: separate from clipboard_items, seeded with 5 presets on first init
@@ -106,7 +107,7 @@ scripts/
 - **Always-on-top / skip_taskbar:** toggled together; on = floating panel, off = normal window with taskbar
 - **Theme:** CSS-driven (`html.light`/`html.dark` classes + `@media (prefers-color-scheme: light)` for system). Applied reactively from shared settings in App.tsx Panel colors are RGB triplets in App.css (`--panel-accent: 124 140 248`) consumed by Tailwind as `rgb(var(--panel-x) / <alpha-value>)` — so alpha modifiers (`bg-panel-accent/50`) work; direct `var(--panel-x)` usages in App.css must wrap in `rgb(...)`.
 - **Context menus:** global (selected text → Copy), card-level (Edit/Copy/Delete), template-level — all via `useContextMenu` (edge flip + outside-click dismiss)
-- **Text editor:** inline `<textarea>`, Ctrl+Enter save, Escape cancel. Cross-row dedup on save (merge → remove card), FTS auto-sync
+- **Text editor:** inline `<textarea>`, Ctrl+Enter save, Escape cancel. Cross-row dedup on save (merge → remove card)
 - **Templates:** `{date}`, `{time}`, `{datetime}` placeholders replaced on copy
 - **Source app:** captured via `GetForegroundWindow` → `QueryFullProcessImageNameW`, filters out self
 
@@ -123,7 +124,8 @@ When a component repeats a state machine (modal, context menu, edit flow, pagina
 
 ### Database schema changes
 - `ALTER TABLE` in `init_db()` migration section, guarded by `PRAGMA table_info` column check (no `ADD COLUMN IF NOT EXISTS` in SQLite)
-- FTS5 triggers auto-handle INSERT/UPDATE/DELETE sync
+- Row→struct mapping lives in one place (`row_to_item` + `ITEM_COLUMNS` in storage.rs); extend those two when adding a column
+- Settings persist as a single `app_settings_json` row (atomic write; defaults live only in `AppSettings::default`); legacy per-key rows are read as fallback and migrated on next save
 
 ## Debugging Rules
 
