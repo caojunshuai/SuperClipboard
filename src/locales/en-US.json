@@ -86,7 +86,8 @@
     "categoryWindow": "Window",
     "categoryBehavior": "Behavior",
     "categoryStorage": "Storage",
-    "categoryShortcut": "Shortcut"
+    "categoryShortcut": "Shortcut",
+    "saveFailed": "Save failed: {{message}}"
   },
   "export": {
     "title": "Export",

@@ -84,7 +84,8 @@
     "categoryWindow": "窗口",
     "categoryBehavior": "操作",
     "categoryStorage": "存储",
-    "categoryShortcut": "快捷键"
+    "categoryShortcut": "快捷键",
+    "saveFailed": "保存失败：{{message}}"
   },
   "export": {
     "title": "导出",

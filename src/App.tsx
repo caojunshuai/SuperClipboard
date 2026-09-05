@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { onPanelShown, onClipboardChanged, hideWindow, startDrag } from './api';
+import { onPanelShown, hideWindow, startDrag } from './api';
 import ClipboardPanel from './components/ClipboardPanel';
 import ExportDialog from './components/ExportDialog';
 import BackupDialog from './components/BackupDialog';
@@ -31,12 +31,13 @@ function App() {
   const { settings } = useSettings();
   const titleBarRef = useRef<HTMLDivElement>(null);
 
+  // Only panel-shown triggers a list refresh here. New clipboard items are
+  // inserted incrementally by CardList's own clipboard-changed listener, so
+  // browsing isn't reset to page 1 on every copy.
   useEffect(() => {
     const p1 = onPanelShown(() => setRefreshKey(k => k + 1));
-    const p2 = onClipboardChanged(() => setRefreshKey(k => k + 1));
     return () => {
       p1.then(fn => fn());
-      p2.then(fn => fn());
     };
   }, []);
 

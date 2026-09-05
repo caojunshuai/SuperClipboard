@@ -31,6 +31,7 @@ export default function SettingsPanel({ onClose }: Props) {
   });
   const [original, setOriginal] = useState<AppSettings | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [errors, setErrors] = useState<{ items?: string; images?: string }>({});
   const [clearStatus, setClearStatus] = useState<string | null>(null);
@@ -101,10 +102,13 @@ export default function SettingsPanel({ onClose }: Props) {
     const newSettings = buildSettings();
     setSaving(true);
     setErrors({});
+    setSaveError(null);
     try {
       await save(newSettings);
       onClose();
     } catch (err) {
+      // E.g. hotkey registration failed (taken by another app)
+      setSaveError(String(err));
       console.error(err);
     } finally {
       setSaving(false);
@@ -382,7 +386,10 @@ export default function SettingsPanel({ onClose }: Props) {
             </div>
           </div>
         </ScrollArea>
-        <div className="flex justify-end gap-3 mt-4 shrink-0">
+        <div className="flex justify-end items-center gap-3 mt-4 shrink-0">
+          {saveError && (
+            <p className="text-xs text-red-400 mr-auto">{t('settings.saveFailed', { message: saveError })}</p>
+          )}
           <button onClick={handleClose} className="px-4 py-2 text-sm text-panel-muted hover:text-panel-text">
             {dirty ? t('settings.cancel') : t('settings.close')}
           </button>

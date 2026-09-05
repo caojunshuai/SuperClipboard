@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getClipboardHistory, copyToClipboard, autoPaste, togglePin, toggleFavorite, deleteClipboardItem } from '../api';
+import { getClipboardHistory, copyToClipboard, autoPaste, togglePin, toggleFavorite, deleteClipboardItem, onClipboardChanged } from '../api';
 import ClipboardCard from './ClipboardCard';
 import CopyToast from './CopyToast';
 import ScrollArea from './ScrollArea';
@@ -53,16 +53,21 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
   const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
   const [page, setPage] = useState(1);
+  const [resetToken, setResetToken] = useState(0);
   const [focusIndex, setFocusIndex] = useState(-1);
   const listRef = useRef<HTMLDivElement>(null);
 
   const queryRef = useRef(query);
   queryRef.current = query;
+  const pageRef = useRef(page);
+  pageRef.current = page;
   const tRef = useRef(t);
   tRef.current = t;
   const fetchGenRef = useRef(0);
-  const pageSizeRef = useRef(50);
+  // Lazy init from cached settings avoids a second fetch when page_size
+  // happens to differ from the default.
   const { settings } = useSettings();
+  const pageSizeRef = useRef(settings?.page_size || 50);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSizeRef.current));
 
@@ -99,21 +104,84 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
     }
   }, []);
 
-  // Settings from shared state (fresh after any save); init page size on
-  // mount + panel shown, then fetch
+  // ---- Data fetching ----
+  // One data effect keyed on [resetToken, page]: query changes, settings
+  // changes and refreshKey bump the token (plus reset to page 1); page
+  // changes come from pagination. Each state change fetches exactly once.
+
+  // Settings load/save: adopt new page size (a change resets + refetches)
   useEffect(() => {
     if (!settings) return;
     setAutoPasteEnabled(settings.auto_paste);
-    pageSizeRef.current = settings.page_size || 50;
-    setPage(1);
-    fetchPage(1);
-  }, [settings, refreshKey]);
+    const ps = settings.page_size || 50;
+    if (ps !== pageSizeRef.current) {
+      pageSizeRef.current = ps;
+      setPage(1);
+      setResetToken(c => c + 1);
+    }
+  }, [settings]);
 
-  // When filters/tabs change, reset to page 1
+  const skipFirstRef = useRef(true);
+  // Filter/tab changes: reset to page 1 and refetch
   useEffect(() => {
+    if (skipFirstRef.current) { skipFirstRef.current = false; return; }
     setPage(1);
-    fetchPage(1);
+    setResetToken(c => c + 1);
   }, [query.keyword, query.item_type, query.date_from, query.date_to, query.tab, query.source_app]);
+
+  const refreshKeyFirstRef = useRef(true);
+  // Panel re-shown / explicit refresh
+  useEffect(() => {
+    if (refreshKeyFirstRef.current) { refreshKeyFirstRef.current = false; return; }
+    setPage(1);
+    setResetToken(c => c + 1);
+  }, [refreshKey]);
+
+  // When page or the reset token change, fetch that page
+  useEffect(() => {
+    fetchPage(page);
+  }, [page, resetToken, fetchPage]);
+
+  // ---- Live insert of new clipboard items ----
+  // The backend emits the full item on every clipboard change. On the
+  // unfiltered first page we insert it locally instead of refetching, so
+  // the user isn't disrupted while browsing. Filtered views and deeper
+  // pages pick the item up on the next refresh.
+  useEffect(() => {
+    let cancelled = false;
+    let unlisten: (() => void) | undefined;
+    onClipboardChanged((item) => {
+      if (pageRef.current !== 1) return;
+      const q = queryRef.current;
+      if (q.keyword || (q.item_type && q.item_type !== 'all') ||
+          (q.tab && q.tab !== 'all') || (q.source_app && q.source_app !== 'all')) {
+        return;
+      }
+      // Custom date range that excludes the new item
+      if (q.date_from && q.date_from !== 'all' && q.date_from !== 'today' &&
+          q.date_from !== '3days' && q.date_from !== '7days') {
+        const day = item.created_at.slice(0, 10);
+        if (day < q.date_from || (q.date_to && day > q.date_to)) return;
+      }
+      setItems(prev => {
+        if (prev.some(i => i.id === item.id)) {
+          return prev.map(i => i.id === item.id ? item : i);
+        }
+        // New item is the newest → first position after pinned items,
+        // mirroring the backend ORDER BY is_pinned DESC, created_at DESC
+        const pinnedCount = prev.filter(i => i.is_pinned).length;
+        const next = [...prev.slice(0, pinnedCount), item, ...prev.slice(pinnedCount)];
+        return next.length > pageSizeRef.current ? next.slice(0, pageSizeRef.current) : next;
+      });
+      setTotal(total => total + 1);
+    }).then(fn => {
+      if (cancelled) fn(); else unlisten = fn;
+    });
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, []);
 
   // Reset focus when page or filters change
   useEffect(() => {
@@ -132,16 +200,20 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
     listRef.current?.focus();
   }, [refreshKey]);
 
-  // When page changes, fetch that page
-  useEffect(() => {
-    fetchPage(page);
-  }, [page]);
-
   const goToPage = useCallback((p: number) => {
     if (p < 1 || p > totalPages || loading) return;
     setPage(p);
     listRef.current?.scrollTo({ top: 0, behavior: 'instant' });
   }, [totalPages, loading]);
+
+  // Remove an item whose backing image is gone: drop the row (and its
+  // orphaned files) so the dead card doesn't resurface on every copy.
+  const removeMissingImageItem = useCallback((id: number) => {
+    deleteClipboardItem(id).catch(() => {});
+    setItems(prev => prev.filter(it => it.id !== id));
+    setTotal(total => total - 1);
+    fetchPage(pageRef.current);
+  }, [fetchPage]);
 
   const handleCopy = useCallback(async (item: ClipboardItem) => {
     try {
@@ -158,15 +230,25 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
       }, 600);
     } catch (err) {
       let msg: string;
-      if (typeof err === 'string') {
-        // Map known Rust errors to i18n keys
+      // Structured CopyError from the backend (models.rs CopyError)
+      if (err && typeof err === 'object' && 'code' in err) {
+        const code = (err as { code: string; count?: number }).code;
+        if (code === 'image_not_found') {
+          msg = tRef.current('list.imageNotFound');
+          removeMissingImageItem(item.id);
+        } else if (code === 'file_not_found') {
+          msg = tRef.current('list.fileNotFound');
+        } else if (code === 'files_not_found') {
+          msg = tRef.current('list.filesNotFound', { count: (err as { count?: number }).count ?? 0 });
+        } else {
+          msg = tRef.current('list.error');
+        }
+      } else if (typeof err === 'string') {
+        // Legacy string errors (defensive; backend now sends codes)
         const filesMatch = err.match(/^(\d+) files not found$/);
         if (err === 'Image file not found') {
           msg = tRef.current('list.imageNotFound');
-          deleteClipboardItem(item.id).catch(() => {});
-          setItems(prev => prev.filter(it => it.id !== item.id));
-          setTotal(t => t - 1);
-          fetchPage(page);
+          removeMissingImageItem(item.id);
         } else if (err === 'File not found') {
           msg = tRef.current('list.fileNotFound');
         } else if (filesMatch) {
@@ -180,7 +262,7 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
       setToast({ message: msg, type: 'error' });
       setTimeout(() => setToast(null), 4000);
     }
-  }, [autoPasteEnabled, onClose, page, fetchPage, settings]);
+  }, [autoPasteEnabled, onClose, removeMissingImageItem, settings]);
 
   // Copy gate for card clicks: swallow the click that dismisses an edit
   // (mousedown → blur-cancel → click), so dismissing never copies.
@@ -216,8 +298,8 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
       await new Promise(r => setTimeout(r, 200));
       // Optimistic: remove locally, then refetch to fill the page gap
       setItems(prev => prev.filter(i => i.id !== id));
-      setTotal(t => t - 1);
-      fetchPage(page);
+      setTotal(total => total - 1);
+      fetchPage(pageRef.current);
       setDeletingIds(prev => {
         const next = new Set(prev);
         next.delete(id);
@@ -231,7 +313,7 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
       });
       console.error(err);
     }
-  }, [page, fetchPage]);
+  }, [fetchPage]);
 
   // ---- Keyboard navigation ----
   const handleListKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -380,10 +462,7 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
             onToggleFavorite={handleToggleFavorite}
             onDelete={handleDelete}
             onImageMissing={(id: number) => {
-              deleteClipboardItem(id).catch(() => {});
-              setItems(prev => prev.filter(it => it.id !== id));
-              setTotal(t => t - 1);
-              fetchPage(page);
+              removeMissingImageItem(id);
               setToast({ message: tRef.current('list.imageNotFound'), type: 'error' });
               setTimeout(() => setToast(null), 4000);
             }}
