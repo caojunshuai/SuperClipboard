@@ -1,16 +1,17 @@
 import { forwardRef } from 'react';
 
-interface Props {
+interface Props extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   className?: string;
   onKeyDown?: React.KeyboardEventHandler<HTMLDivElement>;
 }
 
 const ScrollArea = forwardRef<HTMLDivElement, Props>(
-  ({ children, className = '', onKeyDown }, ref) => {
+  ({ children, className = '', onKeyDown, ...rest }, ref) => {
     return (
       <div
         ref={ref}
+        {...rest}
         tabIndex={onKeyDown ? 0 : undefined}
         onKeyDown={onKeyDown}
         className={`flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin outline-none focus-visible:outline-none ${className}`}

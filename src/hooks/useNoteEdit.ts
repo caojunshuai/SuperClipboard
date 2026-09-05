@@ -36,6 +36,8 @@ export function useNoteEdit(item: ClipboardItem) {
   };
 
   const handleKeyDown = (e: KeyboardEvent) => {
+    // Editing keys belong to the input — keep them off the list shortcuts
+    e.stopPropagation();
     if (e.key === 'Enter') {
       e.preventDefault();
       save();

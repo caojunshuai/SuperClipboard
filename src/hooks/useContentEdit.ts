@@ -49,6 +49,8 @@ export function useContentEdit(item: ClipboardItem, onDelete: (id: number) => vo
   const cancel = () => setEditingContent(false);
 
   const handleKeyDown = (e: KeyboardEvent) => {
+    // Editing keys belong to the input — keep them off the list shortcuts
+    e.stopPropagation();
     if (e.key === 'Enter' && e.ctrlKey) {
       e.preventDefault();
       save();

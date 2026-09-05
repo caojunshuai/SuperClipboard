@@ -24,6 +24,7 @@ interface Props {
   deleting?: boolean;
   focused?: boolean;
   onCopy: (item: ClipboardItem) => void;
+  onEditingChange: (id: number | null) => void;
   onTogglePin: (id: number) => void;
   onToggleFavorite: (id: number) => void;
   onDelete: (id: number) => void;
@@ -36,7 +37,7 @@ const TYPE_STYLES: Record<string, string> = {
   file: 'bg-orange-500/20 text-orange-400',
 };
 
-export default function ClipboardCard({ item, deleting, focused, onCopy, onTogglePin, onToggleFavorite, onDelete, onImageMissing }: Props) {
+export default function ClipboardCard({ item, deleting, focused, onCopy, onEditingChange, onTogglePin, onToggleFavorite, onDelete, onImageMissing }: Props) {
   const { t } = useTranslation();
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -57,6 +58,13 @@ export default function ClipboardCard({ item, deleting, focused, onCopy, onToggl
 
   // Scroll-aware expand/collapse
   const { expanded, setExpanded, floatingCollapse, collapse: handleCollapse } = useCardExpand(cardRef);
+
+  // Report editing state up so the list can gate its shortcuts and clicks
+  const anyEditing = editingContent || editingNote;
+  useEffect(() => {
+    onEditingChange(anyEditing ? item.id : null);
+    return () => onEditingChange(null);
+  }, [anyEditing, item.id, onEditingChange]);
 
   // Card context menu (text items only)
   const { pos: cardCtxMenu, openAt: openCardCtxMenu, close: closeCardCtxMenu } =
@@ -182,16 +190,19 @@ export default function ClipboardCard({ item, deleting, focused, onCopy, onToggl
                 value={editDraft}
                 onChange={e => setEditDraft(e.target.value)}
                 onKeyDown={handleTextareaKeyDown}
+                onBlur={handleCancelEdit}
                 className="w-full min-h-[6rem] p-2 bg-panel-bg border border-panel-border rounded text-sm text-panel-text font-mono resize-y focus:outline-none focus:border-panel-accent"
               />
               <div className="flex justify-end gap-2">
                 <button
+                  onMouseDown={e => e.preventDefault()}
                   onClick={handleCancelEdit}
                   className="px-3 py-1 text-xs text-panel-muted hover:text-panel-text bg-panel-bg border border-panel-border rounded transition-colors"
                 >
                   {t('card.cancelEdit')}
                 </button>
                 <button
+                  onMouseDown={e => e.preventDefault()}
                   onClick={handleSaveContent}
                   className="px-3 py-1 text-xs text-white bg-panel-accent hover:bg-panel-accent/80 rounded transition-colors"
                 >
@@ -221,7 +232,7 @@ export default function ClipboardCard({ item, deleting, focused, onCopy, onToggl
         }`}
         onContextMenu={handleCardContextMenu}
         onClick={() => {
-          if (editingContent) return;
+          if (editingContent || editingNote) return;
           onCopy(item);
         }}
       >

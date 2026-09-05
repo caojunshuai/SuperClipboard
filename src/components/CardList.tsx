@@ -66,6 +66,19 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
 
   const totalPages = Math.max(1, Math.ceil(total / pageSizeRef.current));
 
+  // While a card is being edited (content or note), list-level shortcuts and
+  // card clicks must not fire. Cards report their editing state here.
+  const editingIdRef = useRef<number | null>(null);
+  // Set at mousedown-capture so a click that merely dismisses an edit
+  // (mousedown → blur-cancel → click) still suppresses the copy.
+  const copySuppressRef = useRef(false);
+  const handleEditingChange = useCallback((id: number | null) => {
+    editingIdRef.current = id;
+  }, []);
+  const handleMouseDownCapture = useCallback(() => {
+    copySuppressRef.current = editingIdRef.current !== null;
+  }, []);
+
   const fetchPage = useCallback(async (pageNum: number) => {
     const gen = ++fetchGenRef.current;
     const ps = pageSizeRef.current;
@@ -169,6 +182,16 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
     }
   }, [autoPasteEnabled, onClose, page, fetchPage, settings]);
 
+  // Copy gate for card clicks: swallow the click that dismisses an edit
+  // (mousedown → blur-cancel → click), so dismissing never copies.
+  const handleCardCopy = useCallback((item: ClipboardItem) => {
+    if (copySuppressRef.current) {
+      copySuppressRef.current = false;
+      return;
+    }
+    handleCopy(item);
+  }, [handleCopy]);
+
   const handleTogglePin = useCallback(async (id: number) => {
     try {
       const newState = await togglePin(id);
@@ -213,6 +236,9 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
   // ---- Keyboard navigation ----
   const handleListKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (items.length === 0) return;
+    // Editing state lives inside the cards; while active, every key here
+    // belongs to the input (the inputs also stopPropagation as backup).
+    if (editingIdRef.current !== null) return;
 
     // Number keys 1-9: quick-select and copy
     if (e.key >= '1' && e.key <= '9' && !e.ctrlKey && !e.altKey && !e.metaKey) {
@@ -325,7 +351,11 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
 
   return (
     <>
-      <ScrollArea ref={listRef} onKeyDown={handleListKeyDown}>
+      <ScrollArea
+        ref={listRef}
+        onKeyDown={handleListKeyDown}
+        onMouseDownCapture={handleMouseDownCapture}
+      >
         {toast && <CopyToast message={toast.message} type={toast.type} />}
 
         {items.length === 0 && !loading && (
@@ -344,7 +374,8 @@ export default function CardList({ query, refreshKey, onClose }: Props) {
             item={item}
             deleting={deletingIds.has(item.id)}
             focused={index === focusIndex}
-            onCopy={handleCopy}
+            onCopy={handleCardCopy}
+            onEditingChange={handleEditingChange}
             onTogglePin={handleTogglePin}
             onToggleFavorite={handleToggleFavorite}
             onDelete={handleDelete}
