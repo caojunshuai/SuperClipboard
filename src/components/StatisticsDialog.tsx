@@ -21,6 +21,11 @@ const CONTRIB_CLASSES = ['bg-contrib-0', 'bg-contrib-1', 'bg-contrib-2', 'bg-con
 // the brief staleness; the cache lives for the app session only.
 let statsCache: Statistics | null = null;
 
+// Same SWR treatment for the calendar's daily counts, keyed by "year-month".
+// A cache hit renders the grid immediately (no flash to empty cells) while a
+// background revalidate refreshes it in place.
+const dailyCountsCache = new Map<string, Record<string, number>>();
+
 // Skeleton placeholder shaped like the real sections (overview cards, trend
 // calendar, top-copied, source bars, storage bars) so the layout doesn't jump
 // when data arrives. Card shells use panel-card; inner blocks skeleton-block.
@@ -106,10 +111,21 @@ export default function StatisticsDialog({ onClose }: Props) {
 
   // Fetch daily counts whenever the viewed month changes
   useEffect(() => {
+    const key = `${viewYear}-${viewMonth}`;
+    const cached = dailyCountsCache.get(key);
+    if (cached) {
+      setMonthCounts(cached);
+      setMonthLoading(false);
+    } else {
+      setMonthCounts({});
+      setMonthLoading(true);
+    }
     let cancelled = false;
-    setMonthLoading(true);
     getDailyCounts(viewYear, viewMonth)
-      .then(m => { if (!cancelled) setMonthCounts(m); })
+      .then(m => {
+        dailyCountsCache.set(key, m);
+        if (!cancelled) setMonthCounts(m);
+      })
       .catch(() => {})
       .finally(() => { if (!cancelled) setMonthLoading(false); });
     return () => { cancelled = true; };
