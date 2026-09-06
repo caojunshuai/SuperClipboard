@@ -5,3 +5,8 @@ target/
 *.log
 .claude/settings.local.json
 *.zip
+.ssh/
+.agents/
+.superpowers/
+.claude/
+src-tauri/gen/schemas/
