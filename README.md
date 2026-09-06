@@ -191,7 +191,6 @@ SuperClipboard/
 │       └── window.rs             # Shared main-window toggle (hotkey + tray)
 ├── scripts/                      # Utility scripts
 │   ├── generate-test-data.mjs    #   Test data generator (exponential distribution)
-│   ├── generate_social_preview.ps1  # Social preview card image
 │   └── package-portable.mjs      #   Build the portable zip
 ├── index.html                    # Vite entry HTML
 ├── package.json                  # npm scripts & dependencies

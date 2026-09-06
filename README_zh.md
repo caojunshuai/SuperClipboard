@@ -191,7 +191,6 @@ SuperClipboard/
 │       └── window.rs             # 主窗口显隐切换（热键与托盘共用）
 ├── scripts/                      # 工具脚本
 │   ├── generate-test-data.mjs    #   测试数据生成器（指数时间分布）
-│   ├── generate_social_preview.ps1  # 社交预览卡图生成
 │   └── package-portable.mjs      #   构建便携版 zip
 ├── index.html                    # Vite 入口 HTML
 ├── package.json                  # npm 脚本和依赖
