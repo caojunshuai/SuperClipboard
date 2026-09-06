@@ -41,7 +41,7 @@ src/                          # React frontend
     ClipboardPanel.tsx        # Main panel: search + tabs + card list / template list
     CardList.tsx              # Paged list, keyboard nav, gen counter, auto-refill after delete
     SettingsPanel.tsx         # Settings form (validation, dirty detection, clear data)
-    StatisticsDialog.tsx      # Statistics panel (recharts: trends, source apps, storage, top-copied)
+    StatisticsDialog.tsx      # Statistics panel (contribution heatmap, source apps, storage, top-copied)
     ClipboardCard.tsx         # Card shell: chrome + wiring only; state lives in hooks/
     cards/                    # TextCard / ImageCard / FileCard (per-type content rendering)
     TemplateList.tsx          # Template CRUD with placeholder substitution
@@ -98,7 +98,7 @@ scripts/
 ### Statistics (stats.rs)
 - `get_statistics` command: 7 SQL queries + fs size checks in one IPC call, returns `Statistics` struct
 - `get_daily_counts(year, month)` powers the calendar indicator dots (DatePicker `activeDays`) AND the contribution graph month view (StatisticsDialog)
-- Overview cards (total/today/week/month), contribution graph (monthly calendar heatmap, GitHub-style 4-level green scale, month navigation), source app bars (top 20 + others), top-copied list (ranked 1-10, CSS truncation), storage bars (auto unit B/KB/MB/GB)
+- Overview cards (total/today/week/month), contribution graph (monthly calendar heatmap, GitHub-style 4-level green scale, month navigation), source app bars (top 10 + others), top-copied list (ranked 1-10, CSS truncation), storage bars (auto unit B/KB/MB/GB)
 - Contribution graph: Mon-first grid, `--contrib-0..4` CSS vars in App.css (light/dark), levels bucketed by month max (sparse months max<=4 scale linearly), hover info line + Less/More legend
 - Responsive: `w-[calc(100%-2rem)] max-w-[680px]`, grid-cols-2 → grid-cols-4 at 480px
 

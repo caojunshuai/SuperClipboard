@@ -59,4 +59,3 @@
 - [ ] **其他可选优化**
   - [ ] App.tsx 标题栏拆为组件（5 个图标按钮 + 拖拽区）
   - [ ] `get_item` 调用点是否都避免了冗余查询（copy_to_clipboard / auto_paste 链路）
-  - [ ] 主包 628KB：recharts 等大依赖按需加载（StatisticsDialog 动态 import）
