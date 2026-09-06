@@ -1,6 +1,8 @@
 # SuperClipboard TODO
 
-> 只记录未完成事项。完成一项即删除。最后更新：2026-08-16
+> 只记录未完成事项。完成一项即删除。最后更新：2026-09-06
+>
+> 待定方案：[统计页加载优化](docs/statistics-loading-optimization.md)（图片磁盘占用落库 + stale-while-revalidate 缓存）
 
 ---
 

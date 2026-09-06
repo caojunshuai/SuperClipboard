@@ -15,6 +15,7 @@ npm run tauri build  # production
 npm run package      # create portable zip
 ```
 
+> CI: `.github/workflows/ci.yml` runs frontend build + `cargo fmt --check` + `cargo clippy -- -D warnings` + `cargo test --lib` on every push to master and PR — keep it green.
 > Toolchain: `stable-x86_64-pc-windows-gnu` (needs `windres.exe` from MSYS2/MinGW-w64 in PATH for the exe icon) or `stable-x86_64-pc-windows-msvc` (needs VS Build Tools C++ workload). Switch via `rustup default <triple>`, then `cargo clean`. MSVC builds link liblzma statically — no `liblzma-5.dll` needed (package script handles both).
 > Frontend build check: `npm run build` (tsc + vite). Rust check: `cd src-tauri && cargo check`.
 

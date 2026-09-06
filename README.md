@@ -1,6 +1,6 @@
 # SuperClipboard
 
-[中文文档](README_zh.md)
+[中文文档](README_zh.md) [![CI](https://github.com/caojunshuai/SuperClipboard/actions/workflows/ci.yml/badge.svg)](https://github.com/caojunshuai/SuperClipboard/actions/workflows/ci.yml)
 
 A fast, lightweight clipboard manager for Windows. Press a customizable global hotkey to summon a floating panel that shows your clipboard history — text, images, and files. Edit text inline, use fixed templates, filter by source app, pin frequently used clips, star favorites, and export your history.
 
@@ -177,15 +177,18 @@ SuperClipboard/
 │       ├── lib.rs                # Plugin setup, app initialization
 │       ├── clipboard.rs          # Windows clipboard monitor
 │       ├── hash.rs               # FNV-1a 64-bit content hash (dedup key)
-│       ├── storage.rs            # SQLite: init, CRUD, FTS, settings, templates, clear
+│       ├── storage.rs            # SQLite: init, CRUD, dedup, settings, templates, clear
 │       ├── stats.rs              # Statistics aggregations (panel + calendar dots)
 │       ├── models.rs             # Data models & type definitions
 │       ├── commands.rs           # Tauri command handlers
 │       ├── export.rs             # Text/image/backup export logic
 │       ├── hotkey.rs             # Global hotkey registration (Alt+V)
-│       └── tray.rs               # System tray icon & menu
+│       ├── tray.rs               # System tray icon & menu
+│       └── window.rs             # Shared main-window toggle (hotkey + tray)
 ├── scripts/                      # Utility scripts
-│   └── generate-test-data.mjs     #   Test data generator (exponential distribution)
+│   ├── generate-test-data.mjs    #   Test data generator (exponential distribution)
+│   ├── generate_social_preview.ps1  # Social preview card image
+│   └── package-portable.mjs      #   Build the portable zip
 ├── index.html                    # Vite entry HTML
 ├── package.json                  # npm scripts & dependencies
 ├── tsconfig.json                 # TypeScript config
@@ -203,7 +206,8 @@ lib.rs  ── App startup, DB init, clipboard monitor spawn
   ├── hash.rs       ── FNV-1a 64-bit hash (dedup key, shared by clipboard + storage)
   ├── hotkey.rs     ── Global Alt+V hotkey registration
   ├── tray.rs       ── System tray icon and context menu
-  ├── storage.rs    ── SQLite CRUD, FTS, dedup, settings, templates, clear
+  ├── window.rs     ── Shared main-window show/hide toggle
+  ├── storage.rs    ── SQLite CRUD, dedup, settings, templates, clear
   ├── stats.rs      ── Statistics queries (panel aggregations, calendar dots)
   ├── models.rs     ── ClipboardItem, ItemType, HistoryQuery, Template, settings structs
   ├── commands.rs   ── Tauri IPC command handlers
@@ -230,7 +234,7 @@ User copies → Windows clipboard
 - **Window drag** uses direct `PostMessageW` instead of Tauri's `startDragging()` — avoids async IPC losing the mouse gesture
 - **Image preview** opens independent Tauri windows per image — spawns an OS thread for `build()` to avoid tokio deadlock, uses `HashMap` keyed by window label for per-window state, polls for WebView2 IPC readiness
 - **i18n** uses `react-i18next` with JSON locale files — auto-detects system language on first launch, persisted in SQLite settings, instant switching without reload
-- **CJK search** uses SQL `LIKE` instead of FTS5 — FTS5's `unicode61` tokenizer can't handle CJK without word boundaries; `LIKE` is fast enough at clipboard scale (thousands of items)
+- **CJK search** uses SQL `LIKE` instead of FTS5 — FTS5's `unicode61` tokenizer can't handle CJK without word boundaries; `LIKE` (with `%`/`_` escaped) is fast enough at clipboard scale (thousands of items)
 
 ### Building for Release
 

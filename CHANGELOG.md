@@ -1,3 +1,37 @@
+## 🎉 v0.9.1 — Hardening, Preview Window & Statistics Polish
+
+> Released 2026-09-06 · 55 commits since v0.9.0
+
+### ✨ New Features
+
+- **Image Preview Window** — standalone undecorated preview matching the main UI theme, fully localized (zh-CN / en-US), theme-aware, no blank flash on open.
+- **Backup/Restore Progress** — throttled progress events with a real progress bar; restore moves during file reading, not just import.
+- **Close-after-Copy Setting** — optionally keep the panel open after copying (honored for templates too).
+- **Cyclic Pagination** — PageUp/PageDown and footer buttons wrap around the card list.
+- **Contribution Graph** — GitHub-style monthly heatmap replaces the trend bar chart, with year navigation, responsive cells, calendar dots on the date picker.
+- **Statistics Polish** — skeleton loading screen, top-10 source apps, aligned bars.
+- **Storage Limits** — caps raised to 10,000 items / 1,000 images; limits enforced across all items with pinned/favorite protection; evicted image records delete their files.
+- **CI** — GitHub Actions workflow: tsc build, rustfmt, clippy `-D warnings`, unit tests.
+
+### 🔧 Improvements
+
+- Copy-error handling switched to structured error codes (`CopyError`) with i18n mapping instead of string matching.
+- New clipboard items insert incrementally into the visible list — no more page reset while browsing.
+- Dedup verifies actual content after a content-hash hit, so hash collisions can't drop data.
+- Heavy IO (backup/restore/export/clear/statistics) moved off the main thread via async commands.
+- Settings persist as a single atomic JSON row (legacy per-key settings migrated transparently).
+- Search escapes `%`/`_` wildcards; unused FTS5 table removed (with migration).
+- IPC file access (`read_image_base64` / `open_image_preview`) restricted to the app data dir.
+- Backup/restore/export dialogs default to the portable app's `backups`/`exports` dirs.
+- Unit tests for hashing, hotkey parsing, DIB decoding and storage behaviour; clippy clean at `-D warnings`.
+
+### 🐛 Fixes
+
+- Calendar week statistics no longer misalign.
+- Floating collapse button no longer hides under the pagination footer; card editing no longer triggers list shortcuts or click-to-copy.
+- DB file actually shrinks after clear-data in WAL mode.
+- Image files deleted when cleanup evicts their records.
+
 ## 🎉 v0.9.0 — Statistics, Templates, Text Editor & More
 
 > Released 2026-06-20 · 50+ commits since v0.3.0

@@ -1,6 +1,6 @@
 # SuperClipboard
 
-[English](README.md)
+[English](README.md) [![CI](https://github.com/caojunshuai/SuperClipboard/actions/workflows/ci.yml/badge.svg)](https://github.com/caojunshuai/SuperClipboard/actions/workflows/ci.yml)
 
 Windows 平台轻量级剪切板管理器。按自定义全局快捷键呼出悬浮面板，浏览剪切板历史记录——文字、图片、文件路径。支持内联编辑、固定模板、来源筛选、置顶、收藏、导出等操作。
 
@@ -177,15 +177,18 @@ SuperClipboard/
 │       ├── lib.rs                # 插件注册，应用初始化
 │       ├── clipboard.rs          # Windows 剪切板监听
 │       ├── hash.rs               # FNV-1a 64 位内容哈希（去重键）
-│       ├── storage.rs            # SQLite：初始化、CRUD、FTS、设置、模板、清理
+│       ├── storage.rs            # SQLite：初始化、CRUD、去重、设置、模板、清理
 │       ├── stats.rs              # 统计聚合（统计面板 + 日历圆点）
 │       ├── models.rs             # 数据模型和类型定义
 │       ├── commands.rs           # Tauri 命令处理（IPC）
 │       ├── export.rs             # 文字/图片/备份导出逻辑
 │       ├── hotkey.rs             # 全局热键注册（Alt+V）
-│       └── tray.rs               # 系统托盘图标和菜单
+│       ├── tray.rs               # 系统托盘图标和菜单
+│       └── window.rs             # 主窗口显隐切换（热键与托盘共用）
 ├── scripts/                      # 工具脚本
-│   └── generate-test-data.mjs     #   测试数据生成器（指数时间分布）
+│   ├── generate-test-data.mjs    #   测试数据生成器（指数时间分布）
+│   ├── generate_social_preview.ps1  # 社交预览卡图生成
+│   └── package-portable.mjs      #   构建便携版 zip
 ├── index.html                    # Vite 入口 HTML
 ├── package.json                  # npm 脚本和依赖
 ├── tsconfig.json                 # TypeScript 配置
@@ -203,7 +206,8 @@ lib.rs  ── 应用启动，数据库初始化，剪切板监听线程
   ├── hash.rs       ── FNV-1a 64 位哈希（去重键，clipboard 与 storage 共用）
   ├── hotkey.rs     ── 全局 Alt+V 热键注册
   ├── tray.rs       ── 系统托盘图标和右键菜单
-  ├── storage.rs    ── SQLite CRUD，全文搜索，去重，设置，模板，清理
+  ├── window.rs     ── 主窗口显隐切换（热键与托盘共用）
+  ├── storage.rs    ── SQLite CRUD，去重，设置，模板，清理
   ├── stats.rs      ── 统计查询（统计面板聚合、日历圆点）
   ├── models.rs     ── ClipboardItem、ItemType、HistoryQuery、Template，设置结构体
   ├── commands.rs   ── Tauri IPC 命令处理器
@@ -230,7 +234,7 @@ lib.rs  ── 应用启动，数据库初始化，剪切板监听线程
 - **窗口拖拽** 直接使用 `PostMessageW` 而非 Tauri 的 `startDragging()`——避免异步 IPC 丢失鼠标事件上下文
 - **图片预览** 使用独立 Tauri 窗口——在线程中调用 `build()` 以避免 tokio 死锁；通过窗口标签隔离状态；轮询等待 WebView2 IPC 就绪
 - **国际化** 基于 `react-i18next` + JSON 翻译文件——首次启动识别系统语言，设置持久化到 SQLite，切换即时生效无需重启
-- **搜索** 统一使用 SQL `LIKE` 做子串匹配——FTS5 默认分词器无法处理 CJK；剪切板规模下（数千条）LIKE 足够快
+- **搜索** 统一使用 SQL `LIKE` 做子串匹配（转义 `%`/`_` 通配符）——FTS5 默认分词器无法处理 CJK；剪切板规模下（数千条）LIKE 足够快
 
 ### 发布构建
 
