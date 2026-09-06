@@ -6,6 +6,10 @@ Windows 平台轻量级剪切板管理器。按自定义全局快捷键呼出悬
 
 基于 **Tauri 2 + React + TypeScript + Tailwind CSS** 构建。
 
+## 下载
+
+从 [Releases](https://github.com/caojunshuai/SuperClipboard/releases) 获取最新的便携版 zip,解压到任意位置(避开 `C:\Program Files\`),运行 `SuperClipboard.exe` 即可。也可以按下方说明自行构建。
+
 ## 功能
 
 ### 剪切板历史
@@ -19,8 +23,8 @@ Windows 平台轻量级剪切板管理器。按自定义全局快捷键呼出悬
 - **类型筛选** — 文字 / 图片 / 文件 / 模板
 - **来源筛选** — 按来源应用筛选文本记录（自动采集前台窗口进程名）
 - **日期筛选** — 今天 / 3 天 / 7 天 / 自定义
-- **键盘导航** — ↑↓ 移动，Enter 复制，Delete 删除，1-9 快速选择，Esc 关闭
-- **分页浏览** — ← 上一页 | 1/20 | 下一页 →，每页数量可配置（10/20/30/40/50），支持海量记录
+- **键盘导航** — ↑↓ 移动，Enter 复制，Delete 删除，1-9 快速选择，Home/End 跳转，PageUp/PageDown 翻页，Esc 关闭
+- **分页浏览** — ← 上一页 | 1/20 | 下一页 →，首尾循环翻转，每页数量可配置（10/20/30/40/50），支持海量记录
 - **收藏标签页** — 一键查看星标条目
 
 ### 编辑与模板
@@ -70,7 +74,7 @@ Windows 平台轻量级剪切板管理器。按自定义全局快捷键呼出悬
 - **系统托盘** — 常驻通知区域，左键切换面板
 - **拖拽移动** — 拖拽标题栏任意位置移动窗口
 - **关于页面** — ℹ️ 显示版本号、构建时间、意见反馈链接（可跳转浏览器）
-- **智能时间** — 今天（Today）、昨天（Yesterday）、更早（YYYY-MM-DD）
+- **智能时间** — 今天（今天 HH:MM:SS）、昨天（昨天 HH:MM:SS）、更早（YYYY-MM-DD HH:MM:SS）
 - **自定义右键菜单** — 右键选中文字即可复制
 - **悬停提示** — 鼠标悬停文件路径查看完整路径
 - **按钮动效** — 点击图标有缩放反馈，删除有淡出动画
@@ -221,14 +225,14 @@ lib.rs  ── 应用启动，数据库初始化，剪切板监听线程
   → clipboard.rs 轮询 GetClipboardSequenceNumber()
     → 检测到变化 → 读取 CF_* 格式
       → 计算 FNV-1a 内容哈希
-        → upsert_item()：检查哈希 → 新记录或更新时间戳
+        → upsert_item()：检查哈希 + 内容 → 新记录或更新时间戳
           → 发送 'clipboard-changed' 事件到前端
             → React 刷新列表
 ```
 
 ### 关键设计决策
 
-- **去重** 使用 FNV-1a 64 位哈希，对原始字节内容计算——确定性、速度快
+- **去重** 使用 FNV-1a 64 位哈希，对原始字节内容计算——确定性、速度快。哈希仅作预筛选：命中后再比对实际内容，哈希碰撞也绝不会吞掉新数据
 - **图片处理** 使用 top-down DIB（负 biHeight）——直接转为 PNG 存储
 - **文件粘贴** 使用 CF_HDROP 配合 `DROPFILES` 结构——粘贴为真实文件
 - **窗口拖拽** 直接使用 `PostMessageW` 而非 Tauri 的 `startDragging()`——避免异步 IPC 丢失鼠标事件上下文
@@ -246,7 +250,7 @@ npm run tauri build
 npm run package
 ```
 
-exe 生成在 `src-tauri/target/release/SuperClipboard.exe`。zip 为自包含便携包——数据目录和数据库首次运行时自动在 exe 旁边创建。解压到除 `C:\Program Files\` 以外的任意位置（系统目录需要管理员写入权限）。
+exe 生成在 `src-tauri/target/release/SuperClipboard.exe`。便携 zip 完全自包含——MSVC 构建静态链接 WebView2Loader 和 liblzma，无需额外 DLL；GNU/MinGW 构建的打包脚本会检测 exe 导入表并附带 `liblzma-5.dll`。需要 WebView2 运行时（Windows 10/11 已预装）。数据目录和数据库首次运行时自动在 exe 旁边创建。解压到除 `C:\Program Files\` 以外的任意位置（系统目录需要管理员写入权限）。
 
 ### 图标生成
 

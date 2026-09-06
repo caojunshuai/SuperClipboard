@@ -6,6 +6,10 @@ A fast, lightweight clipboard manager for Windows. Press a customizable global h
 
 Built with **Tauri 2 + React + TypeScript + Tailwind CSS**.
 
+## Download
+
+Grab the latest portable zip from [Releases](https://github.com/caojunshuai/SuperClipboard/releases), extract anywhere (avoid `C:\Program Files\`), and run `SuperClipboard.exe`. Or build from source below.
+
 ## Features
 
 ### Clipboard History
@@ -19,8 +23,8 @@ Built with **Tauri 2 + React + TypeScript + Tailwind CSS**.
 - **Filter by type** — text / image / file / template
 - **Source app filter** — filter text clips by source application (auto-collected from foreground window)
 - **Date filters** — today / 3 days / 7 days / custom range with date picker
-- **Keyboard navigation** — ↑↓ to move, Enter to copy, Delete to remove, 1-9 quick select, Esc to close
-- **Page navigation** — ← Prev | 1/20 | Next → pagination, configurable page size (10/20/30/40/50), supports thousands of records
+- **Keyboard navigation** — ↑↓ to move, Enter to copy, Delete to remove, 1-9 quick select, Home/End to jump, PageUp/PageDown to flip pages, Esc to close
+- **Page navigation** — ← Prev | 1/20 | Next → pagination that wraps around, configurable page size (10/20/30/40/50), supports thousands of records
 - **Favorites tab** — quick access to starred items
 
 ### Edit & Templates
@@ -70,7 +74,7 @@ Built with **Tauri 2 + React + TypeScript + Tailwind CSS**.
 - **System tray** — runs quietly in the notification area
 - **Drag to move** — drag the title bar to reposition the window
 - **About dialog** — ℹ️ shows version, build time, and feedback link (opens in browser)
-- **Smart timestamps** — today (Today), yesterday (Yesterday), older (YYYY-MM-DD)
+- **Smart timestamps** — today (Today HH:MM:SS), yesterday (Yesterday HH:MM:SS), older (YYYY-MM-DD HH:MM:SS)
 - **Custom context menu** — right-click selected text to copy
 - **Tooltips** — hover on file paths to see the full path
 - **Delete animation** — graceful fade-out when removing items
@@ -221,14 +225,14 @@ User copies → Windows clipboard
   → clipboard.rs polls GetClipboardSequenceNumber()
     → detects change → reads CF_* formats
       → computes FNV-1a content hash
-        → upsert_item(): checks hash → new row or bump timestamp
+        → upsert_item(): checks hash + content → new row or bump timestamp
           → emits 'clipboard-changed' event to frontend
             → React re-renders clip list
 ```
 
 ### Key Design Decisions
 
-- **Deduplication** uses FNV-1a 64-bit hashing on raw content bytes — deterministic and fast
+- **Deduplication** uses FNV-1a 64-bit hashing on raw content bytes — deterministic and fast. The hash is only a prefilter: on a hash hit the actual content is compared, so a hash collision can never swallow new data
 - **Image clipboard** uses top-down DIBs (negative biHeight) — converted to PNG for storage
 - **File clipboard** uses CF_HDROP with the `DROPFILES` structure — pastes as real files, not paths
 - **Window drag** uses direct `PostMessageW` instead of Tauri's `startDragging()` — avoids async IPC losing the mouse gesture
