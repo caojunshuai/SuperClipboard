@@ -13,6 +13,7 @@ npm install          # first time only
 npm run tauri dev    # development
 npm run tauri build  # production
 npm run package      # create portable zip
+npm run version:bump 0.9.2   # bump app version (Cargo.toml + package.json + lock)
 ```
 
 > CI: `.github/workflows/ci.yml` runs frontend build + `cargo fmt --check` + `cargo clippy -- -D warnings` + `cargo test --lib` on every push to master and PR — keep it green.
